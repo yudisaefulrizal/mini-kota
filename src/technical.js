@@ -1,3 +1,4 @@
+import './theme.js';
 import {DEVICES,ZONES,SHORT_NAMES,linksOf,networkLinks} from './devices.js';
 const FIELDS=[['count','Jumlah'],['role','Fungsi'],['hardware','Perangkat keras'],['os','Sistem operasi'],['software','Perangkat lunak'],['protocol','Koneksi & protokol']];
 const byId=Object.fromEntries(DEVICES.map(d=>[d.id,d]));

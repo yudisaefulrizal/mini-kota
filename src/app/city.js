@@ -7,6 +7,7 @@ import {NetworkLayer} from '../map/network-layer.js';
 import {TrafficEngine} from '../traffic/engine.js';
 import {TrafficView} from '../traffic/view.js';
 import {ZoneLayer} from '../traffic/zones.js';
+import {onThemeChange} from '../theme.js';
 
 // One city of the comparison: its own scene (ground, roads, placed assets), traffic model
 // and view. The ordinary city ('baseline') runs fixed-time lights and empties bins on a
@@ -26,6 +27,7 @@ export class City{
   constructor(kind,manifest){
     this.kind=kind;
     this.scene=new THREE.Scene();this.scene.background=new THREE.Color(0xe4eae0);
+    onThemeChange(dark=>this.scene.background.setHex(dark?0x1a2420:0xe4eae0));
     this.scene.add(new THREE.HemisphereLight(0xffffff,0x8a9a80,1.7));
     const sun=new THREE.DirectionalLight(0xfff4e0,1.6);sun.position.set(-200,400,-150);this.scene.add(sun);
     this.objects=new ObjectLayer(this.scene);this.objects.manifest=manifest;

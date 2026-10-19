@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import './theme.js';
 import './style.css';
 import './scenario.css';
 import './app/app.css';

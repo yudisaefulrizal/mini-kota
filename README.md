@@ -34,6 +34,9 @@ Buka alamat yang ditampilkan terminal (biasanya http://localhost:5173). Jangan m
 | `diagram-3d.html` | Diagram 3D alur perangkat |
 | `aset.html` | Pratinjau semua model 3D |
 
+Semua halaman punya **mode gelap**: mengikuti pengaturan sistem, atau pilih lewat tombol
+*Tema* (otomatis → terang → gelap; pilihan diingat browser).
+
 Navigasi peta cukup dengan mouse: klik kanan + seret putar dan miringkan, klik kiri/tengah +
 seret geser, roda zoom ke arah kursor, dobel klik kanan terbang ke titik.
 

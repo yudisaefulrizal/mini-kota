@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {onThemeChange} from './theme.js';
 import {validateMap,emptyMap,DEFAULT_PROFILES} from './map/format.js';
 import {buildGeometry,pointAt,polylineLength,CLUSTER_LINK} from './map/geometry.js';
 import {buildRoadMeshes,buildGraphOverlay,buildLots,ROAD_COLORS} from './map/mesh.js';
@@ -36,6 +37,7 @@ try{renderer=new THREE.WebGLRenderer({antialias:true});}catch{$('stage-error').h
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));stage.prepend(renderer.domElement);
 const canvas=renderer.domElement;
 const scene=new THREE.Scene();scene.background=new THREE.Color(0xe4eae0);
+onThemeChange(dark=>scene.background.setHex(dark?0x1a2420:0xe4eae0));
 const camera=new THREE.PerspectiveCamera(40,1,0.5,5000);
 // Navigation: right drag pans, middle drag orbits round the point under the cursor, the
 // wheel zooms towards the cursor (src/map/camera-controls.js). The left button edits.

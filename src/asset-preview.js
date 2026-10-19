@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {onThemeChange} from './theme.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 
@@ -9,6 +10,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const stage=$('stage');
 const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;stage.appendChild(renderer.domElement);
 const scene=new THREE.Scene();scene.background=new THREE.Color(0xeef3ec);
+onThemeChange(dark=>scene.background.setHex(dark?0x1a2420:0xeef3ec));
 const camera=new THREE.PerspectiveCamera(35,1,.05,2000);
 const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;
 scene.add(new THREE.HemisphereLight(0xffffff,0x9aa894,1.6));
@@ -16,6 +18,7 @@ const sun=new THREE.DirectionalLight(0xffffff,2);sun.position.set(40,80,60);sun.
 Object.assign(sun.shadow.camera,{left:-60,right:60,top:60,bottom:-60,far:300});scene.add(sun);
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(400,400),new THREE.MeshStandardMaterial({color:0xd9e2d5,roughness:1}));ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
 const grid=new THREE.GridHelper(100,100,0x9fb19b,0xc3cfbf);grid.position.y=.002;scene.add(grid);
+onThemeChange(dark=>{ground.material.color.setHex(dark?0x2a3530:0xd9e2d5);grid.material.color.setScalar(dark?0.35:1);});
 // Front of every asset is +Z.
 const arrow=new THREE.ArrowHelper(new THREE.Vector3(0,0,1),new THREE.Vector3(0,.02,0),1.5,0x2f7fc1,.25,.15);scene.add(arrow);
 

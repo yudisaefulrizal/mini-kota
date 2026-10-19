@@ -1,16 +1,16 @@
 /* Device legend and card of the "Cerdas × perangkat" view (same look as in the editor). */
-.net-legend{position:absolute;left:12px;top:60px;z-index:3;background:#ffffffed;border-radius:8px;padding:8px 11px;font-size:11px;color:#36533f;box-shadow:0 4px 15px #3450300f;max-width:250px}
+.net-legend{position:absolute;left:12px;top:60px;z-index:3;background:var(--c-ffffffed);border-radius:8px;padding:8px 11px;font-size:11px;color:var(--c-36533f);box-shadow:0 4px 15px var(--c-3450300f);max-width:250px}
 .net-legend[hidden]{display:none}.net-legend summary{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;cursor:pointer}
 .net-legend>div{display:grid;gap:4px;margin-top:6px}.net-legend span{display:flex;align-items:center;gap:7px}
-.net-legend i,.device-card h3 i{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;color:#fff;font-style:normal;font-size:9px;font-weight:700;flex:none;border:1.5px solid #fff;box-shadow:0 0 0 1px #0002}
+.net-legend i,.device-card h3 i{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;color:var(--c-ffffff);font-style:normal;font-size:9px;font-weight:700;flex:none;border:1.5px solid var(--c-ffffff);box-shadow:0 0 0 1px var(--c-00000022)}
 .net-legend i.square,.device-card h3 i.square{border-radius:4px;width:20px}
 .net-legend .legend-sub{margin-top:5px;font-size:10px;letter-spacing:.5px;text-transform:uppercase}
-.net-legend small{color:#6c806e;font-size:10.5px}.net-legend small.bad{color:#a33b25}
+.net-legend small{color:var(--c-6c806e);font-size:10.5px}.net-legend small.bad{color:var(--c-a33b25)}
 .net-swatch{display:inline-block;width:20px;height:0;border-top:3px solid var(--c);flex:none}.net-swatch.lora{border-top-style:dashed}
 .net-rows{display:grid;gap:4px;font-size:12px;margin:8px 0}.net-rows span{display:flex;align-items:center;gap:7px;line-height:1.35}
 .device-card h3{display:flex;align-items:center;gap:8px;margin:0 22px 8px 0}
-.device-card dl{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:4px 12px;margin:0}.device-card dt{color:#6c806e}.device-card dd{margin:0;font-weight:600;text-align:right}
-.device-card .close{position:absolute;right:8px;top:6px;border:0;background:none;font-size:18px;cursor:pointer;color:#6c806e}
+.device-card dl{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:4px 12px;margin:0}.device-card dt{color:var(--c-6c806e)}.device-card dd{margin:0;font-weight:600;text-align:right}
+.device-card .close{position:absolute;right:8px;top:6px;border:0;background:none;font-size:18px;cursor:pointer;color:var(--c-6c806e)}
 .row-buttons{display:flex;gap:6px;margin:4px 0}.row-buttons button{flex:1}
 #map-status{margin:2px 0 8px}
 #scenario .field select{min-width:0;max-width:62%;flex:1 1 auto}

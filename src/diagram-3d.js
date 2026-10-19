@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {onThemeChange} from './theme.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {CSS2DRenderer,CSS2DObject} from 'three/addons/renderers/CSS2DRenderer.js';
 import {DEVICES,ZONES,SHORT_NAMES,PROCESSES,FLOW_TYPES,FLOWS,TOUR,NETWORKS} from './devices.js';
@@ -87,12 +88,14 @@ function buildScene(){
   view.appendChild(renderer.domElement);
   const labels=new CSS2DRenderer();Object.assign(labels.domElement.style,{position:'absolute',inset:'0',pointerEvents:'none'});view.appendChild(labels.domElement);
   const scene=new THREE.Scene();scene.background=new THREE.Color(0xeef3ec);
+  onThemeChange(dark=>scene.background.setHex(dark?0x1a2420:0xeef3ec));
   const camera=new THREE.PerspectiveCamera(40,1,1,1000);
   const homePosition=()=>{const half=Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*camera.aspect);return HOME_TARGET.clone().addScaledVector(HOME_DIR,Math.max(70,66/Math.tan(half)+12));};
   const controls=new OrbitControls(camera,renderer.domElement);controls.target.copy(HOME_TARGET);controls.enableDamping=true;controls.maxPolarAngle=Math.PI/2.15;controls.minDistance=18;controls.maxDistance=320;
   scene.add(new THREE.HemisphereLight(0xffffff,0xb9cbb8,1.7));
   const sun=new THREE.DirectionalLight(0xffffff,1.8);sun.position.set(-40,90,50);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-90,right:90,top:50,bottom:-50,far:250});scene.add(sun);
   const ground=new THREE.Mesh(new THREE.PlaneGeometry(260,140),new THREE.MeshStandardMaterial({color:0xe6ece3,roughness:1}));ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+  onThemeChange(dark=>ground.material.color.setHex(dark?0x222c27:0xe6ece3));
 
   const mat=(color,extra={})=>new THREE.MeshStandardMaterial({color,roughness:.6,metalness:.1,...extra});
   const glow=color=>new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:.9});
@@ -101,6 +104,7 @@ function buildScene(){
 
   for(const [zone,label] of ZONES){
     const z=ZONE_LAYOUT[zone],slab=new THREE.Mesh(new THREE.BoxGeometry(z.w,.6,40),mat(z.color,{roughness:.9}));
+    onThemeChange(dark=>slab.material.color.setHex(z.color).multiplyScalar(dark?0.22:1));
     slab.position.set(z.x,.3,0);slab.receiveShadow=true;scene.add(slab);
     const anchor=new THREE.Object3D();anchor.position.set(z.x,.7,21.5);scene.add(anchor);tag(label,'zone-label',0,anchor);
   }
