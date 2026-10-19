@@ -512,7 +512,8 @@ menutupi. Kamera kubah tidak lagi dipasang otomatis (peta lama yang memakainya t
   17–40 perjalanan. Kini kedua kota mendapat perjalanan yang identik (diuji).
 - **Sifat pengemudi**: kecepatan pilihan = batas × faktor jenis × faktor pengemudi (sebaran
   bawaan 10%, dipotong di ±2 sebaran), jarak waktu 1,05–1,35 detik. Pengaturan *Sebaran
-  kecepatan pengemudi* (0–30%).
+  kecepatan pengemudi* (0–30%) di aplikasi utama dan di panel simulasi editor; di editor
+  keduanya (juga *Kendaraan boleh menyalip*) bisa diubah saat simulasi berjalan.
 - **Menyalip** (gaya MOBIL): pindah ke lajur kanan bila percepatan di sana lebih besar
   ≥ 0,4 m/s², kendaraan di belakang di lajur itu tidak perlu mengerem lebih dari 2,5 m/s²,
   ≥ 60 m dari ujung ruas, bukan bundaran, bukan kendaraan yang akan berhenti. Kembali ke kiri

@@ -790,7 +790,8 @@ let sim=null;   // {engine, view, paused, accumulator, statsTimer}
 async function startSim(){
   if(sim)return;
   let engine;
-  try{engine=new TrafficEngine(map,{demand:Number($('sim-demand').value)||0,adaptive:$('sim-adaptive').checked,pedestrians:Math.max(0,Number($('sim-people').value)||0)});}
+  try{engine=new TrafficEngine(map,{demand:Number($('sim-demand').value)||0,adaptive:$('sim-adaptive').checked,pedestrians:Math.max(0,Number($('sim-people').value)||0),
+    speedSpread:spreadValue(),overtaking:$('sim-overtaking').checked});}
   catch(error){status(`Simulasi tidak bisa dimulai: ${error.message}`,true);return;}
   if(!engine.origins.length){status('Peta belum punya ujung jalan yang tersambung untuk kendaraan masuk dan keluar.',true);return;}
   cancelDrawing();selection=null;activeHandle=null;renderSelection();setTool('select');
@@ -836,6 +837,7 @@ function renderSimStats(){
     ['Perjalanan selesai',s.completed],['Rata-rata tempuh',s.completed?`${fmt(s.averageTravel)} dtk`:'—'],['Total waktu antre',`${fmt(s.queueSeconds/60,0)} mnt`],['Arus keluar',`${fmt(s.throughput,0)} /jam`]];
   if(s.signals)rows.push(['Simpang dengan CCTV',`${s.sensedSignals} dari ${s.signals}`],['Kendaraan terhitung CCTV',fmt(sim.engine.sensors.reduce((n,x)=>n+x.count,0),0)]);
   if(sim.engine.busStops.length)rows.push(['Angkot singgah di halte',s.busStops]);
+  rows.push(['Kendaraan menyalip',s.overtakes]);
   if(s.bins)rows.push(['Tempat sampah dikosongkan',s.binsEmptied],['Tempat sampah penuh',s.binsFull]);
   if(s.pedestrians)rows.push(['Pejalan kaki menyeberang',s.pedestrians.crossings],['Menunggu menyeberang',s.pedestrians.waiting]);
   $('sim-stats').innerHTML=rows.map(([k,v])=>`<div><span>${k}</span><strong>${v}</strong></div>`).join('');
@@ -852,6 +854,10 @@ function stepSim(delta){
 $('sim-toggle').onclick=()=>sim?stopSim():startSim();
 $('sim-pause').onclick=toggleSimPause;$('sim-stop').onclick=stopSim;$('sim-start').onclick=startSim;
 $('sim-demand').onchange=e=>{if(sim)sim.engine.demand=Math.max(0,Number(e.target.value)||0);};
+// Both apply at once: the spread to drivers arriving from now on, overtaking to everyone.
+function spreadValue(){return Math.min(30,Math.max(0,Number($('sim-spread').value)||0))/100;}
+$('sim-spread').onchange=()=>{if(sim)sim.engine.speedSpread=spreadValue();};
+$('sim-overtaking').onchange=e=>{if(sim)sim.engine.overtaking=e.target.checked;};
 $('sim-adaptive').onchange=e=>{if(sim)sim.engine.adaptive=e.target.checked;showAdaptiveNote();};
 // Adaptive lights only work where a CCTV watches the junction; say so when some lack one.
 function showAdaptiveNote(){

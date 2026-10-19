@@ -35,6 +35,10 @@ try{
   assert.equal(state.lamps,4,'the four placed traffic lights are bound to their approaches');
   assert.equal(state.summary.redViolations,0);
   assert.match(await page.textContent('#sim-stats'),/Perjalanan selesai/);
+  // Driver settings reach the running simulation.
+  assert.match(await page.textContent('#sim-stats'),/Kendaraan menyalip\s*\d+/);
+  await page.fill('#sim-spread','20');await page.dispatchEvent('#sim-spread','change');await page.uncheck('#sim-overtaking');
+  assert.deepEqual(await page.evaluate(()=>{const e=window.mapEditor.sim.engine;return [e.speedSpread,e.overtaking];}),[0.2,false]);
 
   // Some lamp of a placed light is lit.
   const lit=await page.evaluate(()=>window.mapEditor.sim.view.lamps.some(l=>l.lamps.some(x=>x.mesh.material.emissiveIntensity>0)));
