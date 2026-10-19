@@ -40,7 +40,9 @@ try{
   let s=await at(cctv.x,cctv.z);await page.mouse.move(s.x,s.y);await page.mouse.down();
   const to=await at(250,100);await page.mouse.move(to.x,to.y,{steps:8});await page.mouse.up();
   const moved=(await objects()).find(o=>o.id===cctv.id);
-  assert.ok(moved.x>200&&moved.z<110-7.3,`snapped to the kerb of the east road, got ${moved.x},${moved.z}`);
+  // Near a junction a pole camera goes across it, facing the approach it was dropped on.
+  assert.ok(moved.x!==cctv.x||moved.z!==cctv.z,'moved');
+  assert.match(await page.textContent('#status'),/Di seberang simpang .*menghadap pendekat/);
   await page.keyboard.press('Delete');
   assert.equal((await objects()).length,2);
   await page.keyboard.press('Control+z');

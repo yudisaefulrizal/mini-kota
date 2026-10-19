@@ -6,6 +6,7 @@ import {ObjectLayer} from '../map/object-layer.js';
 import {NetworkLayer} from '../map/network-layer.js';
 import {TrafficEngine} from '../traffic/engine.js';
 import {TrafficView} from '../traffic/view.js';
+import {ZoneLayer} from '../traffic/zones.js';
 
 // One city of the comparison: its own scene (ground, roads, placed assets), traffic model
 // and view. The ordinary city ('baseline') runs fixed-time lights and empties bins on a
@@ -31,6 +32,9 @@ export class City{
     manifest.then(m=>{this.objects.categories=m.categories;for(const a of m.assets)this.objects.assets.set(a.id,a);});
     this.network=kind==='smart'?new NetworkLayer(this.scene):null;
     if(this.network)this.network.visible=false;
+    // The smart city's cameras and their detection zones (shown with its devices).
+    this.zones=kind==='smart'?new ZoneLayer(this.scene):null;
+    if(this.zones)this.zones.visible=false;
     this.base=null;this.engine=null;this.view=null;
   }
   // Builds the city on a map; returns when vehicles can be drawn.
@@ -47,6 +51,7 @@ export class City{
     this.objects.sync(this.map);this.objects.updateLinks(false);
     this.engine=new TrafficEngine(this.map,engineOptions(this.kind,settings));
     if(this.network){this.network.sync(this.map);this.network.reset();}
+    this.zones?.build(this.engine);
     this.view=new TrafficView(this.scene,this.objects);
     await this.view.init(this.engine);
     return this;
@@ -57,11 +62,12 @@ export class City{
     if(!this.view?.engine)return;
     this.view.update();this.view.layoutTimers(camera,height,labels);
     if(this.network){this.network.visible=network;this.network.update(paused?0:dt,camera,height,this.engine);}
+    if(this.zones){this.zones.visible=network;this.zones.update(paused?0:dt,camera,height,{selected:this.network?.selected});}
   }
   // What can be picked under the pointer (anchor for the camera, icons for devices).
   pickables(){return [this.base,this.objects.group].filter(Boolean);}
   dispose(){
-    this.view?.dispose();this.view=null;this.engine=null;
+    this.view?.dispose();this.view=null;this.engine=null;this.zones?.clear();
     if(this.base){this.scene.remove(this.base);this.base.traverse(o=>{o.geometry?.dispose?.();});this.base=null;}
     for(const [,holder] of this.objects.meshes)this.objects.group.remove(holder);this.objects.meshes.clear();
   }

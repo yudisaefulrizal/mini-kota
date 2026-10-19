@@ -198,7 +198,7 @@ diubah dan menjalankannya dua kali tidak menambah apa-apa. Satu kali *undo* memb
 
 | Tempat | Yang dipasang |
 |---|---|
-| Simpang berlampu | Lampu per pendekat (tiang lengan untuk jalan 2 lajur, panah kanan bila polanya berpanah), lampu penyeberang di zebra cross, kabinet pengendali, CCTV kubah, gateway |
+| Simpang berlampu | Lampu per pendekat (tiang lengan untuk jalan 2 lajur, panah kanan bila polanya berpanah), lampu penyeberang di zebra cross, kabinet pengendali, CCTV tiang per pendekat (di seberang simpang, menghadap arus datang), gateway |
 | Kawasan (lot) | Gedung sesuai jenisnya: deretan rumah, sekolah, kampus, pabrik, kantor, mal, pusat data, TPS3R; taman berisi pohon, semak, bangku, dan orang |
 | Tepi jalan | Lampu jalan tiap ±36 m berselang-seling, pohon di belakang trotoar, halte di depan sekolah/kampus/pusat belanja/kantor, tempat sampah bersensor dan gateway LoRaWAN-nya di depan kawasan |
 
@@ -207,7 +207,8 @@ gedung diputar seperempat.
 
 **Perangkat ikut bekerja di simulasi** (`src/traffic/engine.js`):
 
-- **CCTV** (kubah di sudut simpang melihat semua pendekat; CCTV tiang melihat satu pendekat)
+- **CCTV** (tiang di seberang simpang, melihat satu pendekat yang dihadapinya; kubah dari peta
+  lama melihat semua pendekat)
   menghitung kendaraan. **Lampu adaptif hanya bekerja di simpang yang punya CCTV**; simpang
   tanpa CCTV tetap memakai waktu tetap, dan panel simulasi menyebutkan berapa simpang yang
   belum punya CCTV. Kamera menghitung semua kendaraan yang menuju pendekat itu dalam 80 m,
@@ -284,8 +285,8 @@ memandang lurus dari atas dengan utara di atas; menggeser dan zoom tetap di mode
 Lapisan **Jaringan perangkat** di editor digambar seperti peta perangkat di tampilan kota lama
 (`src/map/network.js` untuk aturannya, `src/map/network-layer.js` untuk gambarnya):
 
-- **Ikon berhuruf** di atas tiap perangkat, ukurannya tetap terbaca di layar: A CCTV simpang,
-  R CCTV ruas, S sensor tempat sampah, L pengendali simpang, GW gateway, DC pusat data.
+- **Ikon berhuruf** di atas tiap perangkat, ukurannya tetap terbaca di layar: A CCTV pendekat,
+  K CCTV kubah (peta lama), S sensor tempat sampah, L pengendali simpang, GW gateway, DC pusat data.
 - **Sambungan** berwarna menurut medianya, sama dengan diagram perangkat:
   - **LAN** (kabel pendek, < 1 ms): CCTV ke gateway simpang bila jaraknya ≤ 60 m, gateway ke
     pengendali simpang.
@@ -471,6 +472,37 @@ lalu lintas yang sama dengan editor:
 - Ditemukan saat migrasi: lajur kanan jalan 2 lajur menuju bundaran tidak punya jalur masuk
   ke lingkar; kini setiap lajur masuk ke lajur lingkar dengan indeks yang sama.
 
+## CCTV per pendekat dan zona deteksi (tahap 19)
+
+Satu kamera tiang per pendekat luar simpang berlampu, **di seberang simpang menghadap
+kendaraan yang datang**: antrean terlihat dari depan sehingga kendaraan tidak saling
+menutupi. Kamera kubah tidak lagi dipasang otomatis (peta lama yang memakainya tetap jalan).
+
+- **Pengikatan menurut arah** (`setupDevices` di `src/traffic/engine.js`): kamera memantau
+  pendekat yang titik tengah zonanya berada dalam ±30° dari arah hadapnya; bila ada beberapa,
+  dipilih yang paling lurus di depan, lalu yang simpangnya paling dekat. Kamera yang diputar
+  menjauh dari semua pendekat tidak memantau apa pun.
+- **Zona deteksi**: bawaan 80 m dari garis henti ke belakang, bisa diubah per kamera di editor
+  (20–200 m, kolom *Panjang zona deteksi*). Bila pendekat pendek, zona berlanjut melewati
+  simpang sebelumnya; zona berhenti di tepi peta.
+- **Bacaan kamera** (kartu perangkat): kendaraan di zona, yang berhenti, panjang antrean dari
+  garis henti, kendaraan yang melewati garis henti, dan apakah lampu arah itu adaptif. Hanya
+  hitungan; tidak ada pelat atau pelacakan.
+- **Tanda di peta** (`src/traffic/zones.js`): pita tipis di tiap lajur yang dipantau, hijau
+  (tidak ada yang berhenti), kuning (ada yang menunggu), merah (antrean ≥ 70% zona); garis
+  putus-putus dan label "80 m" di batas zona; kerucut pandang dari kamera saat ikonnya diklik.
+  Tampil di tab Kota cerdas dan di simulasi editor (lapisan perangkat). Di editor, memilih
+  kamera menampilkan zonanya tanpa simulasi, untuk memeriksa letak dan arahnya.
+- **Isi aset otomatis dan penempatan manual** memakai titik yang sama (`cameraSpots` di
+  `src/map/placement.js`): Mini Kota lengkap mendapat 51 kamera untuk 51 pendekat luar.
+- **Data center**: 51 detektor antrean pendekat + 6 sensor sampah = 57 sensor, ±51 pesan/detik,
+  ±1,1 GB/hari, ±88 GB untuk 30 hari; tetap 2 vCPU dan 6 GB RAM.
+- Uji ulang lampu adaptif (Mini Kota lengkap, 30 menit, 600–1.200 kendaraan/jam, dua seed):
+  waktu antre turun 80–93% dibanding waktu tetap, perjalanan selesai setara.
+
+![Zona di kota cerdas](gambar/cctv-zona-dipilih.png)
+![Zona kamera terpilih di editor](gambar/cctv-zona-editor.png)
+
 ## Tahapan dan cara uji
 
 | Tahap | Isi | Uji | Status |
@@ -493,6 +525,7 @@ lalu lintas yang sama dengan editor:
 | 16 | Langkah pejalan kaki: model orang berangka, ayunan kaki/lengan mengikuti jarak tempuh | `tests/map-full-smoke.mjs` (kaki berlawanan saat berjalan, rapat saat menunggu) | **Selesai** |
 | 17 | Simpang gabungan: satu pengendali, kotak kuning, satu set perangkat, panel (pisah/gabung/selisih/gabung jadi satu), contoh OSM bermedian; kuncian bundaran diperbaiki | `tests/map-cluster.test.js`; `tests/map-osm.test.js`; `tests/map-cluster-smoke.mjs` | **Selesai** |
 | 18 | Migrasi aplikasi utama ke peta & mesin baru; simulasi lama dihapus (tersimpan di branch `v.0`) | `tests/app-smoke.mjs`; semua tes lain | **Selesai** |
+| 19 | CCTV per pendekat di seberang simpang; zona deteksi 80 m (bisa diubah) ditandai di peta dan editor | `tests/map-furnish.test.js`; `tests/traffic.test.js`; `tests/app-smoke.mjs`; `tests/map-network-smoke.mjs` | **Selesai** |
 
 ## Batasan yang diketahui
 

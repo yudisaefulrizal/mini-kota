@@ -7,8 +7,8 @@ import {gatewayOf} from './placement.js';
 // battery-powered bin sensors.
 export {NETWORKS};
 export const DEVICE_ICONS={
-  'cctv-dome':{glyph:'A',label:'CCTV simpang (antrean)',color:'#2f7fc1'},
-  cctv:{glyph:'R',label:'CCTV ruas',color:'#5a6fd1'},
+  cctv:{glyph:'A',label:'CCTV pendekat (antrean)',color:'#2f7fc1'},
+  'cctv-dome':{glyph:'K',label:'CCTV kubah simpang',color:'#5a6fd1'},
   'bin-sensor':{glyph:'S',label:'Sensor tempat sampah',color:'#c98a12'},
   controller:{glyph:'L',label:'Pengendali simpang',color:'#2e9e5b'},
   gateway:{glyph:'GW',label:'Gateway edge',color:'#26332e',square:true},

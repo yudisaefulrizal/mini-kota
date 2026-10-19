@@ -20,10 +20,9 @@
 
 <section id="sensor"><h2>1 · Sensor kota</h2><p>Jumlah perangkat mengikuti perangkat yang terpasang di peta default (Mini Kota lengkap), sama dengan panel Data Center; peta lain dari editor menghasilkan jumlahnya sendiri. <strong>Privasi:</strong> sistem hanya memakai data agregat (jumlah kendaraan per pendekat, isi tempat sampah). Tidak ada pembacaan plat, identitas kendaraan, atau pelacakan perjalanan, sehingga tidak ada pengarahan rute per kendaraan. Kamera menjalankan analitik di perangkat dan hanya mengirim metadata: jumlah kendaraan, panjang antrean, dan arah gerak.</p>
 <div class="table-wrap"><table><thead><tr><th>Sensor</th><th>Perangkat</th><th>Jumlah</th><th>Interval kirim</th><th>Topik</th></tr></thead><tbody>
-<tr><td>Detektor antrean simpang</td><td>Kamera CCTV IP kubah + analitik video, melihat semua pendekat satu simpang (atau simpang gabungan)</td><td>14</td><td>250 ms ke gateway · 1 detik ke data center</td><td><code>traffic_events</code></td></tr>
-<tr><td>Detektor ruas (pilihan)</td><td>Kamera CCTV IP tiang + analitik video, satu pendekat atau ruas</td><td>0 · dipasang bila perlu</td><td>1 detik</td><td><code>traffic_events</code></td></tr>
+<tr><td>Detektor antrean pendekat</td><td>Kamera CCTV IP tiang + analitik video, satu per pendekat, di seberang simpang menghadap arus datang; zona deteksi 80 m dari garis henti</td><td>51</td><td>250 ms ke gateway · 1 detik ke data center</td><td><code>traffic_events</code></td></tr>
 <tr><td>Sensor isi tempat sampah</td><td>Sensor jarak ultrasonik + radio LoRaWAN</td><td>6</td><td>60 detik</td><td><code>waste_events</code></td></tr>
-</tbody><tfoot><tr><th colspan="2">Total sensor</th><th>20</th><th colspan="2">+ 14 pengendali simpang dengan 50 kepala lampu (aktuator, bukan sensor) dan 19 gateway edge</th></tr></tfoot></table></div></section>
+</tbody><tfoot><tr><th colspan="2">Total sensor</th><th>57</th><th colspan="2">+ 14 pengendali simpang dengan 50 kepala lampu (aktuator, bukan sensor) dan 19 gateway edge</th></tr></tfoot></table></div></section>
 
 <section id="gateway"><h2>2 · Gateway edge</h2><p>Satu gateway melayani sekelompok sensor di satu simpang atau kawasan. Gateway memberi cap waktu, memvalidasi format, menyangga pesan saat jaringan putus, lalu mengirim ke Kafka sebagai producer. Kunci pesan adalah <code>node_id</code> simpang atau <code>lot_id</code> kawasan, sehingga semua event satu lokasi masuk ke partisi yang sama dan urutannya terjaga.</p>
 <pre><code>{
@@ -38,7 +37,7 @@
 
 <section id="kafka"><h2>3 · Apache Kafka</h2><p>Topik dipisah menurut jenis dan frekuensi data agar retensi dan jumlah konsumen dapat diatur sendiri-sendiri.</p>
 <div class="table-wrap"><table><thead><tr><th>Topik</th><th>Kunci partisi</th><th>Isi</th></tr></thead><tbody>
-<tr><td><code>traffic_events</code></td><td>node_id simpang / ruas</td><td>Antrean dan arus per pendekat simpang · ±14 pesan/detik</td></tr>
+<tr><td><code>traffic_events</code></td><td>node_id simpang / ruas</td><td>Antrean dan arus per pendekat simpang · ±51 pesan/detik</td></tr>
 <tr><td><code>waste_events</code></td><td>lot_id kawasan</td><td>Persentase isi tempat sampah</td></tr>
 </tbody></table></div><p>Replikasi 2 salinan, sesuai asumsi penyimpanan pada panel Data Center. Retensi Kafka cukup beberapa hari; arsip panjang dipindahkan ke data lake.</p></section>
 
@@ -85,14 +84,14 @@
 <ul class="steps"><li><strong>Kafka dan Spark tidak berada di jalur kontrol lampu.</strong> Window 1 menit dan jaringan ke data center terlalu lambat dan tidak pasti untuk lampu.</li><li>Jaringan kota juga tidak dipakai untuk kontrol lampu. Jika putus, lampu tetap bekerja; hanya dashboard dan arsip yang tertunda.</li><li>Pengendali memasang <em>watchdog</em>: tanpa data dari gateway selama 2 detik, simpang kembali ke lampu tetap seperti kota biasa.</li><li>Pemantau konflik di kabinet tetap menjadi pengaman terakhir, terlepas dari software gateway.</li></ul></section>
 
 <section id="kapasitas"><h2>Kapasitas pada skenario default</h2><p>Dihitung dengan rumus di <a href="./penjelasan.html#data-center">Dasar hitungan</a> memakai asumsi default panel Data Center: interval lalu lintas 1 detik, 256 byte per pesan, retensi 30 hari. Angka berubah jika asumsi di panel diubah.</p>
-<div class="stats"><div><span>Sensor</span><strong>20</strong></div><div><span>Pesan sensor</span><strong>14,1/detik</strong></div><div><span>Data per hari</span><strong>0,31 GB</strong></div><div><span>Penyimpanan 30 hari</span><strong>24,3 GB</strong></div><div><span>Jaringan</span><strong>0,04 Mbps</strong></div><div><span>Node</span><strong>1 + 1 cadangan</strong></div></div>
+<div class="stats"><div><span>Sensor</span><strong>57</strong></div><div><span>Pesan sensor</span><strong>51,1/detik</strong></div><div><span>Data per hari</span><strong>1,13 GB</strong></div><div><span>Penyimpanan 30 hari</span><strong>88,2 GB</strong></div><div><span>Jaringan</span><strong>0,14 Mbps</strong></div><div><span>Node</span><strong>1 + 1 cadangan</strong></div></div>
 <p>Kebutuhannya kecil, 2 vCPU dan 6 GB RAM, sehingga Kafka dan Spark untuk satu kota ini cukup berjalan di klaster kecil di gedung data center. Kafka dan Spark baru benar-benar dibutuhkan jika sistem diperluas ke banyak kota atau menyertakan video. Untuk satu kota, broker MQTT dengan satu layanan pengolah juga memadai.</p></section>
 
 <section id="worker"><h2>Penambahan worker</h2><p>Worker adalah node komputasi yang menjalankan executor Spark. Broker Kafka ditambah terpisah, karena broker menanggung penyimpanan dan throughput pesan, bukan perhitungan.</p>
 <h3>Kapan worker ditambah</h3><ul class="steps"><li><strong>Consumer lag</strong> Kafka terus naik selama lebih dari 5 menit. Artinya Spark membaca lebih lambat daripada sensor mengirim.</li><li><strong>Durasi micro-batch</strong> lebih lama dari interval trigger, sehingga batch berikutnya selalu terlambat.</li><li><strong>CPU worker</strong> di atas 60%, sama dengan target utilisasi pada rumus kapasitas, atau RAM hampir penuh.</li></ul>
 <h3>Berapa worker yang dibutuhkan</h3><p>Jumlah node mengikuti rumus panel Data Center: node aktif = maksimum dari 1, ⌈vCPU ÷ 8⌉, dan ⌈RAM ÷ 16 GB⌉, lalu ditambah satu cadangan (N+1). Bebannya hanya pesan sensor dan evaluasi lampu, sehingga jumlah sensor yang menentukan; jumlah kendaraan tidak, karena tidak ada data per kendaraan.</p>
 <div class="table-wrap"><table><thead><tr><th>Kamera (1 pesan/detik)</th><th>vCPU</th><th>RAM</th><th>Penyimpanan 30 hari</th><th>Node aktif + cadangan</th></tr></thead><tbody>
-<tr><td>20 (skala Mini Kota)</td><td>2</td><td>6 GB</td><td>35 GB</td><td>1 + 1</td></tr>
+<tr><td>57 (skala Mini Kota)</td><td>2</td><td>6 GB</td><td>98 GB</td><td>1 + 1</td></tr>
 <tr><td>1.000</td><td>2</td><td>6 GB</td><td>1,7 TB</td><td>1 + 1</td></tr>
 <tr><td>10.000</td><td>13</td><td>24 GB</td><td>17,3 TB</td><td>2 + 1</td></tr>
 <tr><td>30.000</td><td>38</td><td>64 GB</td><td>51,8 TB</td><td>5 + 1</td></tr>

@@ -12,7 +12,7 @@ export const CATALOGUE={'cctv-dome':'cam',cctv:'cam','bin-sensor':'ultra',contro
 function status(o,city){
   const e=city.engine;
   if(o.asset==='bin-sensor'){const b=e.bins.find(x=>x.id===o.id);if(!b)return ['Tidak terjangkau','warn'];return b.fill>=1?['Penuh','bad']:b.fill>=0.8?['Perlu dijemput','warn']:['Normal','ok'];}
-  if(o.asset==='cctv-dome'||o.asset==='cctv'){const s=e.sensorState(o.id);return !s?['Tidak memantau','warn']:s.queue>=3?['Antre','warn']:['Lancar','ok'];}
+  if(o.asset==='cctv-dome'||o.asset==='cctv'){const s=e.sensorState(o.id);return !s?['Tidak memantau','warn']:s.stopped>=3?['Antre','warn']:['Lancar','ok'];}
   return ['Aktif','ok'];
 }
 // Where a device stands: by the nearest junction (or lot).

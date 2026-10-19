@@ -1,7 +1,7 @@
 import {crossSection} from './format.js';
 import {buildGeometry,pointAt,polylineLength} from './geometry.js';
 import {projectOnLine} from './edit.js';
-import {facing} from './placement.js';
+import {facing,cameraSpots} from './placement.js';
 
 // Fills a map with assets automatically: traffic lights, CCTV and controllers at signalised
 // junctions, buildings in the lots, street lights and trees along the roads, bus stops,
@@ -78,10 +78,12 @@ export function furnish(input,{seed=7,signals=true,buildings=true,street=true}={
       };
       for(const back of [6,10,14,18]){const {p,t}=spot(back,right,leg.right+kerb);if(put(asset,p,facing(t),{force:true}))break;}
       for(const back of [2,5,8]){const {p,t}=spot(back,left,leg.left+kerb);if(put('pedestrian-light',p,facing(right(t)),{force:true}))break;}
+      // One camera per outer approach, across the junction, facing the arriving traffic.
+      for(const c of cameraSpots(j,leg,80,geometry))if(put('cctv',c,c.rotation))break;
     }
     const corners=cornersOf(j);
     const at=(i,asset)=>{const c=corners[i%corners.length];if(c)put(asset,c.at,facing({x:-c.bis.x,z:-c.bis.z}),{force:true});};
-    if(!member){at(0,'controller');at(1,'cctv-dome');at(2,'gateway');}
+    if(!member){at(0,'controller');at(1,'gateway');}
   }
 
   // ---------------------------------------------------------------- lots

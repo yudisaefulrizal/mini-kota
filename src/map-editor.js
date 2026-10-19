@@ -15,7 +15,8 @@ import {smartPlace,gatewayOf,SENSOR_ASSETS} from './map/placement.js';
 import {suggestSignal,buildPlan,patternsFor,PATTERNS} from './map/signals.js';
 import {serializeMap,parseMapFile,fileName,saveDraft,loadDraft,clearDraft} from './map/storage.js';
 import {importOSM} from './map/osm.js';
-import {TrafficEngine} from './traffic/engine.js';
+import {TrafficEngine,ZONE} from './traffic/engine.js';
+import {ZoneLayer} from './traffic/zones.js';
 import {TrafficView} from './traffic/view.js';
 
 // Map editor: load or start a map, draw and edit roads; roads are rebuilt from the data
@@ -65,6 +66,7 @@ let dragging=null;            // {handle, recorded}
 const history=new edit.History();
 const objects=new ObjectLayer(scene);
 const network=new NetworkLayer(scene);   // device icons, cables, radio and data packets
+const zones=new ZoneLayer(scene);        // camera detection zones
 let placeAsset=null;          // asset chosen in the toolbox for click-to-place
 const CATEGORY_ICONS={traffic:'🚦',devices:'📡',vehicles:'🚗',buildings:'🏢',nature:'🌳',street:'💡',people:'🚶'};
 
@@ -163,7 +165,28 @@ function rebuild(){
   $('warnings').innerHTML=warnings.length?`<h3>Peringatan (${warnings.length})</h3><ul>${warnings.map(w=>`<li>${esc(w)}</li>`).join('')}</ul>`:'<p>Tidak ada peringatan.</p>';
   const exists={road:id=>map.roads.some(r=>r.id===id),node:id=>map.nodes.some(n=>n.id===id),object:id=>map.objects.some(o=>o.id===id)};
   if(selection&&!exists[selection.type](selection.id))selection=null;
+  zonePreview=null;zonesKey=null;
   renderSelection();updateButtons();
+}
+
+// Camera detection zones. While simulating: every camera, coloured by its readings (with the
+// device layer). Otherwise: only the selected camera's zone, from a traffic model of the map
+// without vehicles, so its placement and aim can be checked while editing.
+let zonePreview=null,zonesKey=null;
+function previewEngine(){
+  if(!zonePreview)try{zonePreview=new TrafficEngine(map,{demand:0});}catch{zonePreview=false;}
+  return zonePreview||null;
+}
+function refreshZones(){
+  const camera=!sim&&selection?.type==='object'&&map?.objects.find(o=>o.id===selection.id&&o.asset==='cctv');
+  const key=sim?'sim':camera?camera.id:null;
+  if(key!==zonesKey){
+    zonesKey=key;
+    if(sim)zones.build(sim.engine);
+    else if(camera&&previewEngine())zones.build(zonePreview,{only:camera.id});
+    else zones.clear();
+  }
+  zones.visible=sim?$('layer-links').checked:!!camera;
 }
 
 
@@ -299,8 +322,16 @@ function hitHandle(p){
   for(const h of handleList()){const d=Math.hypot(h.p.x-p.x,h.p.z-p.z);if(d<=tolerance&&(!best||d<best.d))best={...h,d};}
   return best;
 }
+// A pole camera: which approach it watches, and how far back its detection zone reaches.
+function cameraPanel(o){
+  const st=previewEngine()?.sensorState(o.id),a=st?.approaches?.[0];
+  return `<label class="field">Panjang zona deteksi (m)<input type="number" id="sel-zone" min="20" max="200" step="10" value="${o.zone||ZONE}"></label>
+<p class="hint ${st?'':'bad'}">${st?(st.approaches.length===1?`Memantau pendekat dari ${esc(a.from.toLowerCase())} (${esc(a.road)}) di simpang ${esc(st.node)}.`:`Memantau ${st.approaches.length} pendekat simpang ${esc(st.node)}.`)+' Zona dihitung dari garis henti ke belakang.'
+    :'Belum menghadap pendekat simpang berlampu. Putar kamera ke arah kendaraan yang datang, dari seberang simpang.'}</p>`;
+}
+
 function renderSelection(){
-  handles.clear();
+  handles.clear();refreshZones();
   if(previewPhase&&!(selection?.type==='node'&&selection.id===previewPhase.node))previewPhase=null;
   objects.select(selection?.type==='object'?selection.id:null);
   const road=selection?.type==='road'&&map?.roads.find(r=>r.id===selection.id);
@@ -341,12 +372,15 @@ function renderPanel(){
 <div class="field">Arah<div class="rotate"><button type="button" id="rot-l" title="Putar kiri (Q)">⟲ 15°</button><input type="number" id="sel-rot" value="${o.rotation||0}" step="15"> °<button type="button" id="rot-r" title="Putar kanan (E)">⟳ 15°</button></div></div>
 ${SENSOR_ASSETS.has(o.asset)?(gateways.length?`<label class="field">Gateway<select id="sel-gw"><option value="">Otomatis (terdekat${gw?.auto?`: ${esc(gw.id)}`:''})</option>${gateways.map(g=>`<option value="${g.id}" ${o.gateway===g.id?'selected':''}>${esc(g.id)} · ${fmt(Math.hypot(g.x-o.x,g.z-o.z),0)} m</option>`).join('')}</select></label>`:'<p class="hint bad">Belum ada gateway di peta. Pasang aset Gateway edge.</p>'):''}
 ${o.asset==='gateway'?`<p class="hint">Melayani ${served} sensor.</p>`:''}
+${o.asset==='cctv'?cameraPanel(o):''}
 ${networkRows(o.id)}
 <button type="button" class="danger" id="sel-delete">Hapus aset</button>`;
     $('rot-l').onclick=()=>change(()=>edit.rotateObject(map,o.id,-15),{tidy:false});
     $('rot-r').onclick=()=>change(()=>edit.rotateObject(map,o.id,15),{tidy:false});
     $('sel-rot').onchange=e=>change(()=>{map.objects.find(x=>x.id===o.id).rotation=Math.round(Number(e.target.value)||0);},{tidy:false});
     $('sel-gw')?.addEventListener('change',e=>change(()=>edit.setGateway(map,o.id,e.target.value||null),{tidy:false}));
+    $('sel-zone')?.addEventListener('change',e=>change(()=>{const x=map.objects.find(c=>c.id===o.id),v=Math.round(Number(e.target.value)||ZONE);
+      if(v===ZONE)delete x.zone;else x.zone=Math.min(200,Math.max(20,v));},{tidy:false}));
     $('sel-delete').onclick=()=>change(()=>{edit.deleteObject(map,o.id);selection=null;},{tidy:false});
   }else{
     const n=map.nodes.find(n=>n.id===selection.id);if(!n){box.hidden=true;return;}
@@ -765,13 +799,13 @@ async function startSim(){
   $('sim-toggle').textContent='■ Hentikan simulasi';$('sim-toggle').setAttribute('aria-pressed','true');
   await view.init(engine);
   const s=engine.summary();
-  network.reset();renderLegend();
+  network.reset();renderLegend();refreshZones();
   status(`Simulasi berjalan: ${s.signals} simpang berlampu (${s.sensedSignals} dengan CCTV), ${engine.origins.length} titik masuk, ${engine.busStops.length} halte, ${s.bins} tempat sampah bersensor${engine.pedestrians?`, ${engine.pedestrians.agents.length} pejalan kaki`:''}.`);
   renderSimStats();
 }
 function stopSim(){
   if(!sim)return;
-  sim.view.dispose();sim=null;network.reset();hideDeviceCard();renderLegend();
+  sim.view.dispose();sim=null;network.reset();hideDeviceCard();renderLegend();refreshZones();
   // Rebuild the placed assets so their lamp materials return to normal.
   for(const [,holder] of objects.meshes)objects.group.remove(holder);objects.meshes.clear();objects.sync(map);
   document.body.classList.remove('simulating');$('sim-people').disabled=false;$('sim-start').hidden=false;$('sim-running').hidden=true;$('sim-stats').hidden=true;$('sim-pause').textContent='Ⅱ Jeda';
@@ -825,7 +859,7 @@ function showAdaptiveNote(){
   if(sim){const s=sim.engine.summary();signals=s.signals;sensed=s.sensedSignals;}
   else{signals=geometry.junctions.filter(j=>map.nodes.find(n=>n.id===j.id)?.signal===true).length;sensed=null;}
   note.hidden=false;
-  note.textContent=sensed===null?'Lampu hanya adaptif di simpang yang punya CCTV (kubah di sudut simpang, atau CCTV tiang di pendekat).'
+  note.textContent=sensed===null?'Lampu hanya adaptif di pendekat yang dipantau CCTV (di seberang simpang, menghadap arus datang).'
     :sensed<signals?`${signals-sensed} dari ${signals} simpang berlampu belum punya CCTV dan tetap memakai waktu tetap. Pasang CCTV di sudut simpang itu, atau pakai "Isi aset otomatis".`
     :'Semua simpang berlampu punya CCTV.';
 }
@@ -843,6 +877,7 @@ renderer.setAnimationLoop(now=>{
   const delta=Math.min((now-lastFrame)/1000,0.1);lastFrame=now;
   stepSim(delta);
   network.update(sim?.paused?0:delta,camera,canvas.clientHeight,sim?.engine||null);
+  zones.update(sim?.paused?0:delta,camera,canvas.clientHeight,{selected:sim?cardDevice:selection?.id,live:!!sim});
   sim?.view.layoutTimers(camera,canvas.clientHeight);
   controls.update(delta);
   const d=camera.position.distanceTo(controls.target);
@@ -853,5 +888,5 @@ offerDraft();load();
 window.mapEditor={get map(){return map;},get geometry(){return geometry;},get selection(){return selection;},load,frame,focus,setTool,undo,redo,objects,
   select(sel){selection=sel;renderSelection();},phaseArrows,startSim,stopSim,get sim(){return sim;},
   // For browser tests: screen position of a map point.
-  camera:controls,network,
+  camera:controls,network,zones,
   screen(x,z,y=0){const v=new THREE.Vector3(x,y,z).project(camera),r=canvas.getBoundingClientRect();return {x:r.left+(v.x+1)/2*r.width,y:r.top+(1-v.y)/2*r.height};}};

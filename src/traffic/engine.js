@@ -1,8 +1,9 @@
 import {validateMap} from '../map/format.js';
 import {buildGeometry,polylineLength} from '../map/geometry.js';
-import {buildPlan,TIMING} from '../map/signals.js';
+import {buildPlan,TIMING,compass} from '../map/signals.js';
 import {buildLaneGraph,routesFrom,along} from './lanes.js';
 import {Pedestrians} from './pedestrians.js';
+import {zoneCentre} from '../map/placement.js';
 
 // Traffic model for any map file: vehicles follow lanes with the Intelligent Driver Model,
 // change lanes for their route, obey the junction phase plans (fixed or adaptive) and give
@@ -23,6 +24,8 @@ const STOPPED=0.3,LOOKAHEAD=90,COMMIT=8;
 // Cars wait behind the stop line, which the editor draws 4.5 m before the junction mouth
 // (the zebra crossing lies in between).
 const STOP_BACK=5.5;
+// Camera detection zone: metres back from the stop line (per camera: object.zone).
+export const ZONE=80;const ZONE_MAX=200;
 const BIN_CALL=0.8,BIN_DWELL=30,BUS_DWELL=8,TRUCKS=2;
 
 function rng(seed){return ()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};}
@@ -98,19 +101,30 @@ export class TrafficEngine{
       for(const seg of kerbLanes){const hit=projectOnSeg(seg,o);if(hit.distance<max&&(!best||hit.distance<best.distance))best={seg:seg.id,s:Math.min(Math.max(hit.s,6),seg.length-6),distance:hit.distance};}
       return best;
     };
-    // Cameras: a dome at a signalised junction sees every approach; a pole camera sees the
-    // approach it stands beside.
+    // Cameras. A pole camera (cctv) watches the one approach it faces, usually from across
+    // the junction: its detection zone runs back `zone` metres (default 80) from the stop
+    // line. A dome (cctv-dome, older maps) watches every approach of its junction.
     this.sensors=[];
     for(const o of this.map.objects){
       if(o.asset!=='cctv-dome'&&o.asset!=='cctv')continue;
+      const zone=Math.min(200,Math.max(20,Number(o.zone)||ZONE));
       let best=null;
       for(const [id,sig] of this.signals){
         const legs=sig.j.legs.filter(l=>!l.ring);
-        if(o.asset==='cctv-dome'){const d=dist(sig.j,o);if(d<40&&(!best||d<best.d))best={node:id,legs:legs.map((_,i)=>i),d};}
-        else legs.forEach((leg,i)=>{const at={x:sig.j.x+leg.dir.x*(leg.setback+15),z:sig.j.z+leg.dir.z*(leg.setback+15)},d=dist(at,o);if(d<30&&(!best||d<best.d))best={node:id,legs:[i],d};});
+        if(o.asset==='cctv-dome'){const d=dist(sig.j,o);if(d<40&&(!best||d<best.score))best={node:id,legs:legs.map((_,i)=>i),score:d};}
+        else legs.forEach((leg,i)=>{
+          if(leg.internal||leg.access)return;
+          // The camera must look at the middle of the zone (within 30°) from close enough.
+          const c=zoneCentre(this.geometry,sig.j,leg,zone),to={x:c.x-o.x,z:c.z-o.z},d=Math.hypot(to.x,to.z);
+          const r=(o.rotation||0)*Math.PI/180,cos=(Math.sin(r)*to.x+Math.cos(r)*to.z)/(d||1);
+          if(cos<Math.cos(Math.PI/6)||d>zone+80)return;
+          // Aim first; then the junction the camera stands at (it watches that junction's
+          // approaches, even when another junction's zone lies on the same straight road).
+          const score=(1-cos)*4000+dist(o,sig.j)*2+d*0.2;if(!best||score<best.score)best={node:id,legs:[i],score};
+        });
       }
       if(!best)continue;
-      const sensor={id:o.id,asset:o.asset,node:best.node,legs:new Set(best.legs),count:0,also:[]};
+      const sensor={id:o.id,asset:o.asset,node:best.node,legs:new Set(best.legs),count:0,also:[],zone};
       this.sensors.push(sensor);for(const i of sensor.legs)this.signals.get(best.node).sensed.add(i);
       // A dome at a simpang gabungan watches the outer approaches of every member.
       if(o.asset==='cctv-dome')for(const id of this.clusterOf.get(best.node)?.nodes||[]){
@@ -120,6 +134,9 @@ export class TrafficEngine{
     }
     this.sensorsByNode=new Map();
     for(const s of this.sensors)for(const node of new Set([s.node,...s.also.map(a=>a.node)]))(this.sensorsByNode.get(node)||this.sensorsByNode.set(node,[]).get(node)).push(s);
+    // How far back each watched approach is counted: the longest zone of its cameras.
+    this.zoneOf=new Map();
+    for(const s of this.sensors)for(const {node,leg} of [...[...s.legs].map(leg=>({node:s.node,leg})),...s.also]){const key=`${node}:${leg}`;this.zoneOf.set(key,Math.max(this.zoneOf.get(key)||0,s.zone));}
     // Bus stops on a kerb lane.
     this.busStops=this.map.objects.filter(o=>o.asset==='bus-stop').map(o=>({id:o.id,...kerbSpot(o)})).filter(s=>s.seg!==undefined);
     // Bins with a sensor, filling up; the depot is the waste facility (or any entry).
@@ -181,13 +198,17 @@ export class TrafficEngine{
   }
   // Vehicles heading for each signal approach within 80 m along their route, also those
   // still waiting at a junction just before it (close pairs of signals see each other's queue).
+  // Each counts within its camera's detection zone (measured back from the stop line).
   countApproaching(){
     const counts=new Map();
     for(const v of this.vehicles){
       let ahead=-v.s;
-      for(let k=v.idx;k<v.route.length&&ahead<80;k++){
+      for(let k=v.idx;k<v.route.length&&ahead<ZONE_MAX+STOP_BACK;k++){
         const seg=this.graph.byId.get(v.route[k]);
-        if(seg.kind==='connector'&&k>v.idx&&this.signals.has(seg.node)){const key=`${seg.node}:${seg.legFrom}`;counts.set(key,(counts.get(key)||0)+1);}
+        if(seg.kind==='connector'&&k>v.idx&&this.signals.has(seg.node)){
+          const key=`${seg.node}:${seg.legFrom}`;
+          if(ahead<=(this.zoneOf.get(key)??ZONE)+STOP_BACK)counts.set(key,(counts.get(key)||0)+1);
+        }
         ahead+=seg.length;
       }
     }
@@ -512,15 +533,63 @@ export class TrafficEngine{
     return {x:p.x+(k?v.offset.x*k:0)+lx*bay,z:p.z+(k?v.offset.z*k:0)+lz*bay,heading:p.heading};
   }
   // What a camera reports: vehicles counted so far and the queue it sees right now.
+  // In its zone: vehicles, how many are stopped, and how far back the queue reaches from
+  // the stop line. `count` is every vehicle that crossed the stop line so far.
   sensorState(id){
     const sensor=this.sensors.find(s=>s.id===id);if(!sensor)return null;
-    const sig=this.signals.get(sensor.node);let queue=0;
+    const sig=this.signals.get(sensor.node),watched=new Set([...[...sensor.legs].map(l=>`${sensor.node}:${l}`),...sensor.also.map(a=>`${a.node}:${a.leg}`)]);
+    let inZone=0,stopped=0,queueLength=0;
     for(const v of this.vehicles){
-      if(v.v>=STOPPED)continue;
-      const seg=this.graph.byId.get(v.route[v.idx]),next=this.graph.byId.get(v.route[v.idx+1]);
-      if(seg.kind==='lane'&&seg.end===sensor.node&&next?.kind==='connector'&&sensor.legs.has(next.legFrom))queue++;
+      let ahead=-v.s;
+      for(let k=v.idx;k<v.route.length&&ahead<sensor.zone+STOP_BACK;k++){
+        const seg=this.graph.byId.get(v.route[k]);
+        if(seg.kind==='connector'&&k>v.idx){
+          if(watched.has(`${seg.node}:${seg.legFrom}`)){
+            inZone++;
+            if(v.v<STOPPED&&!v.dwelling){stopped++;queueLength=Math.max(queueLength,Math.min(sensor.zone,ahead-STOP_BACK+v.len));}
+          }
+          break;
+        }
+        ahead+=seg.length;
+      }
     }
-    return {node:sensor.node,legs:[...sensor.legs],count:sensor.count,queue,adaptive:this.adaptive&&sig.sensed.size>0};
+    const legs=sig.j.legs.filter(l=>!l.ring),approaches=[...sensor.legs].map(i=>({road:legs[i].road,from:compass(legs[i].dir)}));
+    return {node:sensor.node,legs:[...sensor.legs],approaches,zone:sensor.zone,count:sensor.count,inZone,stopped,queueLength,queue:stopped,adaptive:this.adaptive&&sig.sensed.size>0};
+  }
+  // The zone of a camera as lane centre lines (each from the far end of the zone up to the
+  // junction mouth, following the road back through bends), for drawing.
+  zonePaths(id){
+    const sensor=this.sensors.find(s=>s.id===id);if(!sensor)return [];
+    const watched=[...[...sensor.legs].map(leg=>({node:sensor.node,leg})),...sensor.also];
+    // What feeds each lane: the lane before it, or else the straightest connector through the
+    // junction upstream (a short approach's zone carries on past that junction).
+    const heading=(p,q)=>Math.atan2(q.z-p.z,q.x-p.x),turn=c=>{const n=c.points.length,d=Math.abs(heading(c.points[0],c.points[1])-heading(c.points[n-2],c.points[n-1]));return Math.min(d,2*Math.PI-d);};
+    const before=new Map(),score=new Map();
+    for(const s of this.graph.segs)for(const n of s.next){
+      const t=this.graph.byId.get(n);if(!t||s.points.length<2)continue;
+      const k=s.kind==='lane'?-1:turn(s);if(!score.has(n)||k<score.get(n)){before.set(n,s.id);score.set(n,k);}
+    }
+    const paths=[];
+    for(const seg of this.graph.segs){
+      if(seg.kind!=='lane')continue;
+      const w=watched.find(w=>seg.end===w.node&&seg.next.some(id=>{const c=this.graph.byId.get(id);return c.kind==='connector'&&c.node===w.node&&c.legFrom===w.leg;}));
+      if(!w)continue;
+      // Walk back from the mouth, collecting points until the zone length is covered.
+      let left=sensor.zone+STOP_BACK,cur=seg,pts=[seg.points.at(-1)];
+      while(cur&&left>0){
+        for(let i=cur.points.length-1;i>0&&left>0;i--){
+          const a=cur.points[i],b=cur.points[i-1],l=dist(a,b);
+          if(l>=left){const t=left/l;pts.push({x:a.x+(b.x-a.x)*t,z:a.z+(b.z-a.z)*t});left=0;}else{pts.push(b);left-=l;}
+        }
+        cur=left>0&&before.has(cur.id)?this.graph.byId.get(before.get(cur.id)):null;
+      }
+      // The zone starts at the stop line, STOP_BACK before the mouth.
+      pts.reverse();let cut=STOP_BACK;
+      while(pts.length>1&&cut>0){const a=pts.at(-1),b=pts.at(-2),l=dist(a,b);if(l>cut){pts[pts.length-1]={x:a.x+(b.x-a.x)*cut/l,z:a.z+(b.z-a.z)*cut/l};cut=0;}else{pts.pop();cut-=l;}}
+      const road=this.map.roads.find(r=>r.id===seg.road);
+      paths.push({node:w.node,leg:w.leg,points:pts,width:this.map.profiles[road.profile].laneWidth});
+    }
+    return paths;
   }
   summary(){
     const s=this.stats,bins=this.bins;

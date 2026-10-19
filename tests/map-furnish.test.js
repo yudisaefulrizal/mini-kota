@@ -8,11 +8,12 @@ import {projectOnLine} from '../src/map/edit.js';
 import {miniKotaRoads as convertMiniKota} from '../src/map/default-map.js';
 import {furnish,FOOTPRINT,lotKind} from '../src/map/furnish.js';
 import {importOSM} from '../src/map/osm.js';
+import {TrafficEngine} from '../src/traffic/engine.js';
 
 const full=()=>{const map=miniKotaRoads();const result=furnish(map);return {map,result};};
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 
-test('Mini Kota is filled: every outer approach has a light, every signal (or simpang gabungan) one CCTV and one controller',()=>{
+test('Mini Kota is filled: every outer approach has a light and one CCTV facing it, every signal (or simpang gabungan) one controller',()=>{
   const {map}=full(),g=buildGeometry(map);
   validateMap(map);
   const signals=g.junctions.filter(j=>map.nodes.find(n=>n.id===j.id).signal===true);
@@ -31,9 +32,19 @@ test('Mini Kota is filled: every outer approach has a light, every signal (or si
     }
     // A simpang gabungan has one set, at its first junction; the other members none.
     const expected=!j.cluster||j.cluster===j.id?1:0;
-    assert.equal(near('cctv-dome').length,expected,`cctv at ${j.id}`);
     assert.equal(near('controller').length,expected,`controller at ${j.id}`);
   }
+  // One pole camera per outer approach, across the junction, watching that approach only.
+  const engine=new TrafficEngine(map,{demand:0}),watched=new Map();
+  assert.equal(map.objects.filter(o=>o.asset==='cctv-dome').length,0);
+  for(const s of engine.sensors){
+    assert.equal(s.legs.size,1,`${s.id} watches one approach`);
+    const key=`${s.node}:${[...s.legs][0]}`;assert.ok(!watched.has(key),`${key} watched twice`);watched.set(key,s.id);
+  }
+  for(const sig of engine.signals.values())sig.j.legs.filter(l=>!l.ring).forEach((leg,i)=>{
+    if(!leg.internal&&!leg.access)assert.ok(watched.has(`${sig.j.id}:${i}`),`camera for ${sig.j.id} ${leg.road}`);
+  });
+  assert.equal(map.objects.filter(o=>o.asset==='cctv').length,watched.size);
   // No light on the link inside a simpang gabungan.
   for(const c of g.clusters)for(const id of c.roads){
     const r=g.roads.find(r=>r.id===id),mid=pointAt(r.line,polylineLength(r.line)/2).p;
@@ -79,5 +90,5 @@ test('deterministic, and a second run adds nothing; works on maps without lots',
   const uji=validateMap(JSON.parse(readFileSync(new URL('../public/maps/peta-uji.json',import.meta.url),'utf8')));
   const r=furnish(uji);assert.ok((r.added['traffic-light']||0)+(r.added['traffic-light-arm']||0)>=7&&r.added['street-light']>10,JSON.stringify(r.added));
   const {map:osm}=importOSM(readFileSync(new URL('./fixtures/contoh.osm',import.meta.url),'utf8'));
-  assert.ok(furnish(osm).added['cctv-dome']===1);
+  assert.ok(furnish(osm).added.cctv>=3);
 });

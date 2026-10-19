@@ -18,8 +18,10 @@ export function deviceReadings(engine,network,o){
   const stats=network?.stats.get(o.id)||{sent:0,received:0},rows=[];
   if(o.asset==='cctv-dome'||o.asset==='cctv'){
     const st=engine.sensorState(o.id);
-    if(st)rows.push(['Memantau',`simpang ${st.node} · ${st.legs.length} pendekat`],['Kendaraan terhitung',fmt(st.count)],['Berhenti di pendekat sekarang',st.queue],['Lampu simpang',st.adaptive?'Adaptif, memakai data kamera ini':'Waktu tetap']);
-    else rows.push(['Memantau','Tidak ada simpang berlampu di dekatnya']);
+    if(st)rows.push(['Memantau',st.approaches.length===1?`pendekat dari ${st.approaches[0].from.toLowerCase()} (${st.approaches[0].road}), simpang ${st.node}`:`simpang ${st.node} · ${st.approaches.length} pendekat`],
+      [`Di zona ${fmt(st.zone)} m`,`${st.inZone} kendaraan`],['Berhenti',st.stopped],['Antrean dari garis henti',st.stopped?`±${fmt(st.queueLength)} m`:'—'],
+      ['Melewati garis henti',fmt(st.count)],['Lampu arah ini',st.adaptive?'Adaptif, memakai data kamera ini':'Waktu tetap']);
+    else rows.push(['Memantau','Tidak menghadap pendekat simpang berlampu']);
   }else if(o.asset==='bin-sensor'){
     const b=engine.bins.find(x=>x.id===o.id);
     if(b)rows.push(['Isi',`${fmt(Math.min(b.fill,1)*100)}%`],['Status',binStatus(b)],['Dikosongkan',`${b.emptied} kali`],

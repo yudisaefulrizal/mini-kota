@@ -2,9 +2,9 @@
 // and controllers follow dataCenterInventory (src/app/data-center.js) on the default map; everything else is a
 // sizing proposal.
 export const DEVICES=[
-  {id:'cam',zone:'field',icon:'◉',name:'Kamera CCTV IP + analitik',count:'14 unit',
-    role:'Menghitung kendaraan yang menuju, berhenti, dan melewati garis henti di setiap pendekat simpang berlampu; hitungan ini dipakai lampu adaptif. Analitik berjalan di kamera, sehingga yang dikirim hanya metadata hasil deteksi (jumlah, bukan identitas): tidak ada pembacaan plat atau pelacakan kendaraan.',
-    hardware:'Kamera IP luar ruang IP66, prosesor analitik di kamera. Kamera kubah di sudut simpang memakai kabel LAN ke gateway simpang; kamera tiang yang jauh dari gateway (lebih dari 60 m) memakai serat optik. Di Mini Kota: 14 kamera kubah, satu per simpang berlampu atau simpang gabungan.',
+  {id:'cam',zone:'field',icon:'◉',name:'Kamera CCTV IP + analitik',count:'51 unit',
+    role:'Satu kamera per pendekat simpang berlampu, dipasang di seberang simpang menghadap kendaraan yang datang. Menghitung kendaraan di zona deteksi (80 m dari garis henti), yang berhenti, panjang antrean, dan yang melewati garis henti; hitungan ini dipakai lampu adaptif. Analitik berjalan di kamera, sehingga yang dikirim hanya metadata hasil deteksi (jumlah, bukan identitas): tidak ada pembacaan plat atau pelacakan kendaraan.',
+    hardware:'Kamera IP luar ruang IP66, prosesor analitik di kamera. Kamera tiang di seberang simpang memakai kabel LAN ke gateway simpang; kamera yang jauh dari gateway (lebih dari 60 m) memakai serat optik. Di Mini Kota: 51 kamera, satu per pendekat luar dari 15 simpang berlampu.',
     os:'Firmware Linux tertanam dari vendor kamera',
     software:'Aplikasi analitik di kamera (deteksi kendaraan, zona antrean, garis virtual), klien NTP untuk sinkronisasi waktu',
     protocol:'Metadata JSON lewat MQTT ke gateway di jaringan kabel lokal (port 8883, TLS), tiap 250 ms untuk kontrol lampu. Gateway meneruskan ringkasan per 1 detik ke data center. Video RTSP tidak dikirim ke data center.',
@@ -105,7 +105,7 @@ export const NETWORKS={
   lora:{color:0xd99a1e,label:'LoRaWAN',detail:'Radio hemat baterai untuk data kecil yang tidak mendesak.',latency:'± 1 detik'},
 };
 export const FLOWS=[
-  {from:'cam',to:'gw',network:'lan',alt:{network:'fiber',who:'kamera yang jauh dari gateway'},who:'kamera kubah simpang',type:'traffic',label:'Metadata deteksi (JSON lewat MQTT, tiap 250 ms)'},
+  {from:'cam',to:'gw',network:'lan',alt:{network:'fiber',who:'kamera yang jauh dari gateway'},who:'kamera pendekat simpang',type:'traffic',label:'Metadata deteksi (JSON lewat MQTT, tiap 250 ms)'},
   {from:'ultra',to:'gw',network:'lora',type:'waste',label:'Persentase isi (LoRaWAN, tiap 60 detik)'},
   {from:'gw',to:'ctrl',network:'lan',type:'control',label:'Durasi hijau (NTCIP, 4 kali per detik)'},
   {from:'gw',to:'net',network:'fiber',type:'traffic',label:'Event sensor (protokol Kafka, TLS)'},

@@ -1,5 +1,7 @@
 import {crossSection} from './format.js';
 import {projectOnLine,roadLine} from './edit.js';
+import {pointAt,polylineLength as lineLength} from './geometry.js';
+const pointAtLine=(pts,d)=>pointAt(pts,d).p;
 
 // Smart placement for assets dropped on the map (docs/rancangan-editor-peta.md, tahap 4).
 // Given the asset, the cursor and the built geometry, returns where the asset should stand
@@ -20,7 +22,7 @@ const armTowards=d=>deg(Math.atan2(-d.z,d.x));
 export const PLACEMENT_RULES={
   'traffic-light':'approach','traffic-light-arm':'approach','traffic-light-arrow-right':'approach','traffic-light-arrow-left':'approach',
   'warning-light':'approach','sign-left-turn':'approach-sign','pedestrian-light':'crossing',
-  cctv:'verge-watch','cctv-dome':'corner',controller:'corner',gateway:'corner','bin-sensor':'verge-face',
+  cctv:'camera','cctv-dome':'corner',controller:'corner',gateway:'corner','bin-sensor':'verge-face',
   'street-light':'verge-arm','bus-stop':'verge-face',bench:'verge-face',
   buildings:'lot',nature:'verge-back',people:'sidewalk',vehicles:'lane',
 };
@@ -63,6 +65,28 @@ function onCarriageway(map,pt){
   return map.roads.some(r=>{const cs=crossSection(map.profiles[r.profile]);return projectOnLine(roadLine(map,r),pt).distance<Math.max(cs.left,cs.right);});
 }
 
+// Where a traffic camera for an approach can stand: across the junction, on the far-side
+// pavement in line with the arriving lanes, facing back down the approach at the middle of
+// its detection zone. Candidates from nearest to farthest; the caller takes the first free
+// one that is not on a carriageway.
+// The middle of an approach's detection zone, along the road itself (it may curve).
+export function zoneCentre(geometry,j,leg,zone=80){
+  const gr=geometry?.roads.find(r=>r.id===leg.road);
+  if(!gr)return add(j,leg.dir,leg.setback+zone/2);
+  const out=leg.atStart?gr.line:[...gr.line].reverse();
+  return pointAtLine(out,Math.min(5.5+zone/2,lineLength(out)));
+}
+export function cameraSpots(j,leg,zone=80,geometry=null){
+  const d=leg.dir,back={x:-d.x,z:-d.z},across=j.legs.filter(l=>l!==leg&&!l.ring).reduce((best,l)=>{const c=l.dir.x*back.x+l.dir.z*back.z;return c>(best?.c??0.5)?{l,c}:best;},null)?.l;
+  const kerb=l=>l.curb+(l.sidewalk>0?l.sidewalk*0.6:1),depth=(across?.setback??leg.setback)+(across?kerb(across):2);
+  const centre=zoneCentre(geometry,j,leg,zone),out=[];
+  for(const extra of [1,4,8])for(const side of [leg.right/2+(across?Math.max(across.left,across.right):0)+kerb(across||leg),leg.right+kerb(leg)+2,leg.right/2]){
+    const p=add(add(j,back,depth+extra),right(d),side);
+    out.push({x:p.x,z:p.z,rotation:facing(norm({x:centre.x-p.x,z:centre.z-p.z}))});
+  }
+  return out;
+}
+
 export function smartPlace(map,geometry,asset,p){
   const rule=ruleFor(asset);
   const placed=place(map,geometry,asset,p,rule);
@@ -78,6 +102,16 @@ export function smartPlace(map,geometry,asset,p){
 function place(map,geometry,asset,p,rule){
   const result=(point,rotation,label)=>({x:round(point.x),z:round(point.z),rotation:Math.round(((rotation%360)+360)%360),label});
 
+  if(rule==='camera'){
+    // Near a junction: across from the nearest approach, watching it.
+    const j=nearestJunction(geometry,p,45),leg=j&&nearestLeg(j,p);
+    if(leg){
+      const spot=cameraSpots(j,leg,80,geometry).find(c=>!onCarriageway(map,c));
+      if(spot)return result(spot,spot.rotation,`Di seberang simpang ${j.id}, menghadap pendekat ${leg.road}`);
+    }
+    const verge=onVerge(map,p);
+    if(verge)return result(verge.point,facing(verge.side>0?{x:-verge.t.x,z:-verge.t.z}:verge.t),`Di tepi jalan ${verge.road.id}`);
+  }
   if(rule==='approach'||rule==='approach-sign'||rule==='crossing'){
     const j=nearestJunction(geometry,p,45),leg=j&&nearestLeg(j,p);
     if(leg){

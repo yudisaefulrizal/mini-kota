@@ -16,12 +16,12 @@ export function validateDataCenter(input={}){
 const count=(map,asset)=>map.objects.filter(o=>o.asset===asset).length;
 export function dataCenterInventory(map){
   const sensors=[
-    {id:'queue',name:'Detektor antrean simpang',device:'Kamera CCTV IP kubah + analitik video',
-      method:'Melihat semua pendekat simpang berlampu (atau simpang gabungan) dan menghitung kendaraan yang menuju, berhenti, dan melewati garis henti; hitungan ini dipakai lampu adaptif.',
-      count:count(map,'cctv-dome'),basis:'1 per simpang berlampu atau simpang gabungan',interval:'traffic',status:'Input lampu adaptif'},
-    {id:'road',name:'Detektor ruas',device:'Kamera CCTV IP tiang + analitik video',
-      method:'Menghitung kendaraan pada satu pendekat atau ruas tempat kamera dipasang.',
-      count:count(map,'cctv'),basis:'Sesuai yang dipasang di peta',interval:'traffic',status:'Input lampu adaptif & kepadatan'},
+    {id:'queue',name:'Detektor antrean pendekat',device:'Kamera CCTV IP tiang + analitik video',
+      method:'Dipasang di seberang simpang menghadap kendaraan yang datang. Menghitung kendaraan di zona deteksi (bawaan 80 m dari garis henti), yang berhenti, panjang antrean, dan yang melewati garis henti; hitungan ini dipakai lampu adaptif. Tidak mengenali pelat atau mengikuti kendaraan.',
+      count:count(map,'cctv'),basis:'1 per pendekat simpang berlampu',interval:'traffic',status:'Input lampu adaptif'},
+    {id:'dome',name:'Detektor simpang (kubah)',device:'Kamera CCTV IP kubah + analitik video',
+      method:'Peta lama: satu kamera melihat semua pendekat simpang.',
+      count:count(map,'cctv-dome'),basis:'Sesuai yang dipasang di peta',interval:'traffic',status:'Input lampu adaptif'},
     {id:'waste',name:'Sensor isi tempat sampah',device:'Sensor jarak ultrasonik + radio LoRaWAN',
       method:'Dipasang di tutup tempat sampah menghadap ke bawah untuk mengukur jarak ke permukaan sampah dan memperkirakan persentase isi; memanggil truk saat hampir penuh. Tidak mengukur berat.',
       count:count(map,'bin-sensor'),basis:'1 per tempat sampah bersensor',interval:60,status:'Panggilan truk sampah'},
