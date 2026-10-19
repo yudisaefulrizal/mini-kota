@@ -79,7 +79,7 @@ export function buildWalkGraph(map,geometry){
 
 export class Pedestrians{
   constructor(engine,count){
-    this.engine=engine;this.random=engine.random;
+    this.engine=engine;this.random=engine.walkRandom;
     const {nodes,edges}=buildWalkGraph(engine.map,engine.geometry);
     this.nodes=nodes;this.edges=edges;
     this.agents=[];this.crossings=0;this.crossingNow=new Map();this.requests=new Set();this.hot=new Set();

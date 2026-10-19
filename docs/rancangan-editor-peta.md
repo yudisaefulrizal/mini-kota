@@ -503,6 +503,28 @@ menutupi. Kamera kubah tidak lagi dipasang otomatis (peta lama yang memakainya t
 ![Zona di kota cerdas](gambar/cctv-zona-dipilih.png)
 ![Zona kamera terpilih di editor](gambar/cctv-zona-editor.png)
 
+## Pengemudi berbeda dan menyalip (tahap 20)
+
+- **Aliran acak terpisah** (`src/traffic/engine.js`): kedatangan, asal, tujuan, jenis, warna,
+  dan sifat pengemudi diundi saat perjalanan dibuat dari aliran permintaan saja; tempat sampah
+  dan pejalan kaki punya aliran sendiri. Sebelumnya warna diundi saat kendaraan masuk dan
+  pejalan kaki memakai aliran yang sama, sehingga urutan perjalanan kedua kota berbeda setelah
+  17–40 perjalanan. Kini kedua kota mendapat perjalanan yang identik (diuji).
+- **Sifat pengemudi**: kecepatan pilihan = batas × faktor jenis × faktor pengemudi (sebaran
+  bawaan 10%, dipotong di ±2 sebaran), jarak waktu 1,05–1,35 detik. Pengaturan *Sebaran
+  kecepatan pengemudi* (0–30%).
+- **Menyalip** (gaya MOBIL): pindah ke lajur kanan bila percepatan di sana lebih besar
+  ≥ 0,4 m/s², kendaraan di belakang di lajur itu tidak perlu mengerem lebih dari 2,5 m/s²,
+  ≥ 60 m dari ujung ruas, bukan bundaran, bukan kendaraan yang akan berhenti. Kembali ke kiri
+  setelah kendaraan yang disalip tertinggal; hanya kendaraan yang baru menyalip yang kembali
+  ke kiri (aturan "selalu ke kiri" membuat antrean menumpuk di satu lajur di garis henti).
+  Bila rute memerlukan lajur semula untuk belok, sisa ruas harus cukup untuk melewati dan
+  kembali. Keluar peta boleh dari lajur mana pun.
+- **Hasil**: di jalan lurus 1 km (tes) 54–270 kali menyalip per 15 menit dan waktu tempuh
+  turun 5–10%. Di Mini Kota (ruas median 50 m, 40 km/jam) hanya ±1–7 kali per 30 menit, karena
+  melewati kendaraan yang 1–3 m/s lebih lambat butuh 120–300 m. Selisih kota cerdas
+  dibanding kota biasa tetap: waktu antre 73–84% lebih rendah (600 dan 1.200 kendaraan/jam).
+
 ## Tahapan dan cara uji
 
 | Tahap | Isi | Uji | Status |
@@ -526,6 +548,7 @@ menutupi. Kamera kubah tidak lagi dipasang otomatis (peta lama yang memakainya t
 | 17 | Simpang gabungan: satu pengendali, kotak kuning, satu set perangkat, panel (pisah/gabung/selisih/gabung jadi satu), contoh OSM bermedian; kuncian bundaran diperbaiki | `tests/map-cluster.test.js`; `tests/map-osm.test.js`; `tests/map-cluster-smoke.mjs` | **Selesai** |
 | 18 | Migrasi aplikasi utama ke peta & mesin baru; simulasi lama dihapus (tersimpan di branch `v.0`) | `tests/app-smoke.mjs`; semua tes lain | **Selesai** |
 | 19 | CCTV per pendekat di seberang simpang; zona deteksi 80 m (bisa diubah) ditandai di peta dan editor | `tests/map-furnish.test.js`; `tests/traffic.test.js`; `tests/app-smoke.mjs`; `tests/map-network-smoke.mjs` | **Selesai** |
+| 20 | Pengemudi berbeda (kecepatan pilihan), menyalip di jalan 2 lajur, aliran acak terpisah agar kedua kota mendapat perjalanan identik | `tests/traffic.test.js` | **Selesai** |
 
 ## Batasan yang diketahui
 

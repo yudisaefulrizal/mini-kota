@@ -12,8 +12,10 @@
 <ul><li><strong>Peta</strong>: Mini Kota lengkap (bawaan), peta dari editor (draf terakhir yang tersimpan di browser), atau file peta <code>.json</code> dari editor maupun ekspor OpenStreetMap <code>.osm</code>.</li>
 <li><strong>Kendaraan masuk per jam</strong>: kendaraan datang acak (rata-rata sesuai angka ini) di ujung-ujung jalan peta, termasuk gerbang dan akses kawasan, menuju ujung lain yang bisa dicapai.</li>
 <li><strong>Pejalan kaki</strong>: jumlah orang yang berjalan di trotoar dan menyeberang di zebra cross.</li>
+<li><strong>Sebaran kecepatan pengemudi</strong>: tiap pengemudi punya kecepatan pilihan sendiri di sekitar batas kecepatan jalan. 10% berarti kebanyakan pengemudi memilih 90–110% batas (paling jauh 80–120%). 0% membuat semua mobil sama cepat.</li>
+<li><strong>Kendaraan boleh menyalip</strong>: di jalan 2 lajur per arah, pengemudi yang lebih cepat boleh menyalip lewat lajur kanan lalu kembali ke kiri.</li>
 <li><strong>Hijau lampu tetap</strong>: lama hijau setiap fase untuk simpang yang belum diatur sendiri di editor.</li>
-<li><strong>Pola acak (seed)</strong>: angka yang sama memberi kedatangan yang sama; ganti untuk melihat hari lain.</li>
+<li><strong>Pola acak (seed)</strong>: angka yang sama memberi kedatangan yang sama; ganti untuk melihat hari lain. Kedua kota selalu mendapat perjalanan dan pengemudi yang persis sama (waktu datang, asal, tujuan, jenis kendaraan, kecepatan pilihan), sehingga selisih hasilnya berasal dari cara kota diatur, bukan dari kebetulan.</li>
 <li><strong>BBM saat mengantre</strong>: konsumsi per kendaraan saat mesin menyala dan berhenti.</li>
 <li><strong>Sampah</strong>: penduduk dan timbulan per orang menentukan seberapa cepat tempat sampah terisi; jadwal truk berlaku untuk kota biasa.</li></ul></section>
 
@@ -24,6 +26,7 @@
 <p>Sistem cerdas memakai aturan, bukan AI yang dilatih. Hasilnya bisa lebih baik atau lebih buruk tergantung kepadatan: saat jalan sudah jenuh, lampu adaptif tidak bisa menolong.</p></section>
 
 <section id="lalu-lintas"><h2>Cara kerja lalu lintas</h2><p>Setiap jalan dibagi per lajur per arah. Kendaraan berjalan di lajur kiri (seperti di Indonesia): belok kiri dari lajur tepi, belok kanan dari lajur dekat median. Kendaraan memilih rute tercepat menurut panjang dan kecepatan jalan (sama di kedua kota), pindah lajur sebelum belok, menjaga jarak dengan kendaraan di depan, dan berhenti di belakang garis henti saat merah.</p>
+<p><strong>Pengemudi berbeda-beda.</strong> Setiap pengemudi punya kecepatan pilihan dan jarak aman sendiri yang tetap selama perjalanan; angkot dan truk sampah lebih lambat daripada mobil. Di jalan 2 lajur per arah, pengemudi yang tertahan kendaraan lebih lambat menyalip lewat lajur kanan bila lajur itu memberi ruang dan tidak memaksa kendaraan di belakangnya mengerem keras, lalu kembali ke lajur kiri setelah melewatinya. Menyalip tidak dilakukan dalam 60 m sebelum ujung ruas, di bundaran, atau oleh kendaraan yang akan berhenti (angkot ke halte, truk ke tempat sampah); kalau rutenya memerlukan lajur semula untuk belok, ruasnya harus cukup panjang untuk melewati dan kembali. Di Mini Kota ruasnya pendek (rata-rata ±50 m antar simpang) dan batasnya 40 km/jam, jadi menyalip jarang terjadi; selisih kecepatan lebih banyak terserap oleh lampu.</p>
 <ul><li><strong>Jenis kendaraan</strong>: mobil, angkot (12%) yang singgah di halte searah, dan truk sampah.</li>
 <li><strong>Jangan menutup simpang</strong>: kendaraan baru masuk simpang bila ruas tujuannya cukup untuk seluruh badannya; tidak masuk bundaran bila jalan keluar yang dituju penuh.</li>
 <li><strong>Pejalan kaki</strong> menyeberang di simpang berlampu saat kendaraan dari arah itu mendapat merah, dan di simpang tanpa lampu saat tidak ada kendaraan yang akan lewat. Kendaraan memberi jalan kepada orang yang sedang atau akan menyeberang.</li></ul></section>

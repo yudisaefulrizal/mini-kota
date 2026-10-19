@@ -66,7 +66,7 @@ function readSettings(){
   const f=$('scenario'),n=name=>Number(f.elements.namedItem(name).value);
   for(const el of f.querySelectorAll('input[type=number]'))if(!el.checkValidity())throw Error(`${el.closest('label').firstChild.textContent.trim()}: ${el.validationMessage}`);
   const population=n('population'),waste=n('wastePerPerson');
-  return {demand:n('demand'),pedestrians:n('pedestrians'),green:n('green'),seed:n('seed'),idle:n('idleLitersPerHour'),population,wastePerPerson:waste,
+  return {demand:n('demand'),pedestrians:n('pedestrians'),speedSpread:n('speedSpread')/100,overtaking:n('overtaking')===1,green:n('green'),seed:n('seed'),idle:n('idleLitersPerHour'),population,wastePerPerson:waste,
     truckRoundHours:n('truckRoundHours'),
     // Fill per second of each of the map's bins (about 120 kg each).
     binFill:null,dailyWasteKg:population*waste};
@@ -203,7 +203,7 @@ function ui(){
     ['Angkot · truk sampah di jalan',`${b.vehicleTypes.minibus} · ${b.vehicleTypes.truck}`,`${s.vehicleTypes.minibus} · ${s.vehicleTypes.truck}`],
     ['Arus keluar',`${fmt(b.throughput)} /jam`,`${fmt(s.throughput)} /jam`],['Angkot singgah di halte',b.busStops,s.busStops],
     ['Tempat sampah dikosongkan',b.binsEmptied,s.binsEmptied],['Tempat sampah penuh sekarang',`${b.binsFull} dari ${b.bins}`,`${s.binsFull} dari ${s.bins}`],
-    ['Pejalan kaki menyeberang',b.pedestrians?.crossings??0,s.pedestrians?.crossings??0],['Pelanggaran lampu merah',b.redViolations,s.redViolations],
+    ['Pejalan kaki menyeberang',b.pedestrians?.crossings??0,s.pedestrians?.crossings??0],['Pelanggaran lampu merah',b.redViolations,s.redViolations],['Kendaraan menyalip',b.overtakes,s.overtakes],
   ];
   $('city-details-rows').innerHTML=detail.map(([k,x,y])=>`<tr><th scope="row">${k}</th><td>${x}</td><td>${y}</td></tr>`).join('');
   $('run-status').textContent=paused?'Simulasi dijeda':fastForward?'Mempercepat 1 jam…':'Simulasi aktif';

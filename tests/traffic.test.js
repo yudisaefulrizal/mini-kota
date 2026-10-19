@@ -157,3 +157,34 @@ test('a camera watches the approach it faces; its zone length is set per camera 
   const c=new TrafficEngine(map,{demand:0}).sensorState(cam.id);
   assert.ok(!c||c.node!==st.node||c.legs[0]!==st.legs[0]);
 });
+
+test('both cities get the same trips and drivers, whatever happens on the road',async()=>{
+  const map=await miniKotaLengkap(),trips=[];
+  for(const adaptive of [false,true]){
+    const e=new TrafficEngine(map,{demand:1200,seed:7,adaptive,pedestrians:30}),list=[],make=e.newTrip.bind(e);
+    e.newTrip=()=>{const t=make();list.push([Math.round(e.time*4),t.src,t.route.at(-1),t.type,t.driver.pref.toFixed(4)].join('|'));return t;};
+    for(let t=0;t<900;t+=0.25)e.step(0.25);
+    trips.push(list);
+  }
+  assert.ok(trips[0].length>250);assert.deepEqual(trips[0],trips[1]);
+});
+
+test('drivers keep their own preferred speed; faster ones overtake on a long road and keep left',async()=>{
+  const {emptyMap}=await import('../src/map/format.js'),edit=await import('../src/map/edit.js');
+  const map=emptyMap('lurus',1000,200);edit.addRoad(map,[{x:10,z:100},{x:990,z:100}],{profile:'jalan-2x2',shape:'polyline'});
+  const prefs=new TrafficEngine(map,{demand:1800,speedSpread:0.15}),seen=[];
+  for(let t=0;t<120;t+=0.25){prefs.step(0.25);for(const v of prefs.vehicles)seen.push(v.pref);}
+  assert.ok(Math.max(...seen)-Math.min(...seen)>0.2,'preferred speeds differ');
+  assert.ok(seen.every(p=>p>=0.7&&p<=1.3));
+  const flat=new TrafficEngine(map,{demand:1800,speedSpread:0});for(let t=0;t<60;t+=0.25)flat.step(0.25);
+  assert.ok(flat.vehicles.every(v=>v.pref===1));
+  const e=new TrafficEngine(map,{demand:1500,speedSpread:0.2,minibus:0.3}),off=new TrafficEngine(map,{demand:1500,speedSpread:0.2,minibus:0.3,overtaking:false});
+  // Count the moves back to the kerb lane made after passing.
+  let back=0;const out=new Set(),shift=e.shiftLane.bind(e);
+  e.shiftLane=(v,from,to,s)=>{if(to.index>from.index&&v.passing)out.add(v.id);else if(to.index<from.index&&out.delete(v.id))back++;shift(v,from,to,s);};
+  for(let t=0;t<900;t+=0.25){e.step(0.25);off.step(0.25);}
+  assert.ok(e.stats.overtakes>10,`${e.stats.overtakes} overtakes`);assert.equal(off.stats.overtakes,0);
+  assert.ok(back>e.stats.overtakes*0.5,`${back} of ${e.stats.overtakes} moved back after passing`);
+  assert.ok(e.summary().averageTravel<off.summary().averageTravel,'passing saves time on a long road');
+  assert.equal(e.summary().redViolations,0);assert.ok(e.stats.completed>200);
+});

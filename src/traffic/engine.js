@@ -13,8 +13,24 @@ import {zoneCentre} from '../map/placement.js';
 //   bus-stop          minibuses (angkot) stop there
 // Pedestrians walk the pavements and cross at the zebra crossings. Deterministic for a
 // given seed; no rendering here.
+//
+// Randomness comes in separate streams so that two runs on the same map and seed (the
+// ordinary and the smart city) get the same trips: arrival times, origin, destination,
+// vehicle type and the driver (preferred speed, following distance) are drawn when the trip
+// is made, from the demand stream only. Bins and pedestrians have streams of their own, so
+// what happens on the road never shifts the draws for the next trip.
+//
+// Drivers differ: each keeps a preferred speed (a factor on the speed limit, spread
+// `speedSpread`) and following time. On roads with two or more lanes per direction a faster
+// driver overtakes on the lane away from the kerb (the right lane; traffic keeps left) and
+// moves back after passing, not close before a junction and only when the route still works
+// from the new lane.
 
 const IDM={a:1.5,b:2.0,T:1.2,s0:2.0};
+// Overtaking: not within this distance of the lane's end; gain needed to pull out (m/s²);
+// the most the vehicle behind in the new lane may have to brake (m/s²).
+// `back`: room kept at the lane's end to move back in after passing.
+const OVERTAKE={clear:60,back:35,gain:0.4,safe:2.5,keep:0.15};
 export const VEHICLE_TYPES={
   car:{length:4.5,a:1.5,speed:1,asset:'car'},
   minibus:{length:5.6,a:1.2,speed:0.9,asset:'minibus'},
@@ -49,14 +65,15 @@ export class TrafficEngine{
   // `binSchedule` seconds whatever its fill, as without sensors); `binFill` is the fill
   // fraction added per second (from population × waste per person), else a random rate.
   constructor(map,{seed=42,demand=900,adaptive=false,minibus=0.12,pedestrians=0,offsets=null,prepared=null,
-    green=null,binMode='sensor',binFill=null,binSchedule=3600}={}){
+    green=null,speedSpread=0.1,overtaking=true,binMode='sensor',binFill=null,binSchedule=3600}={}){
     this.map=prepared?.map||validateMap(structuredClone(map));
     this.geometry=prepared?.geometry||buildGeometry(this.map);
     this.graph=prepared?.graph||buildLaneGraph(this.map,this.geometry);
-    this.seed=seed;this.random=rng(seed);this.demand=demand;this.adaptive=adaptive;this.minibusShare=minibus;
+    this.seed=seed;this.random=rng(seed);this.binRandom=rng(seed+1000);this.walkRandom=rng(seed+2000);
+    this.speedSpread=Math.min(0.3,Math.max(0,speedSpread));this.overtaking=overtaking;this.demand=demand;this.adaptive=adaptive;this.minibusShare=minibus;
     this.time=0;this.vehicles=[];this.nextId=1;this.backlog=[];this.nextArrival=0;
     this.binMode=binMode;this.binFill=binFill;this.binSchedule=binSchedule;
-    this.stats={completed:0,travelSeconds:0,queueSeconds:0,backlogSeconds:0,spawned:0,redViolations:0,busStops:0,truckTrips:0};
+    this.stats={completed:0,travelSeconds:0,queueSeconds:0,backlogSeconds:0,spawned:0,redViolations:0,busStops:0,truckTrips:0,overtakes:0};
     this.routes=prepared?.routes||new Map();
     // Each source keeps the destinations it can actually reach (no U-turns at dead ends).
     this.targets=new Map();
@@ -141,7 +158,7 @@ export class TrafficEngine{
     this.busStops=this.map.objects.filter(o=>o.asset==='bus-stop').map(o=>({id:o.id,...kerbSpot(o)})).filter(s=>s.seg!==undefined);
     // Bins with a sensor, filling up; the depot is the waste facility (or any entry).
     this.bins=this.map.objects.filter(o=>o.asset==='bin-sensor').map(o=>{const spot=kerbSpot(o,16);
-      return spot&&{id:o.id,x:o.x,z:o.z,seg:spot.seg,s:spot.s,fill:0.25+this.random()*0.55,rate:this.binFill??1/(1500+this.random()*1500),truck:null,emptied:0,fullSeconds:0};}).filter(Boolean);
+      return spot&&{id:o.id,x:o.x,z:o.z,seg:spot.seg,s:spot.s,fill:0.25+this.binRandom()*0.55,rate:this.binFill??1/(1500+this.binRandom()*1500),truck:null,emptied:0,fullSeconds:0};}).filter(Boolean);
     // Without sensors the round is fixed: bins are visited in turn, spread over the schedule.
     this.bins.forEach((b,i)=>{b.nextVisit=(i+1)*this.binSchedule/this.bins.length;});
     const depot=this.map.objects.find(o=>o.asset==='tps3r');
@@ -302,7 +319,15 @@ export class TrafficEngine{
   }
 
   // ------------------------------------------------------------ vehicles
+  // The driver of a trip: preferred speed (factor on the limit, about normal around 1 and
+  // within two spreads), following time and car colour. Always the same four draws.
+  driver(){
+    const u=Math.max(1e-9,this.random()),w=this.random(),h=this.random(),color=Math.floor(this.random()*7),k=this.speedSpread;
+    const normal=Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*w);
+    return {pref:1+k*Math.max(-2,Math.min(2,normal)),headway:IDM.T*(1+k*3*(h-0.5)),color};
+  }
   newTrip(){
+    const driver=this.driver();
     const src=this.origins[Math.floor(this.random()*this.origins.length)],targets=this.targets.get(src);
     const dst=targets[Math.floor(this.random()*targets.length)];
     if(this.random()<this.minibusShare){
@@ -315,9 +340,9 @@ export class TrafficEngine{
         const time=this.travelTime(trip.route);
         if(time<=base*1.25+10&&(!best||time<best.time))best={...trip,time,stop};
       }
-      return {src,route:best?best.route:direct,type:'minibus',stops:best?[{idx:best.idx,s:best.stop.s,dwell:BUS_DWELL,busStop:best.stop.id}]:[]};
+      return {src,driver,route:best?best.route:direct,type:'minibus',stops:best?[{idx:best.idx,s:best.stop.s,dwell:BUS_DWELL,busStop:best.stop.id}]:[]};
     }
-    return {src,route:this.routeFrom(src)(dst),type:'car',stops:[]};
+    return {src,driver,route:this.routeFrom(src)(dst),type:'car',stops:[]};
   }
   spawn(dt){
     if(this.origins.length&&this.demand>0){
@@ -332,10 +357,10 @@ export class TrafficEngine{
       const b=this.backlog[i];let first=null;
       for(const v of this.vehicles)if(!v.bay&&v.route[v.idx]===b.src&&(!first||v.s<first.s))first=v;
       if(first&&first.s-first.len<IDM.s0+2)continue;
-      const seg=this.graph.byId.get(b.src),type=VEHICLE_TYPES[b.type];
-      const vehicle={id:this.nextId++,type:b.type,len:type.length,accel:type.a,route:b.route,idx:0,s:0,
-        v:Math.min(seg.speed*type.speed,first?Math.max(0,(first.s-first.len-6)/2):seg.speed),born:this.time,waited:this.time-b.requested,
-        color:Math.floor(this.random()*7),shift:0,commits:new Set(),stops:b.stops||[],dwell:0,dwelling:false};
+      const seg=this.graph.byId.get(b.src),type=VEHICLE_TYPES[b.type],d=b.driver||{pref:1,headway:IDM.T,color:0};
+      const vehicle={id:this.nextId++,type:b.type,len:type.length,accel:type.a,route:b.route,idx:0,s:0,pref:d.pref,headway:d.headway,
+        v:Math.min(seg.speed*type.speed*d.pref,first?Math.max(0,(first.s-first.len-6)/2):seg.speed),born:this.time,waited:this.time-b.requested,
+        color:d.color,shift:0,commits:new Set(),stops:b.stops||[],dwell:0,dwelling:false};
       this.vehicles.push(vehicle);this.vehicleById.set(vehicle.id,vehicle);
       this.stats.spawned++;this.backlog.splice(i--,1);
     }
@@ -426,6 +451,11 @@ export class TrafficEngine{
     if(!next||next.kind!=='lane'||(next.id!==seg.left&&next.id!==seg.right))return false;
     if(v.stops[0]?.idx===v.idx)return false;   // stay in the lane of the stop
     const s=v.s*next.length/seg.length;
+    // Overtaking: move back only once the passed vehicle is behind (or the lane runs out).
+    if(v.passing?.seg===seg.id&&seg.length-v.s>OVERTAKE.back){
+      const o=this.vehicleById.get(v.passing.id);
+      if(o&&o.route[o.idx]===next.id&&o.s>s-v.len-4)return false;
+    }
     // In a stopped queue vehicles merge zip-wise, with a car length less room than in motion.
     const blockers=(byLane.get(next.id)||[]).filter(o=>{const d=o.s-s,still=v.v<1&&o.v<1;return d>-(v.len+(still?1:6+o.v))&&d<o.len+(still?1:4);});
     if(blockers.length){
@@ -435,7 +465,65 @@ export class TrafficEngine{
       if((byLane.get(seg.id)||[]).some(x=>x!==v&&Math.abs(x.s-o.s*seg.length/next.length)<x.len+2))return false;
       this.shiftLane(o,next,seg,o.s*seg.length/next.length);
     }
+    if(next.index<seg.index)v.passing=null;
     this.shiftLane(v,seg,next,s);return true;
+  }
+  desired(v,seg){return seg.speed*VEHICLE_TYPES[v.type].speed*v.pref;}
+  // IDM acceleration of v behind a vehicle `gap` metres ahead moving at `speed`.
+  follow(v,seg,gap,speed){
+    const v0=this.desired(v,seg),sStar=IDM.s0+v.v*v.headway+v.v*(v.v-speed)/(2*Math.sqrt(v.accel*IDM.b));
+    return v.accel*(1-(v.v/v0)**4-(gap===Infinity?0:(Math.max(sStar,0)/Math.max(gap,0.1))**2));
+  }
+  // Nearest vehicles ahead of and behind position s on a lane.
+  neighbours(lane,s,byLane,skip){
+    let ahead=null,behind=null;
+    for(const o of byLane.get(lane)||[]){if(o===skip)continue;if(o.s>s){if(!ahead||o.s<ahead.s)ahead=o;}else if(!behind||o.s>behind.s)behind=o;}
+    return {ahead,behind};
+  }
+  // A lane change by choice (MOBIL-like): pull out to pass a slower vehicle, move back towards
+  // the kerb when that costs nothing. Only well before the end of the lane, never for vehicles
+  // with a stop to make. If the route needs the old lane again (to turn), the lane must be
+  // long enough to get past and back in.
+  tryOvertake(v,byLane){
+    if(!this.overtaking||v.stops.length||v.shift>0||v.v<3||this.time<(v.nextChoice||0))return false;
+    const seg=this.graph.byId.get(v.route[v.idx]),next=this.graph.byId.get(v.route[v.idx+1]);
+    if(seg.kind!=='lane'||seg.ring||(next&&next.kind!=='connector')||seg.length-v.s<OVERTAKE.clear)return false;
+    v.nextChoice=this.time+1;   // drivers weigh it about once a second
+    const own=this.neighbours(seg.id,v.s,byLane,v),here=own.ahead?this.follow(v,seg,own.ahead.s-own.ahead.len-v.s,own.ahead.v):this.follow(v,seg,Infinity,0);
+    for(const id of [seg.right,seg.left]){
+      if(id===null)continue;
+      const lane=this.graph.byId.get(id),s=v.s*lane.length/seg.length,kerbward=lane.index<seg.index;
+      // Back towards the kerb only after passing; otherwise both lanes stay in use (at a stop
+      // line two queues are shorter than one).
+      if(kerbward&&v.passing?.seg!==seg.id)continue;
+      const {ahead,behind}=this.neighbours(id,s,byLane,null);
+      const gapAhead=ahead?ahead.s-ahead.len-s:Infinity,gapBehind=behind?s-v.len-behind.s:Infinity;
+      if(gapAhead<IDM.s0+v.v*0.5||gapBehind<IDM.s0+(behind?behind.v*0.5:0))continue;
+      if(behind&&behind.shift===0&&this.follow(behind,lane,gapBehind,v.v)<-OVERTAKE.safe)continue;
+      const there=this.follow(v,lane,gapAhead,ahead?ahead.v:0);
+      // Out: a clear gain behind a slower vehicle. Back towards the kerb: no real loss.
+      if(kerbward?there<here-OVERTAKE.keep:!(own.ahead&&own.ahead.v<this.desired(v,seg)-1&&there-here>OVERTAKE.gain))continue;
+      const rest=this.routeFrom(id)(v.route.at(-1));if(!rest)continue;
+      // Leaving the map, any lane of the last road will do: drop changes at the very end.
+      while(rest.length>1){const last=this.graph.byId.get(rest.at(-1)),prev=this.graph.byId.get(rest.at(-2));
+        if(last.next.length||prev.kind!=='lane'||prev.road!==last.road||prev.next.length)break;rest.pop();}
+      const goBack=rest[1]!==undefined&&this.graph.byId.get(rest[1]).kind==='lane';
+      if(goBack){
+        if(kerbward||rest[1]!==seg.id)continue;
+        // Distance to get a car length past the slower vehicle at the speed difference.
+        const o=own.ahead,dv=Math.max(0.5,this.desired(v,seg)-o.v),need=(o.s-v.s+v.len+6)*this.desired(v,seg)/dv;
+        if(seg.length-v.s-OVERTAKE.back<need)continue;
+      }
+      // Not a detour: the rest of the trip beyond this road takes no longer.
+      const beyond=r=>this.travelTime(r.filter(x=>this.graph.byId.get(x).road!==seg.road||this.graph.byId.get(x).kind!=='lane'));
+      if(beyond(rest)>beyond(v.route.slice(v.idx))+5)continue;
+      v.route=[...v.route.slice(0,v.idx+1),...rest];
+      v.passing=kerbward?null:{id:own.ahead.id,seg:id};
+      this.shiftLane(v,seg,lane,s);v.nextChoice=this.time+4;
+      if(!kerbward)this.stats.overtakes++;
+      return true;
+    }
+    return false;
   }
   // Moves a vehicle to the neighbouring lane; the view slides it across over 1.5 s.
   shiftLane(v,from,to,s){
@@ -454,7 +542,7 @@ export class TrafficEngine{
     // Vehicles in a bus bay are out of the lane: others drive past.
     const byLane=new Map(),fill=()=>{byLane.clear();for(const o of this.vehicles){if(o.bay)continue;const id=o.route[o.idx];(byLane.get(id)||byLane.set(id,[]).get(id)).push(o);}};
     fill();
-    for(const v of this.vehicles)if(!v.bay&&this.tryLaneChange(v,byLane))fill();
+    for(const v of this.vehicles)if(!v.bay&&(this.tryLaneChange(v,byLane)||this.tryOvertake(v,byLane)))fill();
     const done=[];
     for(const v of this.vehicles){
       const seg=this.graph.byId.get(v.route[v.idx]);
@@ -462,8 +550,8 @@ export class TrafficEngine{
       // A pending lane change must happen before the lane ends.
       const next=this.graph.byId.get(v.route[v.idx+1]);
       if(next&&next.kind==='lane'&&(next.id===seg.left||next.id===seg.right))gap=Math.min(gap,Math.max(0,seg.length-v.s-2));
-      const v0=seg.speed*VEHICLE_TYPES[v.type].speed,dv=v.v-speed;
-      const sStar=(stop?0.3:IDM.s0)+v.v*IDM.T+v.v*dv/(2*Math.sqrt(v.accel*IDM.b));
+      const v0=this.desired(v,seg),dv=v.v-speed;
+      const sStar=(stop?0.3:IDM.s0)+v.v*v.headway+v.v*dv/(2*Math.sqrt(v.accel*IDM.b));
       let acc=v.accel*(1-(v.v/v0)**4-(gap===Infinity?0:(Math.max(sStar,0)/Math.max(gap,0.1))**2));
       acc=Math.max(acc,-9);
       v.v=Math.max(0,v.v+acc*dt);v.acc=acc;   // (the view shows brake lights from it)
@@ -595,7 +683,7 @@ export class TrafficEngine{
     const s=this.stats,bins=this.bins;
     return {time:this.time,active:this.vehicles.length,waiting:this.vehicles.filter(v=>v.v<STOPPED&&!v.dwelling).length,backlog:this.backlog.length,
       completed:s.completed,averageTravel:s.completed?s.travelSeconds/s.completed:0,queueSeconds:s.queueSeconds,
-      throughput:this.time?s.completed*3600/this.time:0,signals:this.signals.size,redViolations:s.redViolations,
+      throughput:this.time?s.completed*3600/this.time:0,signals:this.signals.size,redViolations:s.redViolations,overtakes:s.overtakes,
       sensors:this.sensors.length,sensedSignals:[...this.signals.values()].filter(x=>x.sensed.size).length,
       vehicleTypes:Object.fromEntries(Object.keys(VEHICLE_TYPES).map(t=>[t,this.vehicles.filter(v=>v.type===t).length])),
       backlogSeconds:s.backlogSeconds,truckTrips:s.truckTrips,
