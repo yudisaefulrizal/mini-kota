@@ -1,0 +1,32 @@
+import {chromium} from '@playwright/test';
+import assert from 'node:assert/strict';
+const browser=await chromium.launch({headless:true,args:['--no-sandbox','--enable-unsafe-swiftshader']});
+try{
+ const page=await browser.newPage({viewport:{width:1600,height:1050}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(process.env.TEST_URL||'http://localhost:5180');await page.waitForFunction(()=>window.cityComparison);
+ await page.locator('#pause').click();
+ let state=await page.evaluate(()=>window.cityComparison.state),initial=state.dataCenter;
+ assert.equal(state.dataCenterSite.road[0],1015);assert.equal(state.dataCenterSite.road[1],500);
+ assert.equal(await page.locator('#data-center-sensors tr').count(),10);
+ assert.match(await page.locator('#data-center-compute').textContent(),/vCPU/);
+ await page.locator('[name=retentionDays]').evaluate(e=>e.closest('details').open=true);
+ await page.locator('[name=retentionDays]').fill('60');
+ state=await page.evaluate(()=>window.cityComparison.state);assert.equal(state.dataCenter.storageGB,initial.storageGB*2);
+ assert.equal(state.time,state.smartTime);assert.equal(state.paused,true);
+ await page.locator('[name=sampleSeconds]').fill('0');assert.ok((await page.locator('#data-center-error').textContent()).length>0);
+ assert.equal((await page.evaluate(()=>window.cityComparison.state)).dataCenter.config.sampleSeconds,1);
+ await page.locator('[name=sampleSeconds]').fill('2');
+ assert.ok((await page.evaluate(()=>window.cityComparison.state)).dataCenter.eventsPerSecond<initial.eventsPerSecond);
+ await page.locator('#focus-data-center').click();await page.locator('#viewport').scrollIntoViewIfNeeded();await page.waitForTimeout(300);
+ await page.screenshot({path:'/tmp/unpam-data-center-map.png'});
+ const left=await page.locator('#baseline-view').boundingBox();
+ await page.mouse.click(left.x+left.width/2,left.y+left.height/2);
+ await page.waitForFunction(()=>{const r=document.getElementById('data-center-panel').getBoundingClientRect();return r.top>=0&&r.top<50;});
+ await page.locator('#data-center-panel').screenshot({path:'/tmp/unpam-data-center-panel.png'});
+ await page.setViewportSize({width:390,height:844});await page.locator('#data-center-panel').scrollIntoViewIfNeeded();await page.waitForTimeout(300);
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=390));
+ await page.screenshot({path:'/tmp/unpam-data-center-mobile.png'});
+ assert.deepEqual(errors,[]);
+ console.log('PASS: riverside site, inventory, editable sizing, invalid input, map focus/click, mobile, no browser errors');
+ console.log(JSON.stringify({sensors:initial.totalSensors,controllers:initial.signalControllers,vcpu:initial.vcpu,ramGB:initial.ramGB,storageGB:initial.storageGB,networkMbps:initial.networkMbps}));
+}finally{await browser.close();}

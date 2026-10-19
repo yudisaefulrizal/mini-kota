@@ -1,0 +1,676 @@
+{
+  "categories": {
+    "traffic": "Lalu lintas",
+    "devices": "Perangkat",
+    "vehicles": "Kendaraan",
+    "buildings": "Gedung",
+    "nature": "Vegetasi",
+    "street": "Perabot jalan",
+    "people": "Orang"
+  },
+  "assets": [
+    {
+      "id": "traffic-light",
+      "name": "Lampu lalu lintas · tiang tunggal",
+      "category": "traffic",
+      "file": "models/traffic/traffic-light.glb",
+      "size": [
+        0.56,
+        0.82,
+        4.16
+      ],
+      "triangles": 1188,
+      "parts": [
+        "lamp_red",
+        "lamp_yellow",
+        "lamp_green",
+        "timer_display"
+      ],
+      "lights": {
+        "lamp_red": "#ff3b2f",
+        "lamp_yellow": "#ffc23a",
+        "lamp_green": "#3ddc84"
+      },
+      "tint": []
+    },
+    {
+      "id": "traffic-light-arm",
+      "name": "Lampu lalu lintas · tiang lengan",
+      "category": "traffic",
+      "file": "models/traffic/traffic-light-arm.glb",
+      "size": [
+        5.36,
+        0.9,
+        6.26
+      ],
+      "triangles": 2220,
+      "parts": [
+        "lamp_red",
+        "lamp_yellow",
+        "lamp_green",
+        "lamp_red_2",
+        "lamp_yellow_2",
+        "lamp_green_2",
+        "timer_display"
+      ],
+      "lights": {
+        "lamp_red": "#ff3b2f",
+        "lamp_yellow": "#ffc23a",
+        "lamp_green": "#3ddc84"
+      },
+      "tint": []
+    },
+    {
+      "id": "traffic-light-arrow-right",
+      "name": "Lampu lalu lintas · panah kanan",
+      "category": "traffic",
+      "file": "models/traffic/traffic-light-arrow-right.glb",
+      "size": [
+        0.82,
+        0.82,
+        4.16
+      ],
+      "triangles": 1396,
+      "parts": [
+        "lamp_red",
+        "lamp_yellow",
+        "lamp_green",
+        "lamp_arrow_right",
+        "timer_display"
+      ],
+      "lights": {
+        "lamp_red": "#ff3b2f",
+        "lamp_yellow": "#ffc23a",
+        "lamp_green": "#3ddc84",
+        "lamp_arrow_right": "#3ddc84"
+      },
+      "tint": []
+    },
+    {
+      "id": "traffic-light-arrow-left",
+      "name": "Lampu lalu lintas · panah kiri",
+      "category": "traffic",
+      "file": "models/traffic/traffic-light-arrow-left.glb",
+      "size": [
+        0.82,
+        0.82,
+        4.16
+      ],
+      "triangles": 1396,
+      "parts": [
+        "lamp_red",
+        "lamp_yellow",
+        "lamp_green",
+        "lamp_arrow_left",
+        "timer_display"
+      ],
+      "lights": {
+        "lamp_red": "#ff3b2f",
+        "lamp_yellow": "#ffc23a",
+        "lamp_green": "#3ddc84",
+        "lamp_arrow_left": "#3ddc84"
+      },
+      "tint": []
+    },
+    {
+      "id": "pedestrian-light",
+      "name": "Lampu pejalan kaki",
+      "category": "traffic",
+      "file": "models/traffic/pedestrian-light.glb",
+      "size": [
+        0.46,
+        0.69,
+        3.06
+      ],
+      "triangles": 460,
+      "parts": [
+        "lamp_ped_red",
+        "lamp_ped_green",
+        "timer_display"
+      ],
+      "lights": {
+        "lamp_ped_red": "#ff3b2f",
+        "lamp_ped_green": "#3ddc84"
+      },
+      "tint": []
+    },
+    {
+      "id": "warning-light",
+      "name": "Lampu kuning kedip",
+      "category": "traffic",
+      "file": "models/traffic/warning-light.glb",
+      "size": [
+        0.56,
+        1.08,
+        3.46
+      ],
+      "triangles": 840,
+      "parts": [
+        "lamp_yellow",
+        "lamp_yellow_2"
+      ],
+      "lights": {
+        "lamp_yellow": "#ffc23a"
+      },
+      "tint": []
+    },
+    {
+      "id": "sign-left-turn",
+      "name": "Rambu belok kiri jalan terus",
+      "category": "traffic",
+      "file": "models/traffic/sign-left-turn.glb",
+      "size": [
+        1.0,
+        0.4,
+        2.76
+      ],
+      "triangles": 1376,
+      "parts": [],
+      "lights": {},
+      "tint": []
+    },
+    {
+      "id": "cctv",
+      "name": "Kamera CCTV · bullet",
+      "category": "devices",
+      "file": "models/devices/cctv.glb",
+      "size": [
+        1.34,
+        0.59,
+        6.16
+      ],
+      "triangles": 264,
+      "parts": [],
+      "lights": {},
+      "tint": []
+    },
+    {
+      "id": "cctv-dome",
+      "name": "Kamera CCTV · dome PTZ",
+      "category": "devices",
+      "file": "models/devices/cctv-dome.glb",
+      "size": [
+        0.99,
+        0.52,
+        5.26
+      ],
+      "triangles": 628,
+      "parts": [],
+      "lights": {},
+      "tint": []
+    },
+    {
+      "id": "controller",
+      "name": "Kabinet pengendali simpang",
+      "category": "devices",
+      "file": "models/devices/controller.glb",
+      "size": [
+        1.4,
+        0.8,
+        1.79
+      ],
+      "triangles": 192,
+      "parts": [],
+      "lights": {},
+      "tint": []
+    },
+    {
+      "id": "gateway",
+      "name": "Gateway edge",
+      "category": "devices",
+      "file": "models/devices/gateway.glb",
+      "size": [
+        0.46,
+        0.51,
+        3.75
+      ],
+      "triangles": 364,
+      "parts": [
+        "led"
+      ],
+      "lights": {},
+      "tint": []
+    },
+    {
+      "id": "bin-sensor",
+      "name": "Tempat sampah + sensor ultrasonik",
+      "category": "devices",
+      "file": "models/devices/bin-sensor.glb",
+      "size": [
+        1.36,
+        1.14,
+        1.57
+      ],
+      "triangles": 276,
+      "parts": [
+        "sensor",
+        "sensor_led"
+      ],
+      "lights": {},
+      "tint": []
+    },
+    {
+      "id": "car",
+      "name": "Mobil penumpang",
+      "category": "vehicles",
+      "file": "models/vehicles/car.glb",
+      "size": [
+        1.99,
+        4.6,
+        1.6
+      ],
+      "triangles": 640,
+      "parts": [
+        "headlight",
+        "brake_light",
+        "indicator_left",
+        "indicator_right"
+      ],
+      "lights": {
+        "headlight": "#fff4d0",
+        "brake_light": "#ff3b2f",
+        "indicator_left": "#ffa516",
+        "indicator_right": "#ffa516"
+      },
+      "tint": [
+        "paint"
+      ]
+    },
+    {
+      "id": "minibus",
+      "name": "Minibus pengantar",
+      "category": "vehicles",
+      "file": "models/vehicles/minibus.glb",
+      "size": [
+        2.16,
+        5.6,
+        2.3
+      ],
+      "triangles": 684,
+      "parts": [
+        "headlight",
+        "brake_light",
+        "indicator_left",
+        "indicator_right"
+      ],
+      "lights": {
+        "headlight": "#fff4d0",
+        "brake_light": "#ff3b2f",
+        "indicator_left": "#ffa516",
+        "indicator_right": "#ffa516"
+      },
+      "tint": [
+        "paint"
+      ]
+    },
+    {
+      "id": "garbage-truck",
+      "name": "Truk sampah",
+      "category": "vehicles",
+      "file": "models/vehicles/garbage-truck.glb",
+      "size": [
+        2.62,
+        7.42,
+        3.1
+      ],
+      "triangles": 1336,
+      "parts": [
+        "headlight",
+        "brake_light",
+        "indicator_left",
+        "indicator_right"
+      ],
+      "lights": {
+        "headlight": "#fff4d0",
+        "brake_light": "#ff3b2f",
+        "indicator_left": "#ffa516",
+        "indicator_right": "#ffa516"
+      },
+      "tint": [
+        "paint"
+      ]
+    },
+    {
+      "id": "house",
+      "name": "Rumah satu lantai",
+      "category": "buildings",
+      "file": "models/buildings/house.glb",
+      "size": [
+        9.0,
+        11.7,
+        5.9
+      ],
+      "triangles": 176,
+      "parts": [],
+      "lights": {},
+      "tint": [
+        "dinding"
+      ]
+    },
+    {
+      "id": "house-two-storey",
+      "name": "Rumah dua lantai",
+      "category": "buildings",
+      "file": "models/buildings/house-two-storey.glb",
+      "size": [
+        8.0,
+        10.5,
+        9.3
+      ],
+      "triangles": 284,
+      "parts": [],
+      "lights": {},
+      "tint": [
+        "dinding"
+      ]
+    },
+    {
+      "id": "shophouse",
+      "name": "Ruko tiga pintu",
+      "category": "buildings",
+      "file": "models/buildings/shophouse.glb",
+      "size": [
+        13.8,
+        13.55,
+        9.3
+      ],
+      "triangles": 324,
+      "parts": [],
+      "lights": {},
+      "tint": [
+        "dinding"
+      ]
+    },
+    {
+      "id": "office",
+      "name": "Gedung kantor",
+      "category": "buildings",
+      "file": "models/buildings/office.glb",
+      "size": [
+        22.0,
+        24.0,
+        38.9
+      ],
+      "triangles": 504,
+      "parts": [],
+      "lights": {},
+      "tint": [
+        "dinding"
+      ]
+    },
+    {
+      "id": "school",
+      "name": "Sekolah",
+      "category": "buildings",
+      "file": "models/buildings/school.glb",
+      "size": [
+        45.2,
+        20.4,
+        10.4
+      ],
+      "triangles": 684,
+      "parts": [],
+      "lights": {},
+      "tint": [
+        "dinding"
+      ]
+    },
+    {
+      "id": "campus",
+      "name": "Gedung kampus",
+      "category": "buildings",
+      "file": "models/buildings/campus.glb",
+      "size": [
+        47.0,
+        24.0,
+        16.7
+      ],
+      "triangles": 1656,
+      "parts": [],
+      "lights": {},
+      "tint": [
+        "dinding"
+      ]
+    },
+    {
+      "id": "mall",
+      "name": "Pusat perbelanjaan",
+      "category": "buildings",
+      "file": "models/buildings/mall.glb",
+      "size": [
+        64.0,
+        43.0,
+        12.7
+      ],
+      "triangles": 832,
+      "parts": [],
+      "lights": {},
+      "tint": [
+        "dinding"
+      ]
+    },
+    {
+      "id": "factory",
+      "name": "Pabrik",
+      "category": "buildings",
+      "file": "models/buildings/factory.glb",
+      "size": [
+        42.0,
+        27.0,
+        22.0
+      ],
+      "triangles": 376,
+      "parts": [],
+      "lights": {},
+      "tint": []
+    },
+    {
+      "id": "data-center",
+      "name": "Data center",
+      "category": "buildings",
+      "file": "models/buildings/data-center.glb",
+      "size": [
+        33.5,
+        28.5,
+        12.1
+      ],
+      "triangles": 2200,
+      "parts": [],
+      "lights": {},
+      "tint": []
+    },
+    {
+      "id": "tps3r",
+      "name": "TPS3R (pengolahan sampah)",
+      "category": "buildings",
+      "file": "models/buildings/tps3r.glb",
+      "size": [
+        28.0,
+        28.3,
+        8.6
+      ],
+      "triangles": 260,
+      "parts": [],
+      "lights": {},
+      "tint": []
+    },
+    {
+      "id": "tree-shade",
+      "name": "Pohon peneduh",
+      "category": "nature",
+      "file": "models/nature/tree-shade.glb",
+      "size": [
+        5.85,
+        4.95,
+        6.32
+      ],
+      "triangles": 168,
+      "parts": [],
+      "lights": {},
+      "tint": []
+    },
+    {
+      "id": "tree-column",
+      "name": "Glodokan tiang",
+      "category": "nature",
+      "file": "models/nature/tree-column.glb",
+      "size": [
+        2.19,
+        2.3,
+        9.35
+      ],
+      "triangles": 244,
+      "parts": [],
+      "lights": {},
+      "tint": []
+    },
+    {
+      "id": "tree-palm",
+      "name": "Pohon palem",
+      "category": "nature",
+      "file": "models/nature/tree-palm.glb",
+      "size": [
+        4.99,
+        4.99,
+        8.16
+      ],
+      "triangles": 284,
+      "parts": [],
+      "lights": {},
+      "tint": []
+    },
+    {
+      "id": "shrub",
+      "name": "Semak",
+      "category": "nature",
+      "file": "models/nature/shrub.glb",
+      "size": [
+        1.75,
+        1.09,
+        0.84
+      ],
+      "triangles": 60,
+      "parts": [],
+      "lights": {},
+      "tint": []
+    },
+    {
+      "id": "street-light",
+      "name": "Lampu jalan (PJU)",
+      "category": "street",
+      "file": "models/street/street-light.glb",
+      "size": [
+        2.93,
+        0.6,
+        9.06
+      ],
+      "triangles": 180,
+      "parts": [
+        "lamp"
+      ],
+      "lights": {
+        "lamp": "#fff1c4"
+      },
+      "tint": []
+    },
+    {
+      "id": "bus-stop",
+      "name": "Halte",
+      "category": "street",
+      "file": "models/street/bus-stop.glb",
+      "size": [
+        6.6,
+        2.8,
+        3.27
+      ],
+      "triangles": 324,
+      "parts": [],
+      "lights": {},
+      "tint": []
+    },
+    {
+      "id": "bench",
+      "name": "Bangku taman",
+      "category": "street",
+      "file": "models/street/bench.glb",
+      "size": [
+        1.8,
+        0.49,
+        0.95
+      ],
+      "triangles": 72,
+      "parts": [],
+      "lights": {},
+      "tint": []
+    },
+    {
+      "id": "person",
+      "name": "Pejalan kaki · berdiri",
+      "category": "people",
+      "file": "models/people/person.glb",
+      "size": [
+        0.6,
+        0.3,
+        1.73
+      ],
+      "triangles": 320,
+      "parts": [
+        "leg_l",
+        "leg_r",
+        "arm_l",
+        "arm_r"
+      ],
+      "lights": {},
+      "tint": [
+        "baju",
+        "celana"
+      ]
+    },
+    {
+      "id": "person-walking",
+      "name": "Pejalan kaki · berjalan",
+      "category": "people",
+      "file": "models/people/person-walking.glb",
+      "size": [
+        0.6,
+        0.84,
+        1.73
+      ],
+      "triangles": 320,
+      "parts": [
+        "leg_l",
+        "leg_r",
+        "arm_l",
+        "arm_r"
+      ],
+      "lights": {},
+      "tint": [
+        "baju",
+        "celana"
+      ]
+    },
+    {
+      "id": "person-carrying-bag",
+      "name": "Warga membawa kantong sampah",
+      "category": "people",
+      "file": "models/people/person-carrying-bag.glb",
+      "size": [
+        0.74,
+        0.74,
+        1.74
+      ],
+      "triangles": 340,
+      "parts": [
+        "leg_l",
+        "leg_r",
+        "arm_l",
+        "arm_r"
+      ],
+      "lights": {},
+      "tint": [
+        "baju",
+        "celana"
+      ]
+    }
+  ]
+}

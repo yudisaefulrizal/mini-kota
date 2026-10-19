@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="contoh uji Mini Kota: dua jalan bermedian bersilangan">
+ <!-- Each divided road is two one-way ways ~14 m apart (traffic keeps left: eastbound on the
+      north carriageway, northbound on the west one), so the crossing is four junctions. -->
+ <bounds minlat="-6.3460" minlon="106.7300" maxlat="-6.3420" maxlon="106.7360"/>
+ <node id="1" lat="-6.34394" lon="106.7302"/>
+ <node id="2" lat="-6.34394" lon="106.73294"><tag k="highway" v="traffic_signals"/></node>
+ <node id="3" lat="-6.34394" lon="106.73306"><tag k="highway" v="traffic_signals"/></node>
+ <node id="4" lat="-6.34394" lon="106.7358"/>
+ <node id="5" lat="-6.34406" lon="106.7358"/>
+ <node id="6" lat="-6.34406" lon="106.73306"><tag k="highway" v="traffic_signals"/></node>
+ <node id="7" lat="-6.34406" lon="106.73294"><tag k="highway" v="traffic_signals"/></node>
+ <node id="8" lat="-6.34406" lon="106.7302"/>
+ <node id="9" lat="-6.3458" lon="106.73294"/>
+ <node id="10" lat="-6.3422" lon="106.73294"/>
+ <node id="11" lat="-6.3422" lon="106.73306"/>
+ <node id="12" lat="-6.3458" lon="106.73306"/>
+ <way id="100"><nd ref="1"/><nd ref="2"/><nd ref="3"/><nd ref="4"/><tag k="highway" v="primary"/><tag k="oneway" v="yes"/><tag k="lanes" v="2"/><tag k="name" v="Jalan Raya (arah timur)"/></way>
+ <way id="101"><nd ref="5"/><nd ref="6"/><nd ref="7"/><nd ref="8"/><tag k="highway" v="primary"/><tag k="oneway" v="yes"/><tag k="lanes" v="2"/><tag k="name" v="Jalan Raya (arah barat)"/></way>
+ <way id="102"><nd ref="9"/><nd ref="7"/><nd ref="2"/><nd ref="10"/><tag k="highway" v="secondary"/><tag k="oneway" v="yes"/><tag k="lanes" v="2"/><tag k="name" v="Jalan Sudirman (arah utara)"/></way>
+ <way id="103"><nd ref="11"/><nd ref="3"/><nd ref="6"/><nd ref="12"/><tag k="highway" v="secondary"/><tag k="oneway" v="yes"/><tag k="lanes" v="2"/><tag k="name" v="Jalan Sudirman (arah selatan)"/></way>
+</osm>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="contoh uji Mini Kota">
+ <bounds minlat="-6.3460" minlon="106.7300" maxlat="-6.3420" maxlon="106.7360"/>
+ <node id="1" lat="-6.3440" lon="106.7305"/>
+ <node id="2" lat="-6.3440" lon="106.7330"><tag k="highway" v="traffic_signals"/></node>
+ <node id="3" lat="-6.3440" lon="106.7355"/>
+ <node id="4" lat="-6.3423" lon="106.7330"/>
+ <node id="5" lat="-6.3458" lon="106.7330"/>
+ <node id="6" lat="-6.3425" lon="106.7350"/>
+ <node id="7" lat="-6.3430" lon="106.7357"/>
+ <node id="8" lat="-6.3455" lon="106.7302"/>
+ <node id="9" lat="-6.3470" lon="106.7302"/>
+ <node id="10" lat="-6.3452" lon="106.7340"/>
+ <node id="11" lat="-6.3452" lon="106.7350"/>
+ <node id="20" lat="-6.3430" lon="106.7310"/>
+ <node id="21" lat="-6.3430" lon="106.7320"/>
+ <node id="22" lat="-6.3435" lon="106.7320"/>
+ <way id="100"><nd ref="1"/><nd ref="2"/><nd ref="3"/><tag k="highway" v="primary"/><tag k="lanes" v="4"/><tag k="name" v="Jalan Utama &amp; Raya"/></way>
+ <way id="101"><nd ref="4"/><nd ref="2"/><nd ref="5"/><tag k="highway" v="secondary"/></way>
+ <way id="102"><nd ref="3"/><nd ref="7"/><nd ref="6"/><tag k="highway" v="residential"/><tag k="oneway" v="yes"/></way>
+ <way id="103"><nd ref="8"/><nd ref="9"/><tag k="highway" v="residential"/></way>
+ <way id="104"><nd ref="11"/><nd ref="10"/><tag k="highway" v="tertiary"/><tag k="oneway" v="-1"/><tag k="lanes" v="2"/></way>
+ <way id="105"><nd ref="1"/><nd ref="8"/><tag k="highway" v="service"/></way>
+ <way id="200"><nd ref="20"/><nd ref="21"/><nd ref="22"/><nd ref="20"/><tag k="building" v="yes"/></way>
+</osm>
