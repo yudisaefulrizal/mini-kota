@@ -3,7 +3,7 @@
 // sizing proposal.
 export const DEVICES=[
   {id:'cam',zone:'field',icon:'◉',name:'Kamera CCTV IP + analitik',count:'14 unit',
-    role:'Menghitung kendaraan yang menuju, berhenti, dan melewati garis henti di setiap pendekat simpang berlampu; hitungan ini dipakai lampu adaptif. Analitik berjalan di kamera, sehingga yang dikirim hanya metadata hasil deteksi.',
+    role:'Menghitung kendaraan yang menuju, berhenti, dan melewati garis henti di setiap pendekat simpang berlampu; hitungan ini dipakai lampu adaptif. Analitik berjalan di kamera, sehingga yang dikirim hanya metadata hasil deteksi (jumlah, bukan identitas): tidak ada pembacaan plat atau pelacakan kendaraan.',
     hardware:'Kamera IP luar ruang IP66, prosesor analitik di kamera. Kamera kubah di sudut simpang memakai kabel LAN ke gateway simpang; kamera tiang yang jauh dari gateway (lebih dari 60 m) memakai serat optik. Di Mini Kota: 14 kamera kubah, satu per simpang berlampu atau simpang gabungan.',
     os:'Firmware Linux tertanam dari vendor kamera',
     software:'Aplikasi analitik di kamera (deteksi kendaraan, zona antrean, garis virtual), klien NTP untuk sinkronisasi waktu',

@@ -460,7 +460,7 @@ lalu lintas yang sama dengan editor:
   tempat sampah, ±120 kg per tempat sampah), dan jadwal truk kota biasa.
 - **Perbandingan**: antre di jalan dan di pintu masuk kota (`backlogSeconds`), BBM idle,
   perjalanan selesai, waktu tempuh, perjalanan truk, lama tempat sampah penuh.
-- **Cerdas × perangkat** dan **Perangkat** memakai lapisan jaringan dan pembacaan perangkat
+- **Kota cerdas** (yang kini sekaligus menampilkan perangkat; tab "Cerdas × perangkat" dilebur ke sini) dan **Perangkat** memakai lapisan jaringan dan pembacaan perangkat
   yang sama dengan editor (`src/map/device-info.js`); **data center** dihitung dari perangkat
   yang terpasang di peta (`src/app/data-center.js`); **Jelajahi Kota** dipindah ke peta baru
   (meter, tabrakan dengan gedung dan kendaraan).

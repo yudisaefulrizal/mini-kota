@@ -29,7 +29,7 @@ try{
 
   // Tabs: one city, then the smart city with its device network.
   await page.click('[data-mode=baseline]');assert.equal(await page.isHidden('#smart-view'),true);
-  await page.click('[data-mode=devices]');
+  await page.click('[data-mode=smart]');   // the smart city shows its devices
   assert.equal(await page.isVisible('#net-legend'),true);
   assert.match(await page.textContent('#net-legend'),/CCTV simpang \(antrean\) · 14/);
   await page.waitForTimeout(400);
@@ -48,7 +48,7 @@ try{
   await page.click('#equipment-rows tr:first-child button');
   assert.match(await page.textContent('#equipment-detail'),/Sensor ultrasonik tempat sampah/);
   await page.click('#equipment-show');
-  assert.equal(await page.evaluate(()=>window.miniKota.mode),'devices');
+  assert.equal(await page.evaluate(()=>window.miniKota.mode),'smart');
   assert.equal(await page.isVisible('#device-card'),true);
 
   // Data center: sized from the devices on the map; assumptions can be changed.

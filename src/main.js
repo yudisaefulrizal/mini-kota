@@ -112,21 +112,21 @@ $('map-file').onchange=async e=>{
 };
 
 // ---------------------------------------------------------------- modes (tabs)
-const MAP_MODES={compare:'Perbandingan lalu lintas',baseline:'Kota biasa',smart:'Kota cerdas',devices:'Kota cerdas × perangkat',equipment:'Perangkat kota cerdas',editor:'Editor peta'};
+const MAP_MODES={compare:'Perbandingan lalu lintas',baseline:'Kota biasa',smart:'Kota cerdas',equipment:'Perangkat kota cerdas',editor:'Editor peta'};
 function setMapMode(next){
   mode=next;viewport.dataset.mode=mode;$('map-title').textContent=MAP_MODES[mode];
   for(const b of document.querySelectorAll('.map-tabs [data-mode]'))b.setAttribute('aria-selected',String(b.dataset.mode===mode));
   $('equipment-view').hidden=mode!=='equipment';$('editor-view').hidden=mode!=='editor';
   if(mode==='equipment')equipment.open();
   if(mode==='editor'&&!$('editor-frame').src)$('editor-frame').src='./editor-peta.html?embed=1';
-  if(mode!=='devices')hideDeviceCard();
+  if(mode!=='smart')hideDeviceCard();
   renderLegend();layout();
 }
 document.querySelector('.map-tabs').addEventListener('click',e=>{const tab=e.target.closest('[data-mode]');if(tab)setMapMode(tab.dataset.mode);});
 
-// ---------------------------------------------------------------- devices (Cerdas × perangkat)
+// ---------------------------------------------------------------- devices (shown in the smart city tab)
 function renderLegend(){
-  const box=$('net-legend'),html=mode==='devices'&&cities.smart.map?legendHtml(cities.smart.map,{live:true}):'';
+  const box=$('net-legend'),html=mode==='smart'&&cities.smart.map?legendHtml(cities.smart.map,{live:true}):'';
   box.hidden=!html;if(html)box.querySelector('div').innerHTML=html;
 }
 let cardDevice=null;
@@ -155,7 +155,7 @@ renderer.domElement.addEventListener('pointermove',e=>{
 });
 renderer.domElement.addEventListener('pointerup',e=>{
   const click=leftPan;leftPan=null;
-  if(!click||e.button!==0||mode!=='devices'||!cities.smart.network)return;
+  if(!click||e.button!==0||mode!=='smart'||!cities.smart.network)return;
   controls.ray(e.clientX,e.clientY);const id=cities.smart.network.pick(controls.raycaster);
   if(id)showDeviceCard(id);else hideDeviceCard();
 });
@@ -170,7 +170,7 @@ window.addEventListener('keydown',e=>{
 $('city-compass').onclick=()=>controls.northUp();
 
 const equipment=createEquipmentView({root:$('equipment-view'),getCity:()=>cities.smart,
-  onShowOnMap:o=>{setMapMode('devices');showDeviceCard(o.id);lookAt(o.x,o.z,50);viewport.scrollIntoView({behavior:'smooth',block:'center'});}});
+  onShowOnMap:o=>{setMapMode('smart');showDeviceCard(o.id);lookAt(o.x,o.z,50);viewport.scrollIntoView({behavior:'smooth',block:'center'});}});
 
 // ---------------------------------------------------------------- numbers
 const fuel=s=>(s.queueSeconds+s.backlogSeconds)*settings.idle/3600;
@@ -207,7 +207,7 @@ function ui(){
   $('city-details-rows').innerHTML=detail.map(([k,x,y])=>`<tr><th scope="row">${k}</th><td>${x}</td><td>${y}</td></tr>`).join('');
   $('run-status').textContent=paused?'Simulasi dijeda':fastForward?'Mempercepat 1 jam…':'Simulasi aktif';
   if(mode==='equipment')equipment.refresh();
-  if(mode==='devices')renderDeviceCard();
+  if(mode==='smart')renderDeviceCard();
   if($('data-center-details').open)renderDataCenterLoad();
 }
 
@@ -223,11 +223,11 @@ function renderDataCenter(){
 }
 function renderDataCenterLoad(){
   const m=cities.smart.map;if(!m)return;
-  let e;try{e=estimateDataCenter(m,dataCenterConfig,cities.smart.engine?.vehicles.length||0);$('data-center-error').textContent='';}catch(error){$('data-center-error').textContent=error.message;return;}
+  let e;try{e=estimateDataCenter(m,dataCenterConfig);$('data-center-error').textContent='';}catch(error){$('data-center-error').textContent=error.message;return;}
   $('data-center-summary').innerHTML=[['Sensor',fmt(e.totalSensors)],['Pesan/detik',fmt(e.eventsPerSecond,1)],['vCPU',e.vcpu],['RAM',`${e.ramGB} GB`],['Penyimpanan',`${fmt(e.storageGB,1)} GB`],['Jaringan',`${fmt(e.networkMbps,2)} Mbps`]]
     .map(([k,v])=>`<div><span>${k}</span><strong>${v}</strong></div>`).join('');
-  $('data-center-load').textContent=`Ukuran untuk ${fmt(e.sizingVehicles)} kendaraan serentak (sekarang ${fmt(e.activeVehicles)} di peta kota cerdas).`;
-  $('data-center-compute').innerHTML=`<p>${fmt(e.eventsPerSecond,1)} pesan sensor/detik, ${fmt(e.signalEvaluationsPerSecond)} evaluasi lampu/detik, ${fmt(e.routeEvaluationsPerSecond,1)} evaluasi rute/detik ≈ ${fmt(e.cpuCores,2)} inti CPU → ${e.vcpu} vCPU (beban 60%).</p>
+  $('data-center-load').textContent=`Beban dari ${fmt(e.totalSensors)} sensor dan ${fmt(e.signalControllers)} pengendali simpang. Hanya data agregat (jumlah kendaraan per pendekat, isi tempat sampah); tidak ada identitas atau pelacakan kendaraan, sehingga jumlah kendaraan tidak menambah beban.`;
+  $('data-center-compute').innerHTML=`<p>${fmt(e.eventsPerSecond,1)} pesan sensor/detik, ${fmt(e.signalEvaluationsPerSecond)} evaluasi lampu/detik ≈ ${fmt(e.cpuCores,3)} inti CPU → ${e.vcpu} vCPU (beban 60%).</p>
 <p>Data harian ${fmt(e.dailyGB,2)} GB; retensi ${e.config.retentionDays} hari dengan 2 salinan + 30% cadangan → ${fmt(e.storageGB,1)} GB.</p>
 <p>${e.activeNodes} node aktif (${e.nodeVcpu} vCPU, ${e.nodeRamGB} GB RAM per node) + 1 cadangan = ${e.totalNodes} node.</p>`;
 }
@@ -238,7 +238,7 @@ $('data-center-form').addEventListener('input',()=>{
 $('data-center-details').addEventListener('toggle',()=>{if($('data-center-details').open)renderDataCenter();});
 $('focus-data-center').onclick=()=>{
   const dc=cities.smart.map?.objects.find(o=>o.asset==='data-center');if(!dc)return;
-  setMapMode('devices');lookAt(dc.x,dc.z,90);viewport.scrollIntoView({behavior:'smooth',block:'center'});
+  setMapMode('smart');lookAt(dc.x,dc.z,90);viewport.scrollIntoView({behavior:'smooth',block:'center'});
 };
 
 // ---------------------------------------------------------------- controls
@@ -277,7 +277,7 @@ renderer.setAnimationLoop(now=>{
   for(const r of rects){
     const city=cities[r.kind];if(!city.view)continue;
     camera.aspect=r.width/r.height;camera.updateProjectionMatrix();
-    city.draw(camera,r.height,dt,{network:mode==='devices'&&r.kind==='smart'&&!driving.active,paused,labels:!driving.active});
+    city.draw(camera,r.height,dt,{network:mode==='smart'&&r.kind==='smart'&&!driving.active,paused,labels:!driving.active});
     city.scene.add(controls.marker);   // the orbit anchor marker shows in whichever view is drawn
     renderer.setViewport(r.x,r.y,r.width,r.height);renderer.setScissor(r.x,r.y,r.width,r.height);
     renderer.render(city.scene,camera);

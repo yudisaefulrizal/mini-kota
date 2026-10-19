@@ -22,7 +22,8 @@ try{
   await page.selectOption('#map-select','empty');await page.waitForFunction(()=>window.mapEditor.map.name==='Peta baru');
   await page.keyboard.press('r');for(const [x,z] of [[100,100],[500,120]])await click(x,z);await page.keyboard.press('Enter');
   await page.fill('#map-name','Kota Uji Simpan');await page.press('#map-name','Enter');
-  await page.waitForFunction(()=>/draf di browser/.test(document.getElementById('save-state').textContent));
+  // The draft is written 0.4 s after the last change: wait for the one with the new name.
+  await page.waitForFunction(()=>/draf di browser/.test(document.getElementById('save-state').textContent)&&JSON.parse(localStorage.getItem('minikota.editor.draft')||'{}').map?.name==='Kota Uji Simpan');
 
   // Reload: the draft is offered and restores the work.
   await page.reload();await ready();

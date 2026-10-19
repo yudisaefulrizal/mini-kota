@@ -90,7 +90,7 @@ main>header{margin-bottom:12px}
 main>header h2{margin-bottom:10px}
 .map-tabs{display:flex;flex-wrap:wrap;gap:6px}.map-tabs button{font:inherit;font-size:12.5px;padding:6px 12px;border-radius:999px;border:1px solid #cfdacb;background:#fff;color:#456047;cursor:pointer}.map-tabs button:hover{border-color:#7a9586}.map-tabs button[aria-selected=true]{background:#2f5d45;border-color:#2f5d45;color:#fff;font-weight:600}.map-tabs button:focus-visible{outline:2px solid #426e50;outline-offset:2px}
 #viewport:not([data-mode=compare]){grid-template-columns:1fr;grid-template-rows:1fr}
-#viewport[data-mode=baseline] #smart-view,#viewport[data-mode=smart] #baseline-view,#viewport[data-mode=devices] #baseline-view{display:none}
+#viewport[data-mode=baseline] #smart-view,#viewport[data-mode=smart] #baseline-view{display:none}
 #viewport[data-mode=equipment],#viewport[data-mode=equipment]~.timer-hint{display:none}
 #viewport[data-mode=editor],#viewport[data-mode=editor]~.timer-hint{display:none}
 body.driving #viewport[data-mode=editor]{display:block}
