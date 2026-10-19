@@ -6,7 +6,8 @@ import {miniKotaRoads,miniKotaLengkap} from './map/default-map.js';
 import {furnish} from './map/furnish.js';
 import {MapCamera} from './map/camera-controls.js';
 import {NetworkLayer} from './map/network-layer.js';
-import {networkSummary,DEVICE_ICONS,NETWORKS} from './map/network.js';
+import {DEVICE_ICONS,NETWORKS} from './map/network.js';
+import {deviceReadings,deviceLinks,legendHtml} from './map/device-info.js';
 import * as edit from './map/edit.js';
 import {normalize,editScope,describeChanges,mergeNodes} from './map/normalize.js';
 import {ObjectLayer} from './map/object-layer.js';
@@ -22,7 +23,6 @@ import {TrafficView} from './traffic/view.js';
 
 // Inside the simulation's "Editor peta" tab the page header is hidden.
 if(new URLSearchParams(location.search).has('embed'))document.body.classList.add('embed');
-const REFERENCE_IMAGES={'map-mini-kota.png':new URL('../map-mini-kota.png',import.meta.url).href};
 const DRAW_PROFILES=['jalan-1x1','jalan-2x2','jalan-3x3','satu-arah-2','akses'];
 const $=id=>document.getElementById(id);
 const fmt=(n,d=1)=>n.toLocaleString('id-ID',{maximumFractionDigits:d});
@@ -56,7 +56,7 @@ const handleMaterials={node:new THREE.MeshBasicMaterial({color:0xffffff,depthTes
   ring:new THREE.MeshBasicMaterial({color:0x173b37,depthTest:false}),active:new THREE.MeshBasicMaterial({color:0xe8742c,depthTest:false})};
 
 // ---------------------------------------------------------------- state
-let map=null,geometry=null,layers=null,reference=null;
+let map=null,geometry=null,layers=null;
 let tool='select',profile='jalan-2x2',drawMode='click';
 let drawing=null;             // {points, startTarget, endTarget, dragging}
 let selection=null;           // {type:'road'|'node'|'object', id}
@@ -79,7 +79,7 @@ async function load(){
 }
 // Replaces the map being edited (history starts afresh).
 function setMap(next,{saved=null}={}){
-  map=next;reference=null;selection=null;activeHandle=null;previewPhase=null;cancelDrawing();history.undoStack=[];history.redoStack=[];
+  map=next;selection=null;activeHandle=null;previewPhase=null;cancelDrawing();history.undoStack=[];history.redoStack=[];
   dirty=false;savedAt=saved;$('map-name').value=map.name||'';
   rebuild();frame(true);setTool(tool);showSaveState();
 }
@@ -153,7 +153,6 @@ function rebuild(){
   layers.add(buildRoadMeshes(geometry,{markings:$('layer-markings').checked,sidewalks:$('layer-sidewalks').checked}));
   if($('layer-lots').checked)layers.add(buildLots(map));
   if($('layer-graph').checked)layers.add(buildGraphOverlay(map));
-  if($('layer-reference').checked&&map.reference)layers.add(referenceImage());
   objects.group.visible=$('layer-objects').checked;objects.sync(map);objects.updateLinks(false);
   network.visible=$('layer-links').checked;network.sync(map);renderLegend();
   const s=geometry.stats;
@@ -167,14 +166,6 @@ function rebuild(){
   renderSelection();updateButtons();
 }
 
-function referenceImage(){
-  if(!reference){
-    const texture=new THREE.TextureLoader().load(REFERENCE_IMAGES[map.reference.image]??map.reference.image);texture.colorSpace=THREE.SRGBColorSpace;
-    reference=new THREE.Mesh(new THREE.PlaneGeometry(map.reference.width,map.reference.depth),new THREE.MeshBasicMaterial({map:texture,transparent:true,opacity:0.55,depthWrite:false}));
-    reference.rotation.x=-Math.PI/2;reference.position.set(map.reference.width/2,0.2,map.reference.depth/2);reference.renderOrder=2;
-  }
-  return reference;
-}
 
 // One undoable step: snapshot, change, tidy what the change touched, rebuild.
 // A failed change is rolled back. `lastTidy` describes what tidying did.
@@ -684,7 +675,7 @@ $('file-input').onchange=e=>{const file=e.target.files[0];if(file)openFile(file)
 $('view-top').onclick=()=>frame(true,true);$('view-perspective').onclick=()=>frame(false,true);
 $('compass').onclick=()=>controls.northUp();
 $('map-select').onchange=load;
-for(const id of ['layer-markings','layer-sidewalks','layer-lots','layer-graph','layer-reference','layer-objects','layer-links'])$(id).onchange=()=>map&&rebuild();
+for(const id of ['layer-markings','layer-sidewalks','layer-lots','layer-graph','layer-objects','layer-links'])$(id).onchange=()=>map&&rebuild();
 $('download').onclick=download;
 // Drop a .json file anywhere on the page to open it.
 window.addEventListener('dragover',e=>{if([...e.dataTransfer.types].includes('Files'))e.preventDefault();});
@@ -727,27 +718,16 @@ canvas.addEventListener('drop',e=>{
 objects.loadManifest().then(buildToolbox).catch(error=>{$('asset-groups').innerHTML=`<p class="hint bad">Daftar aset tidak terbaca (${esc(error.message)}). Jalankan npm run assets.</p>`;});
 
 // ---------------------------------------------------------------- device network
-const NET_LABEL=k=>NETWORKS[k].label,hexColor=n=>`#${n.toString(16).padStart(6,'0')}`;
+const hexColor=n=>`#${n.toString(16).padStart(6,'0')}`;
 function networkRows(id){
-  const links=network.linksOf(id);
+  const links=deviceLinks(network,map,id);
   if(!links.length)return DEVICE_ICONS[map.objects.find(o=>o.id===id)?.asset]?'<p class="hint bad">Belum tersambung ke jaringan.</p>':'';
-  return `<div class="net-rows"><strong>Jaringan</strong>${links.map(l=>{
-    const other=l.from===id?l.to:l.from,o=map.objects.find(x=>x.id===other),what=DEVICE_ICONS[o?.asset]?.label||o?.asset;
-    const dir=l.kind==='uplink'?(l.from===id?'Naik ke':'Dari'):l.from===id?'Ke':'Dari';
-    return `<span><b class="net-swatch ${l.network}" style="--c:${hexColor(NETWORKS[l.network].color)}"></b>${dir} ${esc(what)} ${esc(other)} · ${NET_LABEL(l.network)} (${NETWORKS[l.network].latency})</span>`;}).join('')}</div>`;
+  return `<div class="net-rows"><strong>Jaringan</strong>${links.map(l=>`<span><b class="net-swatch ${l.network}" style="--c:${hexColor(l.color)}"></b>${l.direction} ${esc(l.otherLabel)} ${esc(l.other)} · ${l.label} (${l.latency})</span>`).join('')}</div>`;
 }
 function renderLegend(){
   const box=$('net-legend');if(!box)return;
-  if(!network.visible||!map){box.hidden=true;return;}
-  const s=networkSummary(map);
-  const devices=Object.entries(DEVICE_ICONS).filter(([k])=>s.devices[k]);
-  if(!devices.length){box.hidden=true;return;}
-  box.hidden=false;
-  box.querySelector('div').innerHTML=devices.map(([k,v])=>`<span><i class="${v.square?'square':''}" style="background:${v.color}">${v.glyph}</i>${v.label} · ${s.devices[k]}</span>`).join('')
-    +`<strong class="legend-sub">Jaringan</strong>`+['lan','fiber','lora'].map(k=>`<span><b class="net-swatch ${k}" style="--c:${hexColor(NETWORKS[k].color)}"></b>${NET_LABEL(k)} · ${s.media[k]} sambungan <small>${NETWORKS[k].latency}</small></span>`).join('')
-    +(s.dataCentre?'':`<small class="bad">Belum ada Pusat data: gateway belum punya jalur fiber ke atas.</small>`)
-    +(s.orphans?`<small class="bad">${s.orphans} perangkat belum punya gateway.</small>`:'')
-    +`<small>Klik ikon untuk detail${sim?' dan angka langsung':''}.</small>`;
+  const html=network.visible&&map?legendHtml(map,{live:!!sim}):'';
+  box.hidden=!html;if(html)box.querySelector('div').innerHTML=html;
 }
 // Live readings of one device during the simulation, in a card over the map.
 let cardDevice=null;
@@ -757,27 +737,7 @@ function renderDeviceCard(){
   const card=$('device-card');
   if(!cardDevice||!sim){card.hidden=true;return;}
   const e=sim.engine,o=e.map.objects.find(x=>x.id===cardDevice);if(!o){hideDeviceCard();return;}
-  const icon=DEVICE_ICONS[o.asset],stats=network.stats.get(o.id)||{sent:0,received:0},rows=[];
-  if(o.asset==='cctv-dome'||o.asset==='cctv'){
-    const st=e.sensorState(o.id);
-    if(st)rows.push(['Memantau',`simpang ${st.node} · ${st.legs.length} pendekat`],['Kendaraan terhitung',fmt(st.count,0)],['Berhenti di pendekat sekarang',st.queue],['Lampu simpang',st.adaptive?'Adaptif, memakai data kamera ini':'Waktu tetap']);
-    else rows.push(['Memantau','Tidak ada simpang berlampu di dekatnya']);
-  }else if(o.asset==='bin-sensor'){
-    const b=e.bins.find(x=>x.id===o.id);
-    if(b)rows.push(['Isi',`${fmt(Math.min(b.fill,1)*100,0)}%`],['Status',b.fill>=1?'Penuh':b.truck==='called'?'Truk sampah dipanggil':typeof b.truck==='number'?'Sedang dikosongkan':b.truck==='unreachable'?'Tidak terjangkau truk':'Normal'],['Dikosongkan',`${b.emptied} kali`],['Laporan','Tiap 60 detik lewat LoRaWAN']);
-    else rows.push(['Status','Terlalu jauh dari jalan untuk dilayani truk']);
-  }else if(o.asset==='controller'){
-    const nodeId=[...e.signals.keys()].find(id=>network.controllerAt(e,id)===o.id);
-    const st=nodeId&&e.signalState(nodeId),sig=nodeId&&e.signals.get(nodeId);
-    if(st)rows.push(['Simpang',nodeId],['Fase',`${st.phase+1} dari ${sig.plan.phases.length}`],['Tahap',{green:'Hijau',yellow:'Kuning',allRed:'Merah semua'}[st.stage]],['Sisa',`${fmt(st.remaining,0)} dtk`],['Perintah diterima',stats.received]);
-    else rows.push(['Simpang','Tidak mengendalikan simpang berlampu']);
-  }else if(o.asset==='gateway'){
-    const served=network.linksOf(o.id).filter(l=>l.kind!=='uplink');
-    rows.push(['Perangkat terhubung',served.length],['Data diterima',fmt(stats.received,0)],['Data dikirim',fmt(stats.sent,0)],['Jalur ke pusat data',network.linksOf(o.id).some(l=>l.kind==='uplink')?'Fiber optik':'Belum ada']);
-  }else if(o.asset==='data-center'){
-    const ups=network.linksOf(o.id).filter(l=>l.kind==='uplink');
-    rows.push(['Gateway terhubung',ups.length],['Data diterima',fmt(stats.received,0)],['Per menit (waktu simulasi)',e.time>0?fmt(stats.received/(e.time/60),0):'—']);
-  }
+  const icon=DEVICE_ICONS[o.asset],rows=deviceReadings(e,network,o);
   // The close button stays; only the readings are redrawn (several times a second).
   if(!card.querySelector('.card-body')){
     card.innerHTML=`<button type="button" class="close" id="device-card-close" aria-label="Tutup">×</button><div class="card-body"></div>`;

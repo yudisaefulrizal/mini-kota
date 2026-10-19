@@ -142,10 +142,12 @@ export class TrafficView{
       t.texture.needsUpdate=true;t.last=key;
     }
   }
-  // Labels keep a readable size on screen (smaller from far away).
-  layoutTimers(camera,height){
+  // Labels keep a readable size on screen (smaller from far away); `show` false hides them
+  // (the timers on the light models stay).
+  layoutTimers(camera,height,show=true){
     if(!this.timers)return;
     for(const t of this.timers){
+      t.sprite.visible=show;if(!show)continue;
       const d=camera.position.distanceTo(t.sprite.position),mpp=2*d*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))/height;
       const px=d<150?34:d<400?28:22;t.sprite.scale.set(mpp*px,mpp*px/2,1);
     }

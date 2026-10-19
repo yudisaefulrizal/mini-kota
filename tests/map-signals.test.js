@@ -5,7 +5,7 @@ import {validateMap,emptyMap} from '../src/map/format.js';
 import {buildGeometry} from '../src/map/geometry.js';
 import {addRoad} from '../src/map/edit.js';
 import {movements,suggestSignal,buildPlan,conflicts,unserved,patternsFor,compass,TIMING} from '../src/map/signals.js';
-import {convertMiniKota} from '../src/map/convert-minikota.js';
+import {miniKotaRoads as convertMiniKota} from '../src/map/default-map.js';
 
 const testMap=()=>validateMap(JSON.parse(readFileSync(new URL('../public/maps/peta-uji.json',import.meta.url),'utf8')));
 const P=(x,z)=>({x,z});

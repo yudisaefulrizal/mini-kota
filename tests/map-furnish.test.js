@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 import {validateMap,crossSection} from '../src/map/format.js';
 import {buildGeometry,pointAt,polylineLength} from '../src/map/geometry.js';
 import {projectOnLine} from '../src/map/edit.js';
-import {convertMiniKota} from '../src/map/convert-minikota.js';
+import {miniKotaRoads as convertMiniKota} from '../src/map/default-map.js';
 import {furnish,FOOTPRINT,lotKind} from '../src/map/furnish.js';
 import {importOSM} from '../src/map/osm.js';
 

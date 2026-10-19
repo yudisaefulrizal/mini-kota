@@ -3,9 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {validateMap,crossSection,emptyMap,DEFAULT_PROFILES} from '../src/map/format.js';
 import {buildGeometry,offsetLine,cut,polylineLength} from '../src/map/geometry.js';
-import {convertMiniKota} from '../src/map/convert-minikota.js';
-import {makeNetwork} from '../src/simulation.js';
-import {hasTrafficSignal} from '../src/pedestrians.js';
+import {miniKotaRoads} from '../src/map/default-map.js';
 
 const testMap=()=>validateMap(JSON.parse(readFileSync(new URL('../public/maps/peta-uji.json',import.meta.url),'utf8')));
 const finite=value=>JSON.stringify(value,(k,v)=>{if(typeof v==='number'&&!Number.isFinite(v))throw Error(`non-finite ${k}`);return v;});
@@ -52,14 +50,12 @@ test('ribbons of a road meet the junction outline exactly',()=>{
   for(const p of outline.slice(0,2))assert.ok(ends.some(e=>Math.hypot(e.x-p.x,e.z-p.z)<1e-9),'mouth point shared with a road edge');
 });
 
-test('Mini Kota converts with the same roads and signals as the simulation',()=>{
-  const {nodes,edges}=makeNetwork(),map=validateMap(convertMiniKota());
-  const twoWay=edges.filter(e=>!e.roundabout).length/2,ring=edges.filter(e=>e.roundabout).length;
-  assert.equal(map.roads.length,twoWay+ring);
-  assert.equal(map.nodes.length,nodes.length);
-  assert.equal(map.nodes.filter(n=>n.signal).length,nodes.filter(hasTrafficSignal).length);
-  assert.equal(map.gates.length,13);
+test('Mini Kota map data: valid, two lanes each way, the original layout, deterministic geometry',()=>{
+  const map=miniKotaRoads();
+  assert.equal(map.nodes.length,58);assert.equal(map.roads.length,65);
+  assert.equal(map.nodes.filter(n=>n.signal).length,15);assert.equal(map.gates.length,13);assert.equal(map.lots.length,11);
+  assert.ok(map.roads.filter(r=>!['akses','bundaran'].includes(r.profile)).every(r=>r.profile==='jalan-2x2'));
   const g=buildGeometry(map);finite(g);
   assert.ok(g.warnings.every(w=>w.type==='short'),g.warnings.map(w=>w.message).join('; '));
-  assert.equal(JSON.stringify(buildGeometry(validateMap(convertMiniKota()))),JSON.stringify(g),'deterministic');
+  assert.equal(JSON.stringify(buildGeometry(miniKotaRoads())),JSON.stringify(g),'deterministic');
 });

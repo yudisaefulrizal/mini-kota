@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {validateMap} from '../src/map/format.js';
 import {buildGeometry} from '../src/map/geometry.js';
 import {addObject} from '../src/map/edit.js';
-import {convertMiniKota} from '../src/map/convert-minikota.js';
+import {miniKotaRoads as convertMiniKota} from '../src/map/default-map.js';
 import {serializeMap,parseMapFile,fileName,saveDraft,loadDraft,clearDraft,DRAFT_KEY} from '../src/map/storage.js';
 
 const richMap=()=>{

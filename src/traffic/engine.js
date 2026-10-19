@@ -41,13 +41,19 @@ function projectOnSeg(seg,p){
 export class TrafficEngine{
   // `offsets`: seconds each member of a simpang gabungan starts after the first one (else
   // signalPlan.offset, else 0). `prepared` lets runs on one map share its geometry and graph.
-  constructor(map,{seed=42,demand=900,adaptive=false,minibus=0.12,pedestrians=0,offsets=null,prepared=null}={}){
+  // `green`: green seconds for signals without their own plan. Bins: `binMode` 'sensor'
+  // (a truck is called when a bin is nearly full) or 'schedule' (each bin is visited every
+  // `binSchedule` seconds whatever its fill, as without sensors); `binFill` is the fill
+  // fraction added per second (from population × waste per person), else a random rate.
+  constructor(map,{seed=42,demand=900,adaptive=false,minibus=0.12,pedestrians=0,offsets=null,prepared=null,
+    green=null,binMode='sensor',binFill=null,binSchedule=3600}={}){
     this.map=prepared?.map||validateMap(structuredClone(map));
     this.geometry=prepared?.geometry||buildGeometry(this.map);
     this.graph=prepared?.graph||buildLaneGraph(this.map,this.geometry);
     this.seed=seed;this.random=rng(seed);this.demand=demand;this.adaptive=adaptive;this.minibusShare=minibus;
     this.time=0;this.vehicles=[];this.nextId=1;this.backlog=[];this.nextArrival=0;
-    this.stats={completed:0,travelSeconds:0,queueSeconds:0,spawned:0,redViolations:0,busStops:0};
+    this.binMode=binMode;this.binFill=binFill;this.binSchedule=binSchedule;
+    this.stats={completed:0,travelSeconds:0,queueSeconds:0,backlogSeconds:0,spawned:0,redViolations:0,busStops:0,truckTrips:0};
     this.routes=prepared?.routes||new Map();
     // Each source keeps the destinations it can actually reach (no U-turns at dead ends).
     this.targets=new Map();
@@ -60,7 +66,7 @@ export class TrafficEngine{
     for(const j of this.geometry.junctions){
       const node=this.map.nodes.find(n=>n.id===j.id);
       if(node?.signal!==true||j.legs.some(l=>l.ring))continue;
-      const plan=buildPlan(j,node.signalPlan||{});
+      const plan=buildPlan(j,{...(green?{green:Array(8).fill(green)}:{}),...(node.signalPlan||{})});
       this.signals.set(j.id,{plan,j,phase:0,stage:'green',t:0,sensed:new Set()});
     }
     // Simpang gabungan (see geometry.CLUSTER_LINK): signalised junctions joined by a link
@@ -118,7 +124,9 @@ export class TrafficEngine{
     this.busStops=this.map.objects.filter(o=>o.asset==='bus-stop').map(o=>({id:o.id,...kerbSpot(o)})).filter(s=>s.seg!==undefined);
     // Bins with a sensor, filling up; the depot is the waste facility (or any entry).
     this.bins=this.map.objects.filter(o=>o.asset==='bin-sensor').map(o=>{const spot=kerbSpot(o,16);
-      return spot&&{id:o.id,x:o.x,z:o.z,seg:spot.seg,s:spot.s,fill:0.25+this.random()*0.55,rate:1/(1500+this.random()*1500),truck:null,emptied:0,fullSeconds:0};}).filter(Boolean);
+      return spot&&{id:o.id,x:o.x,z:o.z,seg:spot.seg,s:spot.s,fill:0.25+this.random()*0.55,rate:this.binFill??1/(1500+this.random()*1500),truck:null,emptied:0,fullSeconds:0};}).filter(Boolean);
+    // Without sensors the round is fixed: bins are visited in turn, spread over the schedule.
+    this.bins.forEach((b,i)=>{b.nextVisit=(i+1)*this.binSchedule/this.bins.length;});
     const depot=this.map.objects.find(o=>o.asset==='tps3r');
     const end=(id,first)=>{const pts=this.graph.byId.get(id).points;return first?pts[0]:pts.at(-1);};
     const byDepot=(list,first)=>depot?[...list].sort((a,b)=>dist(end(a,first),depot)-dist(end(b,first),depot)):list;
@@ -137,8 +145,9 @@ export class TrafficEngine{
     this.binTimer-=dt;if(this.binTimer>0||!this.bins.length)return;
     this.binTimer=5;
     const busy=this.bins.filter(b=>b.truck&&b.truck!=='unreachable').length;
-    // The fullest bins get the free trucks.
-    const waiting=this.bins.filter(b=>!b.truck&&b.fill>=BIN_CALL).sort((a,b)=>b.fill-a.fill);
+    // With sensors the fullest bins get the free trucks; without, the bins due on the round.
+    const due=b=>this.binMode==='schedule'?this.time>=b.nextVisit:b.fill>=BIN_CALL;
+    const waiting=this.bins.filter(b=>!b.truck&&due(b)).sort((a,b)=>this.binMode==='schedule'?a.nextVisit-b.nextVisit:b.fill-a.fill);
     for(const bin of waiting.slice(0,Math.max(0,TRUCKS-busy))){
       let trip=null;
       for(const src of this.depot.sources.slice(0,4)){
@@ -146,7 +155,8 @@ export class TrafficEngine{
         if(trip){trip.src=src;break;}
       }
       if(!trip){bin.truck='unreachable';continue;}
-      bin.truck='called';
+      bin.truck='called';this.stats.truckTrips++;
+      if(this.binMode==='schedule')bin.nextVisit+=this.binSchedule;
       this.backlog.push({src:trip.src,route:trip.route,requested:this.time,type:'truck',stops:[{idx:trip.idx,s:bin.s,dwell:BIN_DWELL,bin:bin.id}]});
     }
   }
@@ -418,6 +428,7 @@ export class TrafficEngine{
     this.updateSignals(dt);
     this.updateBins(dt);
     this.spawn(dt);
+    this.stats.backlogSeconds+=this.backlog.length*dt;   // waiting outside the map to get in
     this.pedestrians?.step(dt);
     // Vehicles in a bus bay are out of the lane: others drive past.
     const byLane=new Map(),fill=()=>{byLane.clear();for(const o of this.vehicles){if(o.bay)continue;const id=o.route[o.idx];(byLane.get(id)||byLane.set(id,[]).get(id)).push(o);}};
@@ -518,7 +529,8 @@ export class TrafficEngine{
       throughput:this.time?s.completed*3600/this.time:0,signals:this.signals.size,redViolations:s.redViolations,
       sensors:this.sensors.length,sensedSignals:[...this.signals.values()].filter(x=>x.sensed.size).length,
       vehicleTypes:Object.fromEntries(Object.keys(VEHICLE_TYPES).map(t=>[t,this.vehicles.filter(v=>v.type===t).length])),
-      busStops:s.busStops,bins:bins.length,binsEmptied:bins.reduce((n,b)=>n+b.emptied,0),binsFull:bins.filter(b=>b.fill>=1).length,
+      backlogSeconds:s.backlogSeconds,truckTrips:s.truckTrips,
+      busStops:s.busStops,bins:bins.length,binsEmptied:bins.reduce((n,b)=>n+b.emptied,0),binsFull:bins.filter(b=>b.fill>=1).length,binFullSeconds:bins.reduce((n,b)=>n+b.fullSeconds,0),
       pedestrians:this.pedestrians?this.pedestrians.summary():null};
   }
 }

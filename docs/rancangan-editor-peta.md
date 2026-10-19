@@ -444,6 +444,33 @@ jalan bermedian bersilangan) otomatis menjadi satu simpang gabungan empat anggot
 menit pada 900 kendaraan/jam selesai 282 perjalanan tanpa kendaraan tersangkut, sedangkan
 bila keempatnya diatur terpisah jaringan terkunci (38 perjalanan, 178 tersangkut).
 
+## Migrasi aplikasi utama ke peta baru (tahap 18)
+
+Simulasi lama (model penduduk: rumah tangga, jadwal sif, komuter, parkir; peta gambar asli
+dengan skala 0,4 m per unit) dihapus dari branch `main`; versinya tersimpan di branch `v.0`.
+Aplikasi utama (`index.html`, `src/main.js`, `src/app/`) kini berjalan di peta dan mesin
+lalu lintas yang sama dengan editor:
+
+- **Dua kota, satu peta**: `City` (`src/app/city.js`) per kota, masing-masing scene, aset,
+  mesin, dan tampilan sendiri; satu kamera menggambar keduanya berdampingan. Kota biasa:
+  lampu waktu tetap dan truk sampah terjadwal (`binMode: 'schedule'`); kota cerdas: lampu
+  adaptif dari CCTV dan truk dipanggil sensor (`binMode: 'sensor'`).
+- **Pengaturan**: peta (Mini Kota lengkap, draf editor, file `.json`/`.osm`), kendaraan per
+  jam, pejalan kaki, hijau lampu tetap, seed, BBM idle, penduduk × timbulan (laju isi
+  tempat sampah, ±120 kg per tempat sampah), dan jadwal truk kota biasa.
+- **Perbandingan**: antre di jalan dan di pintu masuk kota (`backlogSeconds`), BBM idle,
+  perjalanan selesai, waktu tempuh, perjalanan truk, lama tempat sampah penuh.
+- **Cerdas × perangkat** dan **Perangkat** memakai lapisan jaringan dan pembacaan perangkat
+  yang sama dengan editor (`src/map/device-info.js`); **data center** dihitung dari perangkat
+  yang terpasang di peta (`src/app/data-center.js`); **Jelajahi Kota** dipindah ke peta baru
+  (meter, tabrakan dengan gedung dan kendaraan).
+- Peta Mini Kota dibekukan menjadi data (`src/map/mini-kota-data.js`), tidak lagi dibentuk
+  dari simulasi lama. Halaman Penjelasan dan Desain Teknis serta katalog perangkat
+  diperbarui ke inventaris peta baru (14 CCTV kubah, 6 sensor sampah, 14 pengendali,
+  50 kepala lampu, 19 gateway).
+- Ditemukan saat migrasi: lajur kanan jalan 2 lajur menuju bundaran tidak punya jalur masuk
+  ke lingkar; kini setiap lajur masuk ke lajur lingkar dengan indeks yang sama.
+
 ## Tahapan dan cara uji
 
 | Tahap | Isi | Uji | Status |
@@ -465,6 +492,7 @@ bila keempatnya diatur terpisah jaringan terkunci (38 perjalanan, 178 tersangkut
 | 15 | Lampu kendaraan: sein, hazard, rem, lampu depan, rotator truk | `tests/map-traffic-smoke.mjs` (rem menyala saat berhenti, sein di sisi belokan) | **Selesai** |
 | 16 | Langkah pejalan kaki: model orang berangka, ayunan kaki/lengan mengikuti jarak tempuh | `tests/map-full-smoke.mjs` (kaki berlawanan saat berjalan, rapat saat menunggu) | **Selesai** |
 | 17 | Simpang gabungan: satu pengendali, kotak kuning, satu set perangkat, panel (pisah/gabung/selisih/gabung jadi satu), contoh OSM bermedian; kuncian bundaran diperbaiki | `tests/map-cluster.test.js`; `tests/map-osm.test.js`; `tests/map-cluster-smoke.mjs` | **Selesai** |
+| 18 | Migrasi aplikasi utama ke peta & mesin baru; simulasi lama dihapus (tersimpan di branch `v.0`) | `tests/app-smoke.mjs`; semua tes lain | **Selesai** |
 
 ## Batasan yang diketahui
 
@@ -482,8 +510,7 @@ bila keempatnya diatur terpisah jaringan terkunci (38 perjalanan, 178 tersangkut
 - Lampu adaptif membantu saat lalu lintas sedang–padat; saat jaringan sudah jenuh (±1.800
   kendaraan/jam di Mini Kota) kedua cara sama-sama macet.
 - Gateway dan jaringan (LAN/fiber/LoRaWAN) belum disimulasikan: data sensor dianggap selalu
-  sampai. Simulasi Mini Kota yang lama (penduduk, sampah, pusat data) masih terpisah dari
-  simulasi lalu lintas editor.
+  sampai. Kendaraan datang dengan laju tetap (belum mengikuti jam sibuk).
 - Data OSM tidak selalu lengkap: jumlah lajur sering tidak ditulis sehingga ditebak dari kelas
   jalan; periksa dan ubah profilnya di editor. Area besar (beberapa km) bisa lambat.
 - Simpul sambungan (2 lengan) yang tersisa setelah cabang dihapus tidak otomatis disatukan

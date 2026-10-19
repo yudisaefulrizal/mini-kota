@@ -91,7 +91,10 @@ export function buildLaneGraph(map,geometry){
         const h={x:-legIn.dir.x,z:-legIn.dir.z},o=legOut.dir,dot=h.x*o.x+h.z*o.z,crs=h.x*o.z-h.z*o.x;
         if(dot<-0.9)continue;
         const turn=dot>Math.cos(Math.PI/5)?'lurus':crs<0?'kiri':'kanan';
-        const pairs=turn==='kiri'?[[arriving[0],leaving[0]]]
+        // Into a roundabout every lane may enter, onto the ring lane of the same index (the
+        // ring has its own lanes; entering is not a turn across traffic).
+        const pairs=legOut.ring&&!legIn.ring?arriving.map(l=>[l,leaving[Math.min(l.index,leaving.length-1)]])
+          :turn==='kiri'?[[arriving[0],leaving[0]]]
           :turn==='kanan'?[[arriving.at(-1),leaving.at(-1)]]
           :arriving.map(l=>[l,leaving[Math.min(l.index,leaving.length-1)]]);
         for(const [from,to] of pairs){

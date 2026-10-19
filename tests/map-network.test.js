@@ -2,7 +2,7 @@ import test from 'node:test';
 import {miniKotaRoads,miniKotaLengkap} from '../src/map/default-map.js';
 import assert from 'node:assert/strict';
 import {validateMap} from '../src/map/format.js';
-import {convertMiniKota} from '../src/map/convert-minikota.js';
+import {miniKotaRoads as convertMiniKota} from '../src/map/default-map.js';
 import {furnish} from '../src/map/furnish.js';
 import {addObject} from '../src/map/edit.js';
 import {networkLinks,networkSummary,LAN_REACH} from '../src/map/network.js';

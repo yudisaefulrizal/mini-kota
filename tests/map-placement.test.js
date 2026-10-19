@@ -5,7 +5,7 @@ import {validateMap,crossSection} from '../src/map/format.js';
 import {buildGeometry} from '../src/map/geometry.js';
 import {roadLine,projectOnLine,addObject,deleteObject,setGateway} from '../src/map/edit.js';
 import {smartPlace,gatewayOf,ruleFor} from '../src/map/placement.js';
-import {convertMiniKota} from '../src/map/convert-minikota.js';
+import {miniKotaRoads as convertMiniKota} from '../src/map/default-map.js';
 
 const manifest=JSON.parse(readFileSync(new URL('../public/models/manifest.json',import.meta.url),'utf8'));
 const asset=id=>manifest.assets.find(a=>a.id===id);

@@ -4,7 +4,7 @@ import {emptyMap,validateMap} from '../src/map/format.js';
 import {buildGeometry} from '../src/map/geometry.js';
 import {addRoad,moveNode} from '../src/map/edit.js';
 import {normalize,editScope,describeChanges} from '../src/map/normalize.js';
-import {convertMiniKota} from '../src/map/convert-minikota.js';
+import {miniKotaRoads as convertMiniKota} from '../src/map/default-map.js';
 
 const P=(x,z)=>({x,z});
 const blank=()=>emptyMap('uji',400,300);
@@ -79,7 +79,7 @@ test('a tiny dead-end spur is removed',()=>{
 test('editing one corner of Mini Kota does not rearrange the rest',()=>{
   const map=validateMap(convertMiniKota()),roads=map.roads.length,nodes=map.nodes.length;
   const before=snap(map);
-  addRoad(map,[P(20,390),P(80,395)],{profile:'jalan-1x1'});
+  addRoad(map,[P(480,380),P(540,385)],{profile:'jalan-1x1'});   // an empty corner, well clear of every road
   const changes=normalize(map,editScope(before,map));
   assert.deepEqual(changes,[]);
   assert.equal(map.roads.length,roads+1);assert.equal(map.nodes.length,nodes+2);

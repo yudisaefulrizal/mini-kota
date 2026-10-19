@@ -6,7 +6,7 @@ import {validateMap} from '../src/map/format.js';
 import {buildGeometry} from '../src/map/geometry.js';
 import {buildLaneGraph,routesFrom} from '../src/traffic/lanes.js';
 import {TrafficEngine} from '../src/traffic/engine.js';
-import {convertMiniKota} from '../src/map/convert-minikota.js';
+import {miniKotaRoads as convertMiniKota} from '../src/map/default-map.js';
 import {furnish} from '../src/map/furnish.js';
 import {buildWalkGraph} from '../src/traffic/pedestrians.js';
 
