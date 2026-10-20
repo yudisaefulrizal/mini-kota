@@ -31,3 +31,20 @@ test('the smart city sends one truck along the bins that called, emptying each',
   e.run(1800);
   assert.ok(e.bins.filter(b=>b.emptied>0).length>=e.bins.length-1,`${e.bins.filter(b=>b.emptied>0).length} of ${e.bins.length} emptied`);
 });
+
+test('before leaving, stops and load are set within what the truck carries; a full truck goes back',()=>{
+  const e=new TrafficEngine(miniKotaLengkap(),{demand:300,seed:3,adaptive:true,binMode:'sensor',truckCapacity:230});
+  for(const b of e.bins)b.fill=0.85;
+  e.step(0.25);
+  const trucks=[...e.backlog,...e.vehicles].filter(b=>b.type==='truck');
+  for(const t of trucks)assert.ok(t.stops.length<=2,'0.85 x 120 kg twice fits in 230 kg, three times not');
+  const two=trucks.find(t=>t.stops.length===2);assert.ok(two,'a truck with two stops');
+  // The second bin filled up faster than reported: the truck goes back after the first.
+  const second=e.bins.find(b=>b.id===two.stops[1].bin),first=e.bins.find(b=>b.id===two.stops[0].bin);
+  let t=0;while(first.emptied===0&&t<1800){second.fill=1.2;e.step(0.25);t+=0.25;}
+  assert.equal(first.emptied,1);
+  for(let k=0;k<40;k++)e.step(0.25);
+  const truck=e.vehicles.find(v=>v.type==='truck'&&v.load>0&&v.stops.length===0&&v.route.at(-1)===two.route.at(-1));
+  assert.ok(truck,'the truck heads back with no stops left');assert.equal(second.emptied,0);
+  assert.notEqual(second.truck,truck.id);
+});

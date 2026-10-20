@@ -80,7 +80,7 @@
 <tr><td>Optimasi durasi hijau per fase</td><td>Bayesian optimization</td><td>Bagian hijau per fase dan pengali hijau rencana, sesuai jam dan tanggal</td></tr>
 <tr><td>Optimasi penahanan hijau</td><td>Bayesian optimization</td><td>Berapa detik ke depan lampu hilir menahan hijau untuk rombongan</td></tr>
 </tbody></table></div>
-<p>Truk sampah tidak memakai model: sensor tempat sampah memanggil truk saat isinya mencapai ambang, dan tempat sampah yang menunggu dibagi ke truk yang kosong lewat perutean (Dijkstra untuk jarak, Clarke-Wright Savings untuk pengelompokan sesuai muatan, 2-opt untuk urutan kunjungan), dihitung ulang setiap ada panggilan baru. Data sampah tetap disimpan untuk pemantauan.</p>
+<p>Truk sampah tidak memakai model: sensor tempat sampah memanggil truk saat isinya mencapai ambang, dan tempat sampah yang menunggu dibagi ke truk yang kosong lewat perutean (Dijkstra untuk jarak, Clarke-Wright Savings untuk pengelompokan sesuai muatan, 2-opt untuk urutan kunjungan), dihitung ulang setiap ada panggilan baru. Muatan tiap rute diperkirakan dari isi saat truk tiba (isi dan laju dari laporan sensor); truk yang penuh langsung pulang. Data sampah tetap disimpan untuk pemantauan.</p>
 <p>Alur balik: Airflow → jaringan kota → gateway → pengendali. Pengaman konflik di kabinet pengendali tetap menjadi lapisan terakhir, apa pun parameter yang diterima. Siklus yang sama dijalankan di tab <strong>Analisis</strong> aplikasi, memakai histori kota cerdas yang sedang berjalan, disimpan di browser.</p></section>
 
 <section id="contoh"><h2>Contoh data &amp; analisis window</h2><p>Contoh ilustratif satu pendekat simpang pada jam berangkat kerja. Angka bukan keluaran simulasi.</p>

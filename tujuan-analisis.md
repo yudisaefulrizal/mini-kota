@@ -8,7 +8,7 @@
 1. Durasi hijau per fase
 2. Penahanan hijau untuk rombongan kendaraan dari simpang hulu
 
-Sampah tidak memakai machine learning: truk dipanggil sensor tempat sampah saat isinya mencapai 80%. Rute truk: Dijkstra (jarak), Clarke-Wright Savings (pengelompokan sesuai muatan truk), 2-opt (urutan kunjungan).
+Sampah tidak memakai machine learning: truk dipanggil sensor tempat sampah saat isinya mencapai 80%. Rute truk: Dijkstra (jarak), Clarke-Wright Savings (pengelompokan sesuai muatan truk), 2-opt (urutan kunjungan). Sebelum berangkat, titik dan muatan ditetapkan dari perkiraan isi saat truk tiba; truk penuh langsung pulang.
 
 ## Target
 1. Waktu antre total sekecil mungkin

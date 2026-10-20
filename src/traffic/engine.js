@@ -44,7 +44,7 @@ const STOPPED=0.3,LOOKAHEAD=90,COMMIT=8;
 const STOP_BACK=5.5;
 // Camera detection zone: metres back from the stop line, one value for all cameras (`zone`).
 export const ZONE=80;const ZONE_MAX=200;
-const BIN_CALL=0.8,BIN_DWELL=30,BUS_DWELL=8,TRUCKS=2,BIN_KG=120,TRUCK_KG=1000;
+const BIN_CALL=0.8,BIN_DWELL=30,BUS_DWELL=8,TRUCKS=2,BIN_KG=120,TRUCK_KG=1000,BIN_REPORT=60;
 
 function rng(seed){return ()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};}
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
@@ -67,7 +67,7 @@ export class TrafficEngine{
   // `binSchedule` seconds whatever its fill, as without sensors); `binFill` is the fill
   // fraction added per second (from population × waste per person), else a random rate.
   constructor(map,{seed=42,demand=900,adaptive=false,minibus=0.12,pedestrians=0,offsets=null,prepared=null,
-    green=null,speedSpread=0.1,overtaking=true,zone=ZONE,learned=null,binMode='sensor',binFill=null,binSchedule=3600}={}){
+    green=null,speedSpread=0.1,overtaking=true,zone=ZONE,learned=null,binMode='sensor',binFill=null,binSchedule=3600,truckCapacity=TRUCK_KG}={}){
     this.map=prepared?.map||validateMap(structuredClone(map));
     this.geometry=prepared?.geometry||buildGeometry(this.map);
     this.graph=prepared?.graph||buildLaneGraph(this.map,this.geometry);
@@ -76,7 +76,7 @@ export class TrafficEngine{
     // Detection zone (m) of every camera.
     this.zone=Math.min(ZONE_MAX,Math.max(20,Number(zone)||ZONE));this.demand=demand;this.adaptive=adaptive;this.minibusShare=minibus;
     this.time=0;this.vehicles=[];this.nextId=1;this.backlog=[];this.nextArrival=0;
-    this.binMode=binMode;this.binFill=binFill;this.binSchedule=binSchedule;
+    this.binMode=binMode;this.binFill=binFill;this.binSchedule=binSchedule;this.truckCapacity=truckCapacity;
     this.stats={completed:0,travelSeconds:0,queueSeconds:0,backlogSeconds:0,spawned:0,redViolations:0,busStops:0,truckTrips:0,overtakes:0};
     this.routes=prepared?.routes||new Map();
     // Vehicles appear and leave only at the city's gates and at the ends of access roads
@@ -206,7 +206,14 @@ export class TrafficEngine{
     this.links=new Map();for(const l of learned?.links||[])this.links.set(`${l.node}:${l.leg}`,l);
   }
   updateBins(dt){
-    for(const b of this.bins){if(!b.truck||b.truck==='called')b.fill=Math.min(1.2,b.fill+b.rate*dt);if(b.fill>=1)b.fullSeconds+=dt;}
+    for(const b of this.bins){
+      if(!b.truck||b.truck==='called')b.fill=Math.min(1.2,b.fill+b.rate*dt);if(b.fill>=1)b.fullSeconds+=dt;
+      // The sensor reports every minute; its fill rate comes from two reports in a row.
+      if(this.binMode==='sensor'&&this.time-(b.report?.t??-Infinity)>=BIN_REPORT){
+        if(b.report&&b.fill>=b.report.fill)b.sensedRate=(b.fill-b.report.fill)/(this.time-b.report.t);
+        b.report={t:this.time,fill:b.fill};
+      }
+    }
     this.binTimer-=dt;if(this.binTimer>0||!this.bins.length)return;
     this.binTimer=5;
     const busy=this.vehicles.filter(v=>v.type==='truck').length+this.backlog.filter(b=>b.type==='truck').length;
@@ -226,6 +233,8 @@ export class TrafficEngine{
   }
   // With sensors: the bins that reached BIN_CALL and wait for a truck are shared over the free
   // trucks along the quickest routes (src/traffic/waste-routes.js), planned again each time.
+  // Before a truck leaves, its stops and load are set: each bin's fill when the truck gets
+  // there (reported fill + reported rate x arrival time), within what the truck carries.
   routeTrucks(free){
     const due=this.bins.filter(b=>!b.truck&&b.fill>=BIN_CALL);
     if(free<=0||!due.length)return;
@@ -235,13 +244,21 @@ export class TrafficEngine{
     for(const s of stops)s.bins.sort((a,b)=>a.s-b.s);
     for(const src of this.depot.sources.slice(0,4))for(const dst of this.depot.sinks.slice(0,6)){
       const at=i=>i===START?src:i===END?dst:stops[i].seg;
-      const cost=(a,b)=>this.routeFrom(at(a)).time(at(b));
-      const load=stops.map(s=>s.bins.reduce((n,b)=>n+Math.min(1,b.fill)*BIN_KG,0));
-      const {trips,unreachable}=planRoutes(load,{cost,capacity:TRUCK_KG});
+      const cost=(a,b)=>this.routeFrom(at(a)).time(at(b))/VEHICLE_TYPES.truck.speed;
+      const kg=(s,t)=>s.bins.reduce((n,b)=>n+Math.min(1.2,b.fill+(b.sensedRate||0)*t)*BIN_KG,0);
+      const load=stops.map((s,i)=>kg(s,cost(START,i)));
+      const {trips:planned,unreachable}=planRoutes(load,{cost,capacity:this.truckCapacity});
       if(unreachable.length===stops.length)continue;
       for(const i of unreachable)for(const b of stops[i].bins)b.truck='unreachable';
-      // The trips with most bins go first.
-      trips.sort((a,b)=>b.reduce((n,i)=>n+stops[i].bins.length,0)-a.reduce((n,i)=>n+stops[i].bins.length,0));
+      // Along each trip: arrival times and the load then; stops that would overfill the truck
+      // wait for the next one. The trips with the fullest bin go first.
+      const trips=planned.map(trip=>{
+        let t=0,carried=0,prev=START;const kept=[];
+        for(const i of trip){t+=cost(prev,i);const w=kg(stops[i],t);if(kept.length&&carried+w>this.truckCapacity)break;kept.push(i);carried+=w;t+=BIN_DWELL*stops[i].bins.length;prev=i;}
+        return kept;
+      });
+      const fullest=t=>Math.max(...t.flatMap(i=>stops[i].bins.map(b=>b.fill)));
+      trips.sort((a,b)=>fullest(b)-fullest(a));
       for(const trip of trips.slice(0,free)){
         let route=[src];const list=[];
         for(const i of trip){
@@ -677,17 +694,35 @@ export class TrafficEngine{
     if(!stop||stop.idx!==v.idx)return;
     if(v.s>stop.s+2){this.missStop(v);return;}
     if(Math.abs(stop.s-v.s)>2||v.v>0.5)return;
+    const bin=stop.bin&&this.bins.find(b=>b.id===stop.bin);
+    // The truck weighs what it takes in; one that this bin would overfill goes back now (the
+    // bin is called again).
+    if(bin&&v.dwell===0){
+      const kg=Math.min(1.2,bin.fill)*BIN_KG;
+      if(v.load>0&&v.load+kg>this.truckCapacity){this.goBack(v);return;}
+      v.load=(v.load||0)+kg;
+    }
     v.dwelling=true;v.dwell+=dt;
     if(stop.busStop)v.bay=true;   // pulls into the bus bay, out of the lane
-    const bin=stop.bin&&this.bins.find(b=>b.id===stop.bin);
     if(bin){bin.truck=v.id;bin.fill=Math.max(0,bin.fill-dt/stop.dwell*1.2);}
     if(v.dwell>=stop.dwell){
       // Leave the bay only when the lane beside it is clear.
       if(v.bay&&this.vehicles.some(o=>o!==v&&!o.bay&&o.route[o.idx]===v.route[v.idx]&&o.s>v.s-12&&o.s-o.len<v.s+3))return;
       v.dwell=0;v.stops.shift();v.bay=false;
-      if(bin){bin.fill=0;bin.emptied++;bin.truck=null;}
+      if(bin){
+        bin.fill=0;bin.emptied++;bin.truck=null;
+        // Full, or the next bin (as its sensor reports it) would not fit: back now.
+        const next=v.stops[0]?.bin&&this.bins.find(b=>b.id===v.stops[0].bin);
+        if(v.load>=this.truckCapacity||next&&v.load+Math.min(1.2,next.fill)*BIN_KG>this.truckCapacity)this.goBack(v);
+      }
       if(stop.busStop)this.stats.busStops++;
     }
+  }
+  // A full truck skips its other stops and takes the quickest way back.
+  goBack(v){
+    while(v.stops.length)this.missStop(v);
+    const rest=this.routeFrom(v.route[v.idx])(v.route.at(-1));
+    if(rest)v.route=[...v.route.slice(0,v.idx),...rest];
   }
   // A stop that could not be made (e.g. the lane was joined too late): a bin gets a new call.
   missStop(v){
