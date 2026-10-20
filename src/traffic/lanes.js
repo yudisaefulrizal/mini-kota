@@ -134,10 +134,12 @@ export function routesFrom(graph,start){
       if(t<(time.get(id)??Infinity)){time.set(id,t);prev.set(id,u);open.add(id);}
     }
   }
-  return target=>{
+  const to=target=>{
     if(!time.has(target))return null;
     const route=[target];while(route[0]!==start)route.unshift(prev.get(route[0]));
     return route;
   };
+  to.time=target=>time.get(target)??Infinity;   // shortest travel seconds to target
+  return to;
 }
 export {pointAt};

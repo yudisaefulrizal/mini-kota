@@ -3,6 +3,7 @@ import {buildGeometry,polylineLength} from '../map/geometry.js';
 import {buildPlan,TIMING,compass} from '../map/signals.js';
 import {buildLaneGraph,routesFrom,along} from './lanes.js';
 import {Pedestrians} from './pedestrians.js';
+import {planRoutes,START,END} from './waste-routes.js';
 import {zoneCentre} from '../map/placement.js';
 import {roadEnds} from '../map/region.js';
 
@@ -43,7 +44,7 @@ const STOPPED=0.3,LOOKAHEAD=90,COMMIT=8;
 const STOP_BACK=5.5;
 // Camera detection zone: metres back from the stop line, one value for all cameras (`zone`).
 export const ZONE=80;const ZONE_MAX=200;
-const BIN_CALL=0.8,BIN_DWELL=30,BUS_DWELL=8,TRUCKS=2;
+const BIN_CALL=0.8,BIN_DWELL=30,BUS_DWELL=8,TRUCKS=2,BIN_KG=120,TRUCK_KG=1000;
 
 function rng(seed){return ()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};}
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
@@ -208,10 +209,10 @@ export class TrafficEngine{
     for(const b of this.bins){if(!b.truck||b.truck==='called')b.fill=Math.min(1.2,b.fill+b.rate*dt);if(b.fill>=1)b.fullSeconds+=dt;}
     this.binTimer-=dt;if(this.binTimer>0||!this.bins.length)return;
     this.binTimer=5;
-    const busy=this.bins.filter(b=>b.truck&&b.truck!=='unreachable').length;
-    // With sensors the fullest bins get the free trucks; without, the bins due on the round.
-    const due=b=>this.binMode==='schedule'?this.time>=b.nextVisit:b.fill>=BIN_CALL;
-    const waiting=this.bins.filter(b=>!b.truck&&due(b)).sort((a,b)=>this.binMode==='schedule'?a.nextVisit-b.nextVisit:b.fill-a.fill);
+    const busy=this.vehicles.filter(v=>v.type==='truck').length+this.backlog.filter(b=>b.type==='truck').length;
+    if(this.binMode==='sensor'){this.routeTrucks(TRUCKS-busy);return;}
+    // Without sensors the bins due on the round, one truck each.
+    const waiting=this.bins.filter(b=>!b.truck&&this.time>=b.nextVisit).sort((a,b)=>a.nextVisit-b.nextVisit);
     for(const bin of waiting.slice(0,Math.max(0,TRUCKS-busy))){
       let trip=null;
       for(const src of this.depot.sources.slice(0,4)){
@@ -219,10 +220,42 @@ export class TrafficEngine{
         if(trip){trip.src=src;break;}
       }
       if(!trip){bin.truck='unreachable';continue;}
-      bin.truck='called';this.stats.truckTrips++;
-      if(this.binMode==='schedule')bin.nextVisit+=this.binSchedule;
+      bin.truck='called';this.stats.truckTrips++;bin.nextVisit+=this.binSchedule;
       this.backlog.push({src:trip.src,route:trip.route,requested:this.time,type:'truck',stops:[{idx:trip.idx,s:bin.s,dwell:BIN_DWELL,bin:bin.id}]});
     }
+  }
+  // With sensors: the bins that reached BIN_CALL and wait for a truck are shared over the free
+  // trucks along the quickest routes (src/traffic/waste-routes.js), planned again each time.
+  routeTrucks(free){
+    const due=this.bins.filter(b=>!b.truck&&b.fill>=BIN_CALL);
+    if(free<=0||!due.length)return;
+    // Bins on the same lane are one stop, served in their order along it.
+    const stops=[];
+    for(const b of due){const s=stops.find(x=>x.seg===b.seg);if(s)s.bins.push(b);else stops.push({seg:b.seg,bins:[b]});}
+    for(const s of stops)s.bins.sort((a,b)=>a.s-b.s);
+    for(const src of this.depot.sources.slice(0,4))for(const dst of this.depot.sinks.slice(0,6)){
+      const at=i=>i===START?src:i===END?dst:stops[i].seg;
+      const cost=(a,b)=>this.routeFrom(at(a)).time(at(b));
+      const load=stops.map(s=>s.bins.reduce((n,b)=>n+Math.min(1,b.fill)*BIN_KG,0));
+      const {trips,unreachable}=planRoutes(load,{cost,capacity:TRUCK_KG});
+      if(unreachable.length===stops.length)continue;
+      for(const i of unreachable)for(const b of stops[i].bins)b.truck='unreachable';
+      // The trips with most bins go first.
+      trips.sort((a,b)=>b.reduce((n,i)=>n+stops[i].bins.length,0)-a.reduce((n,i)=>n+stops[i].bins.length,0));
+      for(const trip of trips.slice(0,free)){
+        let route=[src];const list=[];
+        for(const i of trip){
+          const leg=this.routeFrom(route.at(-1))(stops[i].seg);
+          route=[...route,...leg.slice(1)];
+          for(const b of stops[i].bins){list.push({idx:route.length-1,s:b.s,dwell:BIN_DWELL,bin:b.id});b.truck='called';}
+        }
+        route=[...route,...this.routeFrom(route.at(-1))(dst).slice(1)];
+        this.stats.truckTrips++;
+        this.backlog.push({src,route,requested:this.time,type:'truck',stops:list});
+      }
+      return;
+    }
+    for(const b of due)b.truck='unreachable';
   }
 
   // ------------------------------------------------------------ signals
