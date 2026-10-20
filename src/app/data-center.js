@@ -16,10 +16,10 @@ export function validateDataCenter(input={}){
 const count=(map,asset)=>map.objects.filter(o=>o.asset===asset).length;
 export function dataCenterInventory(map){
   const sensors=[
-    {id:'queue',name:'Detektor antrean pendekat',device:'Kamera CCTV IP tiang + analitik video',
+    {id:'queue',name:'Kamera detektor antrean',device:'Kamera IP tiang + analitik video',
       method:'Dipasang di seberang simpang menghadap kendaraan yang datang. Menghitung kendaraan di zona deteksi (bawaan 80 m dari garis henti), yang berhenti, panjang antrean, dan yang melewati garis henti; hitungan ini dipakai lampu adaptif. Tidak mengenali pelat atau mengikuti kendaraan.',
-      count:count(map,'cctv'),basis:'1 per pendekat simpang berlampu',interval:'traffic',status:'Input lampu adaptif'},
-    {id:'dome',name:'Detektor simpang (kubah)',device:'Kamera CCTV IP kubah + analitik video',
+      count:count(map,'cctv'),basis:'1 per arah datang di simpang berlampu',interval:'traffic',status:'Input lampu adaptif'},
+    {id:'dome',name:'Kamera kubah simpang (peta lama)',device:'Kamera IP kubah + analitik video',
       method:'Peta lama: satu kamera melihat semua pendekat simpang.',
       count:count(map,'cctv-dome'),basis:'Sesuai yang dipasang di peta',interval:'traffic',status:'Input lampu adaptif'},
     {id:'waste',name:'Sensor isi tempat sampah',device:'Sensor jarak ultrasonik + radio LoRaWAN',

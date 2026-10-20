@@ -5,7 +5,7 @@
 
 <section id="arsitektur"><h2>Arsitektur aliran data</h2><p>Lima tahap mengikuti pola umum pemantauan IoT. Setiap sensor mengirim hasil deteksi (bukan video) sebagai event, Kafka menampung dan membagi event per topik, lalu Spark menghitung kondisi tiap window dan meneruskan hasilnya.</p>
 <ol class="pipeline">
-<li><b>1</b><strong>Sensor kota</strong><span>Kamera CCTV IP + analitik · ultrasonik</span></li>
+<li><b>1</b><strong>Sensor kota</strong><span>Kamera detektor antrean · ultrasonik</span></li>
 <li><b>2</b><strong>Gateway edge</strong><span>Kafka producer per kawasan / simpang</span></li>
 <li><b>3</b><strong>Apache Kafka</strong><span>traffic · waste</span></li>
 <li><b>4</b><strong>Spark Streaming</strong><span>Window, agregasi, deteksi kondisi</span></li>
@@ -20,7 +20,7 @@
 
 <section id="sensor"><h2>1 · Sensor kota</h2><p>Jumlah perangkat mengikuti perangkat yang terpasang di peta default (Mini Kota lengkap), sama dengan panel Data Center; peta lain dari editor menghasilkan jumlahnya sendiri. <strong>Privasi:</strong> sistem hanya memakai data agregat (jumlah kendaraan per pendekat, isi tempat sampah). Tidak ada pembacaan plat, identitas kendaraan, atau pelacakan perjalanan, sehingga tidak ada pengarahan rute per kendaraan. Kamera menjalankan analitik di perangkat dan hanya mengirim metadata: jumlah kendaraan, panjang antrean, dan arah gerak.</p>
 <div class="table-wrap"><table><thead><tr><th>Sensor</th><th>Perangkat</th><th>Jumlah</th><th>Interval kirim</th><th>Topik</th></tr></thead><tbody>
-<tr><td>Detektor antrean pendekat</td><td>Kamera CCTV IP tiang + analitik video, satu per pendekat, di seberang simpang menghadap arus datang; zona deteksi 80 m dari garis henti</td><td>51</td><td>250 ms ke gateway · 1 detik ke data center</td><td><code>traffic_events</code></td></tr>
+<tr><td>Kamera detektor antrean</td><td>Kamera IP tiang + analitik video, satu per arah datang, di seberang simpang menghadap arus datang; zona deteksi 80 m dari garis henti</td><td>51</td><td>250 ms ke gateway · 1 detik ke data center</td><td><code>traffic_events</code></td></tr>
 <tr><td>Sensor isi tempat sampah</td><td>Sensor jarak ultrasonik + radio LoRaWAN</td><td>6</td><td>60 detik</td><td><code>waste_events</code></td></tr>
 </tbody><tfoot><tr><th colspan="2">Total sensor</th><th>57</th><th colspan="2">+ 14 pengendali simpang dengan 50 lampu kendaraan dan 51 lampu penyeberang (aktuator, dikabel ke pengendali) dan 13 gateway edge (1 bermodul LoRaWAN)</th></tr></tfoot></table></div></section>
 

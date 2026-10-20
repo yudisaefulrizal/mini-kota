@@ -38,14 +38,14 @@ try{
   await page.click('[data-mode=baseline]');assert.equal(await page.isHidden('#smart-view'),true);
   await page.click('[data-mode=smart]');   // the smart city shows its devices
   assert.equal(await page.isVisible('#net-legend'),true);
-  assert.match(await page.textContent('#net-legend'),/CCTV pendekat \(antrean\) · 51/);
+  assert.match(await page.textContent('#net-legend'),/Kamera detektor antrean · 51/);
   await page.waitForTimeout(400);
   const dome=await page.evaluate(()=>{const c=window.miniKota.cities.smart,icon=c.network.icons.find(i=>c.map.objects.find(o=>o.id===i.userData.objectId).asset==='cctv');
     return {id:icon.userData.objectId,...window.miniKota.screen(icon.position.x,icon.position.z,icon.position.y,'smart')};});
   await page.mouse.click(dome.x,dome.y);
   await page.waitForSelector('#device-card:not([hidden])');
-  assert.match(await page.textContent('#device-card'),new RegExp(`CCTV pendekat \\(antrean\\) · ${dome.id}`));
-  assert.match(await page.textContent('#device-card'),/Memantau\s*pendekat dari .*Di zona 80 m/s);
+  assert.match(await page.textContent('#device-card'),new RegExp(`Kamera detektor antrean · ${dome.id}`));
+  assert.match(await page.textContent('#device-card'),/Memantau\s*arah datang dari .*Di zona 80 m/s);
   // Every camera's zone is drawn; the selected one is highlighted with its field of view.
   assert.deepEqual(await page.evaluate(id=>{const z=window.miniKota.cities.smart.zones;return [z.visible,z.zones.length,z.zones.find(x=>x.id===id).cone.visible];},dome.id),[true,51,true]);
 
@@ -67,7 +67,7 @@ try{
   // Data center: sized from the devices on the map; assumptions can be changed.
   await page.click('[data-mode=compare]');
   await page.click('#data-center-details summary');
-  assert.match(await page.textContent('#data-center-sensors'),/Detektor antrean pendekat.*51/s);
+  assert.match(await page.textContent('#data-center-sensors'),/Kamera detektor antrean.*51/s);
   const before=await page.textContent('#data-center-summary');
   await page.click('#data-center-form >> xpath=..');   // open "Ubah asumsi perencanaan"
   await page.fill('[name=sampleSeconds]','0.25');await page.dispatchEvent('[name=sampleSeconds]','input');

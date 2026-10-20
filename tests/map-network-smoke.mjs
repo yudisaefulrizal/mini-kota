@@ -21,7 +21,7 @@ try{
   // A camera for every outer approach of the 15 signalised junctions.
   assert.equal(want.devices.cctv,51);assert.equal(want.devices['cctv-dome'],undefined);
   const legend=await page.textContent('#net-legend');
-  assert.match(legend,/CCTV pendekat \(antrean\) · 51/);
+  assert.match(legend,/Kamera detektor antrean · 51/);
   assert.match(legend,/Lampu lalu lintas · 101\s*50 kendaraan, 51 penyeberang/);
   assert.match(legend,new RegExp(`LoRaWAN · ${want.media.lora} sambungan`));assert.match(legend,new RegExp(`Fiber optik · ${want.media.fiber} sambungan`));
   await page.waitForFunction(()=>window.mapEditor.network.packets.length>5,null,{timeout:10000});
@@ -35,7 +35,7 @@ try{
   assert.deepEqual(await page.evaluate(()=>window.mapEditor.selection),{type:'object',id:dome.id});
   assert.match(await page.textContent('#selection'),/Jaringan\s*Ke Gateway edge o\d+ · LAN/);
   // A selected camera shows its detection zone and which approach it watches; the zone length can be set.
-  assert.match(await page.textContent('#selection'),/Panjang zona deteksi[\s\S]*Memantau pendekat dari/);
+  assert.match(await page.textContent('#selection'),/Panjang zona deteksi[\s\S]*Memantau arah datang dari/);
   assert.deepEqual(await page.evaluate(()=>{const z=window.mapEditor.zones;return [z.visible,z.zones.length,z.zones[0]?.id];}),[true,1,dome.id]);
   await page.fill('#sel-zone','50');await page.dispatchEvent('#sel-zone','change');
   assert.equal(await page.evaluate(id=>window.mapEditor.map.objects.find(o=>o.id===id).zone,dome.id),50);

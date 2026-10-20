@@ -336,8 +336,8 @@ function hitHandle(p){
 function cameraPanel(o){
   const st=previewEngine()?.sensorState(o.id),a=st?.approaches?.[0];
   return `<label class="field">Panjang zona deteksi (m)<input type="number" id="sel-zone" min="20" max="200" step="10" value="${o.zone||ZONE}"></label>
-<p class="hint ${st?'':'bad'}">${st?(st.approaches.length===1?`Memantau pendekat dari ${esc(a.from.toLowerCase())} (${esc(a.road)}) di simpang ${esc(st.node)}.`:`Memantau ${st.approaches.length} pendekat simpang ${esc(st.node)}.`)+' Zona dihitung dari garis henti ke belakang.'
-    :'Belum menghadap pendekat simpang berlampu. Putar kamera ke arah kendaraan yang datang, dari seberang simpang.'}</p>`;
+<p class="hint ${st?'':'bad'}">${st?(st.approaches.length===1?`Memantau arah datang dari ${esc(a.from.toLowerCase())} (${esc(a.road)}) di simpang ${esc(st.node)}.`:`Memantau ${st.approaches.length} arah simpang ${esc(st.node)}.`)+' Zona dihitung dari garis henti ke belakang.'
+    :'Belum menghadap arah datang di simpang berlampu. Putar kamera ke arah kendaraan yang datang, dari seberang simpang.'}</p>`;
 }
 
 function renderSelection(){
@@ -814,7 +814,7 @@ async function startSim(){
   await view.init(engine);
   const s=engine.summary();
   network.reset();renderLegend();refreshZones();
-  status(`Simulasi berjalan: ${s.signals} simpang berlampu (${s.sensedSignals} dengan CCTV), ${engine.origins.length} titik masuk, ${engine.busStops.length} halte, ${s.bins} tempat sampah bersensor${engine.pedestrians?`, ${engine.pedestrians.agents.length} pejalan kaki`:''}.`);
+  status(`Simulasi berjalan: ${s.signals} simpang berlampu (${s.sensedSignals} dengan kamera detektor), ${engine.origins.length} titik masuk, ${engine.busStops.length} halte, ${s.bins} tempat sampah bersensor${engine.pedestrians?`, ${engine.pedestrians.agents.length} pejalan kaki`:''}.`);
   renderSimStats();
 }
 function stopSim(){
@@ -846,7 +846,7 @@ function renderSimStats(){
   const s=sim.engine.summary(),clock=t=>`${String(Math.floor(t/3600)).padStart(2,'0')}:${String(Math.floor(t/60)%60).padStart(2,'0')}:${String(Math.floor(t)%60).padStart(2,'0')}`;
   const t=s.vehicleTypes,rows=[['Waktu simulasi',clock(s.time)],['Kendaraan di peta',s.active],['Angkot · truk sampah',`${t.minibus} · ${t.truck}`],['Sedang berhenti',s.waiting],['Antre di luar peta',s.backlog],
     ['Perjalanan selesai',s.completed],['Rata-rata tempuh',s.completed?`${fmt(s.averageTravel)} dtk`:'—'],['Total waktu antre',`${fmt(s.queueSeconds/60,0)} mnt`],['Arus keluar',`${fmt(s.throughput,0)} /jam`]];
-  if(s.signals)rows.push(['Simpang dengan CCTV',`${s.sensedSignals} dari ${s.signals}`],['Kendaraan terhitung CCTV',fmt(sim.engine.sensors.reduce((n,x)=>n+x.count,0),0)]);
+  if(s.signals)rows.push(['Simpang dengan kamera detektor',`${s.sensedSignals} dari ${s.signals}`],['Kendaraan terhitung kamera',fmt(sim.engine.sensors.reduce((n,x)=>n+x.count,0),0)]);
   if(sim.engine.busStops.length)rows.push(['Angkot singgah di halte',s.busStops]);
   rows.push(['Kendaraan menyalip',s.overtakes]);
   if(s.bins)rows.push(['Tempat sampah dikosongkan',s.binsEmptied],['Tempat sampah penuh',s.binsFull]);
@@ -870,7 +870,7 @@ function spreadValue(){return Math.min(30,Math.max(0,Number($('sim-spread').valu
 $('sim-spread').onchange=()=>{if(sim)sim.engine.speedSpread=spreadValue();};
 $('sim-overtaking').onchange=e=>{if(sim)sim.engine.overtaking=e.target.checked;};
 $('sim-adaptive').onchange=e=>{if(sim)sim.engine.adaptive=e.target.checked;showAdaptiveNote();};
-// Adaptive lights only work where a CCTV watches the junction; say so when some lack one.
+// Adaptive lights only work where a camera watches the junction; say so when some lack one.
 function showAdaptiveNote(){
   const note=$('sim-adaptive-note');
   if(!$('sim-adaptive').checked||!map){note.hidden=true;return;}
@@ -878,9 +878,9 @@ function showAdaptiveNote(){
   if(sim){const s=sim.engine.summary();signals=s.signals;sensed=s.sensedSignals;}
   else{signals=geometry.junctions.filter(j=>map.nodes.find(n=>n.id===j.id)?.signal===true).length;sensed=null;}
   note.hidden=false;
-  note.textContent=sensed===null?'Lampu hanya adaptif di pendekat yang dipantau CCTV (di seberang simpang, menghadap arus datang).'
-    :sensed<signals?`${signals-sensed} dari ${signals} simpang berlampu belum punya CCTV dan tetap memakai waktu tetap. Pasang CCTV di sudut simpang itu, atau pakai "Isi aset otomatis".`
-    :'Semua simpang berlampu punya CCTV.';
+  note.textContent=sensed===null?'Lampu hanya adaptif di arah yang dipantau kamera detektor antrean (di seberang simpang, menghadap arus datang).'
+    :sensed<signals?`${signals-sensed} dari ${signals} simpang berlampu belum punya kamera detektor dan tetap memakai waktu tetap. Pasang kamera detektor antrean di seberang simpang itu, menghadap arus datang, atau pakai "Isi aset otomatis".`
+    :'Semua simpang berlampu punya kamera detektor.';
 }
 $('furnish').onclick=()=>{
   let result;

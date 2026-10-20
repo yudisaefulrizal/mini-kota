@@ -193,7 +193,7 @@ function ui(){
     ['Rata-rata waktu tempuh',b.completed?`${fmt(b.averageTravel)} dtk`:'—',s.completed?`${fmt(s.averageTravel)} dtk`:'—'],
     ['Perjalanan truk sampah',fmt(b.truckTrips),fmt(s.truckTrips)],
     ['Tempat sampah penuh (akumulasi)',duration(b.binFullSeconds),duration(s.binFullSeconds)],
-    ['Simpang adaptif (punya CCTV)','—',`${s.sensedSignals} dari ${s.signals}`],
+    ['Simpang adaptif (punya kamera detektor)','—',`${s.sensedSignals} dari ${s.signals}`],
   ];
   $('comparison-results').innerHTML=rows.map(([k,x,y])=>`<tr><th scope="row">${k}</th><td>${x}</td><td>${y}</td></tr>`).join('');
   const pct=(x,y)=>x>0?Math.round((1-y/x)*100):0;
@@ -220,7 +220,7 @@ function renderDataCenter(){
   const m=cities.smart.map;if(!m)return;
   const inv=dataCenterInventory(m);
   $('data-center-sensors').innerHTML=inv.sensors.length?inv.sensors.map(s=>`<tr><th scope="row">${esc(s.name)}<small>${esc(s.status)}</small></th><td><strong>${esc(s.device)}</strong><br>${esc(s.method)}</td><td>${s.count}<small>${esc(s.basis)}</small></td></tr>`).join('')
-    :'<tr><td colspan="3">Belum ada sensor di peta ini. Pasang CCTV atau sensor tempat sampah di editor (atau "Isi aset otomatis").</td></tr>';
+    :'<tr><td colspan="3">Belum ada sensor di peta ini. Pasang kamera detektor antrean atau sensor tempat sampah di editor (atau "Isi aset otomatis").</td></tr>';
   $('data-center-controllers').textContent=`Juga terpasang: ${inv.signalControllers} pengendali simpang dengan ${inv.signalHeads} kepala lampu, ${inv.gateways} gateway edge, ${inv.dataCentres} pusat data.`;
   renderDataCenterLoad();
 }

@@ -13,8 +13,8 @@ export const LAMP_CABLE={color:0x9c8a5a,label:'Kabel sinyal lampu',detail:'Kabel
 export const LINK_TYPES={...NETWORKS,lamp:LAMP_CABLE};
 export const isLamp=o=>/^traffic-light/.test(o.asset)||o.asset==='pedestrian-light';
 export const DEVICE_ICONS={
-  cctv:{glyph:'A',label:'CCTV pendekat (antrean)',color:'#2f7fc1'},
-  'cctv-dome':{glyph:'K',label:'CCTV kubah simpang',color:'#5a6fd1'},
+  cctv:{glyph:'A',label:'Kamera detektor antrean',color:'#2f7fc1'},
+  'cctv-dome':{glyph:'K',label:'Kamera kubah simpang (peta lama)',color:'#5a6fd1'},
   'bin-sensor':{glyph:'S',label:'Sensor tempat sampah',color:'#c98a12'},
   controller:{glyph:'L',label:'Pengendali simpang',color:'#2e9e5b'},
   gateway:{glyph:'GW',label:'Gateway edge',color:'#26332e',square:true},

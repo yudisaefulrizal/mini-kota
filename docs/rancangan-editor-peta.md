@@ -72,7 +72,7 @@ Satuan **meter**. Sumbu **x ke timur**, **z ke selatan** (sama dengan bidang tan
 | Rambu belok kiri | Sama, 11 m sebelum mulut simpang | Menghadap kendaraan yang datang |
 | Lampu pejalan kaki | Di ujung zebra cross | Menghadap seberang jalan |
 | Kabinet pengendali, gateway, CCTV dome | Sudut simpang di trotoar | Menghadap simpang |
-| CCTV bullet | Tepi jalan sisi kursor | Menghadap arus yang datang |
+| Kamera detektor antrean (tiang) | Di seberang simpang dari pendekat terdekat | Menghadap arus yang datang |
 | Lampu PJU | Tepi jalan | Lengan ke arah jalan |
 | Tempat sampah, halte, bangku | Tepi jalan | Menghadap jalan |
 | Pohon, semak | Di belakang trotoar | — |
@@ -285,7 +285,7 @@ memandang lurus dari atas dengan utara di atas; menggeser dan zoom tetap di mode
 Lapisan **Jaringan perangkat** di editor digambar seperti peta perangkat di tampilan kota lama
 (`src/map/network.js` untuk aturannya, `src/map/network-layer.js` untuk gambarnya):
 
-- **Ikon berhuruf** di atas tiap perangkat, ukurannya tetap terbaca di layar: A CCTV pendekat,
+- **Ikon berhuruf** di atas tiap perangkat, ukurannya tetap terbaca di layar: A kamera detektor antrean,
   K CCTV kubah (peta lama), S sensor tempat sampah, L pengendali simpang, GW gateway, DC pusat data.
 - **Sambungan** berwarna menurut medianya, sama dengan diagram perangkat:
   - **LAN** (kabel pendek, < 1 ms): CCTV ke gateway simpang bila jaraknya ≤ 60 m, gateway ke
@@ -544,6 +544,13 @@ menutupi. Kamera kubah tidak lagi dipasang otomatis (peta lama yang memakainya t
 - **Editor**: gateway terpilih menampilkan lingkaran jangkauan (75 m, dan 1 km bila bermodul
   LoRaWAN), kotak *Modul LoRaWAN*, dan jumlah perangkat yang dilayani.
 
+## Nama kamera (tahap 22)
+
+"CCTV pendekat (antrean)" diganti **Kamera detektor antrean** di seluruh aplikasi, dokumen,
+dan nama aset. "Detektor" karena kamera tidak merekam untuk diawasi, hanya mengirim hitungan
+(sejalan dengan prinsip privasi); "pendekat" (istilah MKJI) diganti "arah datang" di teks
+untuk pembaca umum. Kamera kubah dari peta lama: *Kamera kubah simpang (peta lama)*.
+
 ## Tahapan dan cara uji
 
 | Tahap | Isi | Uji | Status |
@@ -569,6 +576,7 @@ menutupi. Kamera kubah tidak lagi dipasang otomatis (peta lama yang memakainya t
 | 19 | CCTV per pendekat di seberang simpang; zona deteksi 80 m (bisa diubah) ditandai di peta dan editor | `tests/map-furnish.test.js`; `tests/traffic.test.js`; `tests/app-smoke.mjs`; `tests/map-network-smoke.mjs` | **Selesai** |
 | 20 | Pengemudi berbeda (kecepatan pilihan), menyalip di jalan 2 lajur, aliran acak terpisah agar kedua kota mendapat perjalanan identik | `tests/traffic.test.js` | **Selesai** |
 | 21 | Jangkauan gateway (kabel 75 m, LoRaWAN 1 km), gateway sesedikit mungkin (19 → 13), sambungan antar-gateway, kabel lampu ke pengendali | `tests/map-network.test.js` | **Selesai** |
+| 22 | Nama: Kamera detektor antrean | tes yang memeriksa teks | **Selesai** |
 
 ## Batasan yang diketahui
 

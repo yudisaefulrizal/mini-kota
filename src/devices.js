@@ -2,8 +2,8 @@
 // and controllers follow dataCenterInventory (src/app/data-center.js) on the default map; everything else is a
 // sizing proposal.
 export const DEVICES=[
-  {id:'cam',zone:'field',icon:'◉',name:'Kamera CCTV IP + analitik',count:'51 unit',
-    role:'Satu kamera per pendekat simpang berlampu, dipasang di seberang simpang menghadap kendaraan yang datang. Menghitung kendaraan di zona deteksi (80 m dari garis henti), yang berhenti, panjang antrean, dan yang melewati garis henti; hitungan ini dipakai lampu adaptif. Analitik berjalan di kamera, sehingga yang dikirim hanya metadata hasil deteksi (jumlah, bukan identitas): tidak ada pembacaan plat atau pelacakan kendaraan.',
+  {id:'cam',zone:'field',icon:'◉',name:'Kamera detektor antrean (IP + analitik)',count:'51 unit',
+    role:'Satu kamera per arah datang di simpang berlampu, dipasang di seberang simpang menghadap kendaraan yang datang. Menghitung kendaraan di zona deteksi (80 m dari garis henti), yang berhenti, panjang antrean, dan yang melewati garis henti; hitungan ini dipakai lampu adaptif. Analitik berjalan di kamera, sehingga yang dikirim hanya metadata hasil deteksi (jumlah, bukan identitas): tidak ada pembacaan plat atau pelacakan kendaraan.',
     hardware:'Kamera IP luar ruang IP66, prosesor analitik di kamera. Kamera tiang di seberang simpang memakai kabel LAN ke gateway simpang; kamera di luar jangkauan kabel gateway (lebih dari 75 m garis lurus, ±100 m kabel) memakai serat optik. Di Mini Kota: 51 kamera, satu per pendekat luar dari 15 simpang berlampu.',
     os:'Firmware Linux tertanam dari vendor kamera',
     software:'Aplikasi analitik di kamera (deteksi kendaraan, zona antrean, garis virtual), klien NTP untuk sinkronisasi waktu',
@@ -75,7 +75,7 @@ export const DEVICES=[
 ];
 export const ZONES=[['field','Lapangan'],['edge','Tepi jalan'],['network','Jaringan'],['dc','Data center']];
 
-export const SHORT_NAMES={cam:'Kamera CCTV',ultra:'Sensor sampah',ctrl:'Pengendali simpang',gw:'Gateway edge',net:'Jaringan kota',kafka:'Kafka',spark:'Spark',db:'PostgreSQL',lake:'Data lake',dash:'Dashboard'};
+export const SHORT_NAMES={cam:'Kamera detektor',ultra:'Sensor sampah',ctrl:'Pengendali simpang',gw:'Gateway edge',net:'Jaringan kota',kafka:'Kafka',spark:'Spark',db:'PostgreSQL',lake:'Data lake',dash:'Dashboard'};
 
 // What each device runs, in order, for one cycle of data.
 export const PROCESSES={

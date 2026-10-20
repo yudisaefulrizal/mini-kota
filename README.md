@@ -4,7 +4,7 @@ Simulasi edukasi lalu lintas kota dalam 3D (three.js). Satu peta dijalankan dua 
 berdampingan dan pada waktu yang sama:
 
 - **Kota biasa**: lampu lalu lintas waktu tetap, truk sampah datang terjadwal.
-- **Kota cerdas**: lampu adaptif yang membaca CCTV di tiap pendekat simpang (zona deteksi 80 m
+- **Kota cerdas**: lampu adaptif yang membaca kamera detektor antrean di tiap arah simpang (zona deteksi 80 m
   ditandai di peta), truk sampah dipanggil sensor
   tempat sampah, dan jaringan perangkat (LAN, fiber optik, LoRaWAN) ke pusat data.
 

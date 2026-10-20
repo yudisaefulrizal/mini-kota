@@ -25,11 +25,11 @@
 <label class="field">Pejalan kaki <input type="number" id="sim-people" value="40" min="0" max="2000" step="10"></label>
 <label class="field">Sebaran kecepatan pengemudi (%) <input type="number" id="sim-spread" value="10" min="0" max="30" step="1"></label>
 <label class="inline"><input type="checkbox" id="sim-overtaking" checked> Kendaraan boleh menyalip</label>
-<label class="inline"><input type="checkbox" id="sim-adaptive"> Lampu adaptif (pakai CCTV)</label>
+<label class="inline"><input type="checkbox" id="sim-adaptive"> Lampu adaptif (pakai kamera detektor)</label>
 <p class="hint" id="sim-adaptive-note" hidden></p>
 <p class="hint">Timer lampu: sisa detik hingga warna lampu berganti. Tanda ~ pada lampu adaptif berarti perkiraan dengan durasi hijau maksimum; lampu bisa berganti lebih cepat mengikuti antrean.</p>
 <div id="sim-stats" class="stats" hidden></div>
-<p class="hint">Kendaraan masuk dan keluar di ujung-ujung jalan peta, memilih rute tercepat, berpindah lajur, dan mematuhi pola fase lampu. Perangkat di peta ikut bekerja: CCTV menghitung kendaraan untuk lampu adaptif, angkot singgah di halte, dan sensor tempat sampah memanggil truk sampah saat hampir penuh. Pejalan kaki menyeberang di zebra cross. Peta dikunci selama simulasi berjalan.</p>
+<p class="hint">Kendaraan masuk dan keluar di ujung-ujung jalan peta, memilih rute tercepat, berpindah lajur, dan mematuhi pola fase lampu. Perangkat di peta ikut bekerja: kamera detektor antrean menghitung kendaraan untuk lampu adaptif, angkot singgah di halte, dan sensor tempat sampah memanggil truk sampah saat hampir penuh. Pejalan kaki menyeberang di zebra cross. Peta dikunci selama simulasi berjalan.</p>
 </section>
 <section class="card" id="map-card"><h2>Peta</h2>
 <label class="field">Mulai dari <select id="map-select"><option value="minikota-lengkap" selected>Mini Kota lengkap (jalan + semua aset)</option><option value="minikota">Mini Kota (jalan saja)</option><option value="maps/peta-uji.json">Peta uji pembentuk jalan</option><option value="empty">Peta kosong (600 × 400 m)</option></select></label>
@@ -56,7 +56,7 @@
 
 <section class="card" id="toolbox"><h2>Aset</h2>
 <button type="button" id="furnish" class="secondary">Isi aset otomatis</button>
-<p class="hint">Mengisi peta sekaligus: lampu, CCTV, dan kabinet di simpang berlampu; gedung di kawasan; lampu jalan dan pohon di tepi jalan; halte, tempat sampah bersensor, dan gateway. Aset yang sudah ada tidak diubah.</p>
+<p class="hint">Mengisi peta sekaligus: lampu, kamera detektor antrean, dan kabinet di simpang berlampu; gedung di kawasan; lampu jalan dan pohon di tepi jalan; halte, tempat sampah bersensor, dan gateway. Aset yang sudah ada tidak diubah.</p>
 <p class="hint">Seret aset ke peta, atau klik aset lalu klik di peta. Aset menempel otomatis ke tempat yang sesuai; tahan <kbd>Alt</kbd> untuk penempatan bebas.</p>
 <div id="asset-groups"><p class="hint">Memuat daftar aset…</p></div>
 </section>

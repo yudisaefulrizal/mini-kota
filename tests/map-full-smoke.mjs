@@ -37,21 +37,21 @@ try{
   },null,{timeout:20000,polling:100});
   assert.ok(await gait.jsonValue());assert.ok(state.leds>=5);assert.ok(state.counted>100,`counted ${state.counted}`);
   assert.ok(state.s.pedestrians.crossings>20&&state.s.busStops>0,JSON.stringify(state.s));
-  assert.match(await page.textContent('#sim-stats'),/Simpang dengan CCTV\s*15 dari 15/);
+  assert.match(await page.textContent('#sim-stats'),/Simpang dengan kamera detektor\s*15 dari 15/);
   // Countdown timers like the old city view, also on the displays of the light models.
   const timers=await page.evaluate(()=>{const v=window.mapEditor.sim.view,e=window.mapEditor.sim.engine;
     return {count:v.timers.length,panels:v.panels.length,labels:v.timers.map(t=>t.last),match:v.timers.every(t=>{const c=e.signalCountdown(t.node)[t.leg];return t.last.split('|')[1]===c.state;})};});
   assert.ok(timers.count>=40&&timers.panels>=30,JSON.stringify(timers));
   assert.ok(timers.labels.every(l=>/^~\d+\|/.test(l)),'adaptive timers are estimates (~)');
   assert.ok(timers.match,'label colour follows the light');
-  assert.match(await page.textContent('#sim-adaptive-note'),/Semua simpang berlampu punya CCTV/);
+  assert.match(await page.textContent('#sim-adaptive-note'),/Semua simpang berlampu punya kamera detektor/);
   if(process.env.SHOT_SIM){await page.evaluate(()=>window.mapEditor.focus(209,163,42));await page.waitForTimeout(1500);await page.screenshot({path:process.env.SHOT_SIM});}
   await page.click('#sim-stop');
 
   // Without cameras the note says which junctions stay on fixed timing.
   await page.selectOption('#map-select','maps/peta-uji.json');await page.waitForFunction(()=>window.mapEditor.map.name.includes('uji'));
   await page.click('#sim-start');await page.waitForFunction(()=>window.mapEditor.sim?.engine);
-  assert.match(await page.textContent('#sim-adaptive-note'),/belum punya CCTV/);
+  assert.match(await page.textContent('#sim-adaptive-note'),/belum punya kamera detektor/);
   await page.click('#sim-stop');
   // Fill it automatically; one undo takes it all back.
   const before=await page.evaluate(()=>window.mapEditor.map.objects.length);

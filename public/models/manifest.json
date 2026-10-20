@@ -171,7 +171,7 @@
     },
     {
       "id": "cctv",
-      "name": "Kamera CCTV · bullet",
+      "name": "Kamera detektor antrean · tiang",
       "category": "devices",
       "file": "models/devices/cctv.glb",
       "size": [
@@ -186,7 +186,7 @@
     },
     {
       "id": "cctv-dome",
-      "name": "Kamera CCTV · dome PTZ",
+      "name": "Kamera kubah · PTZ",
       "category": "devices",
       "file": "models/devices/cctv-dome.glb",
       "size": [

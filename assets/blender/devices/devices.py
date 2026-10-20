@@ -109,8 +109,8 @@ def build_bin_sensor():
 
 
 ASSETS = [
-    c.Asset('cctv', 'Kamera CCTV · bullet', build_cctv, dict(target=(0.4, 0, 3.6), distance=8.5, height=0.8, angle=-30)),
-    c.Asset('cctv-dome', 'Kamera CCTV · dome PTZ', build_dome, dict(target=(0.3, 0, 3.2), distance=7.5, height=0.8, angle=-30)),
+    c.Asset('cctv', 'Kamera detektor antrean · tiang', build_cctv, dict(target=(0.4, 0, 3.6), distance=8.5, height=0.8, angle=-30)),
+    c.Asset('cctv-dome', 'Kamera kubah · PTZ', build_dome, dict(target=(0.3, 0, 3.2), distance=7.5, height=0.8, angle=-30)),
     c.Asset('controller', 'Kabinet pengendali simpang', build_controller, dict(target=(0, 0, 0.9), distance=3.8, height=0.6, angle=-30)),
     c.Asset('gateway', 'Gateway edge', build_gateway, dict(target=(0, 0, 2.6), distance=3.6, height=0.7, angle=-30), parts=['led']),
     c.Asset('bin-sensor', 'Tempat sampah + sensor ultrasonik', build_bin_sensor, dict(target=(0, 0, 0.8), distance=3.6, height=0.9, angle=-30),
