@@ -73,7 +73,7 @@ export const DEVICES=[
     protocol:'HTTPS port 443 untuk operator, melalui VPN',
     links:['db','kafka']},
   {id:'airflow',zone:'dc',icon:'⟳',name:'Apache Airflow (orkestrasi & pembelajaran)',count:'1 VM; pekerjaan berat dijalankan di Spark',
-    role:'Menjadwalkan pekerjaan harian: cek kualitas data, ringkasan harian, pemadatan Iceberg, pelatihan ulang model, uji model, dan pengiriman parameter ke gateway.',
+    role:'Menjadwalkan pekerjaan harian: cek kualitas data, ringkasan harian, pemadatan Iceberg, pelatihan ulang model, dan pengiriman parameter ke gateway.',
     hardware:'4 vCPU, RAM 8 GB, SSD 100 GB',
     os:'Ubuntu Server 24.04 LTS',
     software:'Apache Airflow 2 (DAG Python), operator Spark untuk job pelatihan (Spark MLlib), penyimpanan model di lakehouse',
@@ -96,7 +96,7 @@ export const PROCESSES={
   db:['Menerima hasil window per menit dari Spark.','Menyimpannya di tabel MergeTree yang dipartisi per hari dan diurutkan per wilayah H3, simpang, dan waktu.','Membuat ringkasan per jam dan per hari secara otomatis (materialized view).','Melayani query Grafana dan analisis cepat.','Memindahkan data lebih lama dari batas simpan ke Iceberg (TTL).'],
   lake:['Menerima event mentah dan hasil window dari Spark ke tabel Iceberg.','Mencatat setiap penulisan sebagai snapshot (time travel untuk audit).','Menyimpan checkpoint Spark dan versi model.','Menyediakan data historis untuk pelatihan model dan analisis jangka panjang.','Memadatkan file kecil dan membuang snapshot lama sesuai jadwal Airflow.'],
   dash:['Grafana membaca kondisi terbaru dan ringkasan dari ClickHouse.','Menampilkan status simpang, isi tempat sampah, dan panggilan truk sampah.','Prometheus mengumpulkan metrik sistem: consumer lag, CPU, dan durasi batch Spark.','Memberi tanda saat consumer lag terus naik (perlu menambah worker).'],
-  airflow:['Tiap malam memeriksa kualitas data hari itu (kelengkapan, nilai mustahil).','Membuat ringkasan harian di ClickHouse dan memadatkan tabel Iceberg.','Menjalankan job Spark MLlib: melatih ulang prediksi arus per arah, penyetelan hijau, koordinasi antar simpang, dan prediksi isi tempat sampah.','Menguji model baru pada data beberapa hari terakhir; hanya dipakai bila lebih baik.','Mengirim parameter yang lolos ke gateway; gateway memeriksa batas aman sebelum memakainya.'],
+  airflow:['Tiap malam memeriksa kualitas data hari itu (kelengkapan, nilai mustahil).','Membuat ringkasan harian di ClickHouse dan memadatkan tabel Iceberg.','Menjalankan job Spark: melatih ulang enam model dari histori berlabel jam, Masehi, dan Hijriah (prediksi arus, isi tempat sampah, waktu tempuh; optimasi hijau, penahanan hijau, pemanggilan truk).','Mengirim parameter baru langsung ke gateway; gateway memeriksa batas aman sebelum memakainya.'],
 };
 
 export const FLOW_TYPES={
@@ -126,7 +126,7 @@ export const FLOWS=[
   {from:'kafka',to:'dash',network:'lan',type:'metrics',label:'Metrik consumer lag (Prometheus)'},
   {from:'lake',to:'airflow',network:'lan',type:'result',label:'Data historis untuk pelatihan dan pemeriksaan kualitas'},
   {from:'airflow',to:'spark',network:'lan',type:'model',label:'Job pelatihan ulang model (harian)'},
-  {from:'airflow',to:'net',network:'fiber',type:'model',label:'Parameter model yang lolos uji (harian, MQTT TLS)'},
+  {from:'airflow',to:'net',network:'fiber',type:'model',label:'Parameter model baru (harian, MQTT TLS)'},
   {from:'net',to:'gw',network:'fiber',type:'model',label:'Parameter model ke gateway; gateway memeriksa batas aman'},
 ];
 
@@ -140,7 +140,7 @@ export const TOUR=[
   {devices:['kafka','spark'],flows:['kafka-spark'],title:'Spark menganalisis window',text:'Pada window 07.42–07.43, antrean maksimum 92 m. Ini window kedua berturut-turut di atas 80 m, sehingga Spark menandai QUEUE_CONGESTED. Isi sampah 84% menghasilkan WASTE_FULL.'},
   {devices:['spark','db','dash'],flows:['spark-db','db-dash'],title:'Dashboard diperbarui',text:'Hasil window masuk ClickHouse. Dashboard menampilkan simpang 7 sebagai macet dan tempat sampah kawasan bisnis sebagai penuh.'},
   {devices:['spark','lake'],flows:['spark-lake'],title:'Data diarsipkan',text:'Event mentah dan hasil window disimpan ke tabel Iceberg untuk analisis jam sibuk, evaluasi lampu, dan pelatihan model.'},
-  {devices:['airflow','spark','lake'],flows:['lake-airflow','airflow-spark'],title:'Model belajar setiap malam',text:'Airflow menjalankan job Spark yang melatih ulang model dari data historis di lakehouse: prediksi arus, penyetelan hijau, koordinasi antar simpang, dan isi tempat sampah. Model baru diuji dulu dan hanya dipakai bila lebih baik.'},
+  {devices:['airflow','spark','lake'],flows:['lake-airflow','airflow-spark'],title:'Model belajar setiap malam',text:'Airflow menjalankan job Spark yang melatih ulang enam model dari histori di lakehouse: prediksi arus, isi tempat sampah, dan waktu tempuh, serta optimasi hijau, penahanan hijau, dan pemanggilan truk. Model baru langsung dipakai.'},
   {devices:['airflow','net','gw','ctrl'],flows:['airflow-net','net-gw','gw-ctrl'],title:'Parameter kembali ke simpang',text:'Parameter yang lolos uji dikirim ke gateway. Gateway memeriksa batas aman, lalu memakainya untuk jalur cepat lampu. Pengaman konflik di kabinet pengendali tetap menjadi lapisan terakhir.'},
 ];
 

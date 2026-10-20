@@ -28,7 +28,7 @@ export function diagramFigures(map,config=DATA_CENTER_DEFAULTS,{zone=80}={}){
     db:per(`±${fmt(rowsPerDay/1000)} rb baris/hari`,`±${fmt(rowsPerDay)} baris per menit/hari`,`${size(tools.ClickHouse.storageGB)} untuk 90 hari · ${tools.ClickHouse.nodes} node`,'Ringkasan menit → jam → hari; dibaca Grafana'),
     lake:per(`${size(e.storageGB)} / ${fmt(c.retentionDays)} hari`,`${size(e.storageGB)} untuk ${fmt(c.retentionDays)} hari · ${tools['MinIO + Iceberg'].nodes} node MinIO`,'Tabel Iceberg per tanggal dan wilayah H3; 2 salinan; time travel'),
     dash:per(`${fmt(e.totalSensors)} sensor`,`${fmt(e.totalSensors)} sensor dipantau`,'Diperbarui tiap detik'),
-    airflow:per('4 model · harian','Pekerjaan harian: kualitas data, ringkasan, pemadatan Iceberg','Latih ulang 4 model di Spark, uji, kirim parameter ke gateway'),
+    airflow:per('6 model · harian','Pekerjaan harian: kualitas data, ringkasan, pemadatan Iceberg','Latih ulang 6 model di Spark, kirim parameter ke gateway'),
     note:`Angka dari peta ${map.name||'ini'}: ${fmt(e.totalSensors)} sensor, ${fmt(e.eventsPerSecond,1)} pesan/dtk, ${fmt(c.payloadBytes)} byte per pesan. Estimasi, bukan pengukuran.`,
   };
 }

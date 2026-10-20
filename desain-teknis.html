@@ -72,14 +72,17 @@
 }</code></pre></section>
 
 <section id="pembelajaran"><h2>7 · Pembelajaran &amp; alur balik</h2><p>Model belajar dari data sensor yang sudah ada, tanpa data tambahan. Apache Airflow menjadwalkan satu DAG setiap malam; pekerjaan beratnya dijalankan di Spark (MLlib).</p>
-<ol class="steps"><li><strong>Kualitas data:</strong> kelengkapan per sensor dan nilai yang mustahil.</li><li><strong>Ringkasan &amp; perawatan:</strong> ringkasan harian di ClickHouse, pemadatan file kecil dan pembersihan snapshot lama di Iceberg.</li><li><strong>Latih ulang:</strong> empat model dari data historis di Iceberg, melanjutkan model sebelumnya.</li><li><strong>Uji:</strong> model baru dibandingkan dengan model yang dipakai pada beberapa hari terakhir; dipakai hanya bila jelas lebih baik.</li><li><strong>Kirim:</strong> parameter yang lolos dikirim ke gateway lewat jaringan kota (MQTT TLS); gateway memeriksa batas aman sebelum memakainya.</li></ol>
-<div class="table-wrap"><table><thead><tr><th>Model</th><th>Belajar dari</th><th>Hasil yang dikirim balik</th></tr></thead><tbody>
-<tr><td>Prediksi arus per arah</td><td>Kendaraan masuk zona tiap kamera, per waktu dalam sehari</td><td>Arus perkiraan per 15 menit (dashboard, rencana lampu per jam)</td></tr>
-<tr><td>Penyetelan lampu per simpang</td><td>Catatan pengendali: seberapa sering hijau habis saat kendaraan masih menunggu</td><td>Hijau rencana per fase</td></tr>
-<tr><td>Koordinasi antar simpang</td><td>Korelasi kendaraan yang melewati garis henti di hulu dengan yang masuk zona di hilir</td><td>Waktu tempuh dan bagian rombongan per pasangan simpang; lampu hilir menahan hijau untuk rombongan</td></tr>
-<tr><td>Prediksi isi tempat sampah</td><td>Isi tempat sampah per menit, waktu tiba truk</td><td>Laju isi per tempat sampah; truk dipanggil agar tiba saat isi 80%</td></tr>
+<ol class="steps"><li><strong>Kualitas data:</strong> kelengkapan per sensor dan nilai yang mustahil.</li><li><strong>Ringkasan &amp; perawatan:</strong> ringkasan harian di ClickHouse, pemadatan file kecil dan pembersihan snapshot lama di Iceberg.</li><li><strong>Latih ulang:</strong> enam model dari histori di Iceberg (rentang data latih bisa dibatasi).</li><li><strong>Kirim:</strong> parameter baru langsung dikirim ke gateway lewat jaringan kota (MQTT TLS); gateway memeriksa batas aman sebelum memakainya.</li></ol>
+<p>Setiap baris histori diberi waktu, label jam, tanggal Masehi dan Hijriah, dan versi tiap model yang sedang dipakai, supaya pola harian, mingguan, dan bulan Hijriah (misalnya Ramadan) bisa dipelajari.</p>
+<div class="table-wrap"><table><thead><tr><th>Model</th><th>Metode</th><th>Hasil yang dikirim balik</th></tr></thead><tbody>
+<tr><td>Prediksi arus per arah</td><td>Gradient Boosted Trees</td><td>Arus perkiraan per 15 menit</td></tr>
+<tr><td>Prediksi isi tempat sampah</td><td>Regresi linear</td><td>Laju isi per tempat sampah, lama truk tiba</td></tr>
+<tr><td>Prediksi waktu tempuh antar simpang</td><td>Korelasi silang</td><td>Waktu tempuh dan bagian rombongan per pasangan simpang</td></tr>
+<tr><td>Optimasi durasi hijau per fase</td><td>Bayesian optimization</td><td>Bagian hijau per fase dan pengali hijau rencana, sesuai jam dan tanggal</td></tr>
+<tr><td>Optimasi penahanan hijau</td><td>Bayesian optimization</td><td>Berapa detik ke depan lampu hilir menahan hijau untuk rombongan</td></tr>
+<tr><td>Optimasi waktu pemanggilan truk</td><td>Bayesian optimization</td><td>Isi tempat sampah saat truk tiba; truk dipanggil lebih awal sesuai prediksi isi</td></tr>
 </tbody></table></div>
-<p>Alur balik: Airflow → jaringan kota → gateway → pengendali. Pengaman konflik di kabinet pengendali tetap menjadi lapisan terakhir, apa pun parameter yang diterima. Siklus yang sama dijalankan di tab <strong>Analisis</strong> aplikasi, memakai histori sensor kota cerdas yang sedang berjalan; pengujiannya disimulasikan terpisah, seperti <em>digital twin</em>.</p></section>
+<p>Alur balik: Airflow → jaringan kota → gateway → pengendali. Pengaman konflik di kabinet pengendali tetap menjadi lapisan terakhir, apa pun parameter yang diterima. Siklus yang sama dijalankan di tab <strong>Analisis</strong> aplikasi, memakai histori kota cerdas yang sedang berjalan, disimpan di browser.</p></section>
 
 <section id="contoh"><h2>Contoh data &amp; analisis window</h2><p>Contoh ilustratif satu pendekat simpang pada jam berangkat kerja. Angka bukan keluaran simulasi.</p>
 <div class="table-wrap"><table><thead><tr><th>Window</th><th>Simpang</th><th>Rata-rata antrean</th><th>Maks. antrean</th><th>Status</th></tr></thead><tbody>

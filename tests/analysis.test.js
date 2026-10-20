@@ -2,36 +2,48 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {miniKotaLengkap} from '../src/map/default-map.js';
 import {TrafficEngine} from '../src/traffic/engine.js';
-import {collect,train,evaluate,STEP} from '../src/analysis/learn.js';
+import {recorder,train,chooseSetting,compose,MODELS,CHUNK,STEP} from '../src/analysis/learn.js';
+import {labels,firstMorning} from '../src/analysis/calendar.js';
+import {gbtFit,gbtPredict,ridgeFit,ridgePredict,gpFit,gpPredict} from '../src/analysis/ml.js';
 
 const map=miniKotaLengkap(),options={demand:900,seed:42,adaptive:true,binMode:'sensor',binFill:3000*0.7/6/120/86400};
 
-test('a learning round: sensor samples in, four models out, all from counts only',()=>{
-  const engine=new TrafficEngine(map,options);
-  const data=collect(engine,{seconds:1800});
-  assert.equal(data.step,STEP);assert.equal(data.cams.length,engine.sensors.length);
-  assert.equal(data.count[0].length,1800/STEP);assert.equal(data.fill[0].length,30);
-  const model=train(engine,data,null);
-  assert.equal(model.round,1);assert.equal(model.minutes,30);
-  // 1 · forecast per camera, checked against the naive guess
-  assert.equal(model.forecast.length,engine.sensors.length);assert.ok(model.error.windows>0);
-  // 2 · green per phase from the controllers' log, within bounds
-  for(const g of Object.values(model.greens))for(const x of g)assert.ok(x>=10&&x<=45);
-  // 3 · links only for platoons the downstream camera cannot see yet
-  for(const l of model.links)assert.ok(l.travel>=10&&l.share>0&&l.share<=1);
-  // 4 · bin fill rates and truck lead
-  for(const b of Object.values(model.waste.bins))assert.ok(b.rate>=0&&b.lead>0);
-  // A second round builds on the first.
-  const again=train(engine,collect(engine,{seconds:600}),model,model.learned);
-  assert.equal(again.round,2);assert.equal(again.minutes,40);
+test('the methods: trees, linear regression and a Gaussian process fit what they should',()=>{
+  const X=Array.from({length:200},(_,i)=>[i%20,(i*7)%13]),y=X.map(([a,b])=>a>10?5+b*0.1:1);
+  const m=gbtFit(X,y);assert.ok(Math.abs(gbtPredict(m,[15,3])-5.3)<0.5&&Math.abs(gbtPredict(m,[2,3])-1)<0.5);
+  const r=ridgeFit(X,X.map(([a,b])=>2+3*a-b));assert.ok(Math.abs(ridgePredict(r,[4,2])-12)<0.1);
+  const g=gpFit([[0],[0.5],[1]],[1,0,1]);const p=gpPredict(g,[0.5]),far=gpPredict(g,[3]);
+  assert.ok(p.mean<0.4&&p.sd<far.sd);
 });
 
-test('the engine takes a learned model; the evaluation averages several days',()=>{
-  const sig=[...new TrafficEngine(map,options).signals.keys()][0];
-  const learned={greens:{[sig]:[33,11,22,44]},links:[],bins:{}};
-  const e=new TrafficEngine(map,{...options,learned});
-  assert.deepEqual(e.signals.get(sig).plan.phases.map(p=>p.green),[33,11,22,44].slice(0,e.signals.get(sig).plan.phases.length));
-  const make=(l,seed)=>new TrafficEngine(map,{...options,seed,learned:l});
-  const a=evaluate(make,null,{seconds:300,seeds:[1,2]}),b=evaluate(make,null,{seconds:300,seeds:[1,2]});
-  assert.deepEqual(a,b,'deterministic');assert.ok(a.completed>0);
+test('history: one record every 5 s, rows per id, labels and model versions',()=>{
+  const engine=new TrafficEngine(map,options),origin=firstMorning(new Date(2026,9,20)),chunks=[];
+  const rec=recorder(engine,{origin,versions:()=>MODELS.map(()=>0),onChunk:c=>chunks.push(c)});
+  while(engine.time<3600+STEP){rec.tick();engine.step(0.25);}
+  assert.equal(chunks.length,3600/STEP/CHUNK);const c=chunks[0];
+  assert.equal(c.n,CHUNK);assert.equal(c.t[1]-c.t[0],STEP);
+  assert.deepEqual([...c.lab.slice(0,7)],labels(origin));assert.deepEqual([...c.lab.slice(0,4)],[6,20,10,2026]);
+  assert.equal(c.lewat.length,CHUNK*c.cams.length);assert.equal(c.fase.length,CHUNK*c.nodes.length);assert.equal(c.isi.length,CHUNK*c.bins.length);
+  assert.ok(c.lewat.reduce((s,v)=>s+v,0)>0&&c.antre.reduce((s,v)=>s+v,0)>0);
+  assert.ok(rec.partial().n>=1);
+});
+
+test('six models from the history, applied to the running city without a restart',async()=>{
+  const engine=new TrafficEngine(map,options),chunks=[];
+  const rec=recorder(engine,{origin:firstMorning(),versions:()=>MODELS.map(()=>0),onChunk:c=>chunks.push(c)});
+  while(engine.time<3*3600){rec.tick();engine.step(0.25);}
+  const reg={settingLog:{hijau:{0:{scale:1}},tahan:{0:{horizon:0}},truk:{0:{}}},params:{}};
+  const {records,params,summary}=await train([...chunks,rec.partial()].filter(Boolean),{reg,engine});
+  assert.equal(records,3*3600/STEP);
+  for(const m of ['arus','isi','tempuh','hijau','truk'])assert.ok(params[m],m);
+  assert.ok(summary.arus.length>0&&summary.arus.every(a=>a.next>=0));
+  for(const l of params.tempuh.links)assert.ok(l.travel>=10&&l.share>0&&l.share<=1);
+  const setting=chooseSetting(params,rec.time);
+  assert.ok(setting.scale>=0.8&&setting.scale<=1.4&&setting.tau===0.8);
+  const learned=compose(params,setting,rec.time);
+  const sig=[...engine.signals.entries()].find(([id])=>!engine.clusterOf.get(id))[1],before=sig.plan.phases.map(p=>p.green);
+  engine.setLearned({...learned,greenScale:1.4});
+  assert.ok(sig.plan.phases.some((p,i)=>p.green!==before[i]));
+  engine.setLearned(null);assert.deepEqual(sig.plan.phases.map(p=>p.green),before.map((_,i)=>sig.base[i]));
+  for(let k=0;k<400;k++)engine.step(0.25);   // keeps running
 });

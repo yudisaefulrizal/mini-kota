@@ -33,7 +33,7 @@ try{
   const times=await page.evaluate(()=>[window.miniKota.cities.baseline.engine.time,window.miniKota.cities.smart.engine.time]);
   assert.equal(times[0],times[1]);
   assert.equal(await page.locator('#comparison-results .metric').count(),12);assert.equal(await page.locator('#city-details').count(),0);
-  assert.match(await page.textContent('#smart-clock'),/HARI 01 06:0/);
+  assert.match(await page.textContent('#smart-clock'),/^\d{1,2} \S+ \d{4} 06:0/);
 
   // "!" buttons: one open at a time; a click elsewhere closes it.
   const tips=page.locator('#scenario details.tip summary');
@@ -74,21 +74,25 @@ try{
   assert.equal(await page.evaluate(()=>window.miniKota.mode),'smart');
   assert.equal(await page.isVisible('#device-card'),true);
 
-  // Analisis: one learning round in a worker (1 h of data), four model cards, a decision.
+  // Analisis: the smart city records its history as it runs (kept in IndexedDB); Latih sekarang
+  // trains six models in a worker and applies them to the running city, without a restart.
   await page.click('[data-mode=analysis]');
   assert.equal(await page.isVisible('#viewport'),false);
-  // Training needs history: the smart city records it as it runs (here: one simulated hour).
+  assert.equal(await page.isChecked('#analysis-auto'),true);assert.equal(await page.inputValue('#analysis-period'),'17280');
+  const t0=await page.evaluate(()=>window.miniKota.cities.smart.engine.time);
   await page.click('#next-hour');
-  await page.waitForFunction(()=>/Histori: [1-9] j/.test(document.getElementById('analysis-history-size').textContent),null,{timeout:120000});
-  assert.equal(await page.isDisabled('#analysis-run'),false);
+  await page.waitForFunction(()=>/Histori: [\d.]+ data/.test(document.getElementById('analysis-history-size').textContent)&&window.miniKota.analysis.registry.count>=720,null,{timeout:120000});
+  assert.match(await page.textContent('#analysis-history-size'),/Histori: [\d.]+ data · \d+ \S+ \d{4} – .* H/);
   await page.click('#analysis-run');
-  await page.waitForFunction(()=>document.querySelector('#analysis-history tr')&&document.getElementById('analysis-progress').hidden,null,{timeout:180000});
-  // The history is used up: the next round records anew.
-  assert.match(await page.textContent('#analysis-history-size'),/perlu 30 mnt/);
-  assert.equal(await page.locator('#analysis-models .analysis-model').count(),4);
-  assert.equal(await page.locator('#analysis-eval .metric').count(),4);
-  assert.match(await page.textContent('#analysis-history'),/1\s*\d+ mnt.*(Dipakai|Ditolak)/s);
-  assert.match(await page.textContent('#analysis-status'),/Putaran 1 · \d+ menit data/);
+  await page.waitForFunction(()=>document.querySelector('#analysis-trainings tr')&&document.getElementById('analysis-progress').hidden,null,{timeout:180000});
+  assert.equal(await page.locator('#analysis-models .analysis-model').count(),6);
+  assert.match(await page.textContent('#analysis-status'),/memakai model/);
+  assert.equal(await page.textContent('#smart-view .map-chip strong'),'CERDAS + MODEL');
+  assert.ok(await page.evaluate(t=>window.miniKota.cities.smart.engine.time>t,t0),'the city went on (no restart)');
+  const stored=await page.evaluate(()=>new Promise(r=>{const q=indexedDB.open('mini-kota-analisis');q.onsuccess=()=>{const g=q.result.transaction('chunks').objectStore('chunks').count();g.onsuccess=()=>r(g.result);};}));
+  assert.ok(stored>=1,`${stored} chunks stored`);
+  await page.click('#analysis-base');
+  assert.match(await page.textContent('#analysis-status'),/aturan dasar/);assert.equal(await page.isChecked('#analysis-auto'),false);
 
   // Data center (in the Perangkat tab): sized from the devices on the map; assumptions can be changed.
   await page.click('[data-mode=equipment]');

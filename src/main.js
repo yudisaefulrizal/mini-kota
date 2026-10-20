@@ -11,7 +11,7 @@ import {DEVICE_ICONS} from './map/network.js';
 import {deviceReadings,deviceLinks,legendHtml} from './map/device-info.js';
 import {City,CITY_NAMES,engineOptions} from './app/city.js';
 import {createAnalysisView} from './app/analysis.js';
-import {recorder} from './analysis/learn.js';
+import {masehi,clockText,firstMorning} from './analysis/calendar.js';
 import {createDriving} from './app/driving.js';
 import {createEquipmentView} from './app/equipment.js';
 import {diagramFigures} from './app/diagram-figures.js';
@@ -21,13 +21,14 @@ import {DATA_CENTER_DEFAULTS,dataCenterInventory,estimateDataCenter,validateData
 // fixed-time lights and empties its bins on a fixed round; the smart city (kota cerdas)
 // adapts its lights to what its cameras count and sends trucks when bin sensors report.
 // Maps come from src/map (Mini Kota by default, or a map drawn in the editor / OSM file);
-// traffic from src/traffic. Clock starts at 06:00 on day 1.
+// traffic from src/traffic. The clock carries a date: it goes on from the smart city's
+// history (Analisis tab), or starts today at 06:00.
 
 const $=id=>document.getElementById(id);
 const fmt=(n,d=0)=>Number(n).toLocaleString('id-ID',{maximumFractionDigits:d});
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const START=6*3600;
-const clock=t=>{const s=START+t,day=Math.floor(s/86400)+1,h=Math.floor(s/3600)%24,m=Math.floor(s/60)%60,sec=Math.floor(s)%60;return `HARI ${String(day).padStart(2,'0')} ${[h,m,sec].map(v=>String(v).padStart(2,'0')).join(':')}`;};
+let origin=firstMorning();   // the date and time of simulation time 0
+const clock=t=>`${masehi(origin+t).toUpperCase()} ${clockText(origin+t)}`;
 const duration=s=>{s=Math.round(s);const h=Math.floor(s/3600),m=Math.floor(s/60)%60;return h?`${h} j ${m} mnt`:`${m} mnt ${s%60} dtk`;};
 
 // ---------------------------------------------------------------- renderer & camera
@@ -81,7 +82,7 @@ function chosenMap(){
   if(source==='file'&&mapFile)return {map:mapFile.map,label:mapFile.name};
   return {map:miniKotaLengkap(),label:'Mini Kota lengkap'};
 }
-let loading=null,history=null;
+let loading=null;
 async function restart(){
   const run=Symbol();loading=run;
   try{settings=readSettings();$('form-error').textContent='';}catch(error){$('form-error').textContent=error.message;return;}
@@ -89,15 +90,14 @@ async function restart(){
   const bins=chosen.map.objects.filter(o=>o.asset==='bin-sensor').length;
   settings.binFill=bins?settings.dailyWasteKg/bins/120/86400:null;
   const first=!map;map=chosen.map;
-  // The smart city runs the model learned in the Analisis tab (for this map), if any.
-  settings.learned=analysis.learnedFor(mapKey(map));
   $('loading').hidden=false;$('loading').textContent='Menyiapkan dua kota…';
   try{await Promise.all(Object.values(cities).map(c=>c.load(map,settings)));}
   catch(error){$('loading').textContent=`Peta tidak bisa dijalankan: ${error.message}`;return;}
   if(loading!==run)return;
-  $('loading').hidden=true;accumulator=0;fastForward=0;
-  history=recorder(cities.smart.engine);   // the smart city's sensor history, for the Analisis tab
-  document.querySelector('#smart-view .map-chip strong').textContent=settings.learned?'CERDAS + MODEL':'CERDAS';
+  // The smart city keeps its history and runs the models learned from it (Analisis tab).
+  const start=await analysis.attach(cities.smart.engine,{map,key:mapKey(map),options:engineOptions('smart',settings)});
+  if(loading!==run)return;
+  origin=start;$('loading').hidden=true;accumulator=0;fastForward=0;
   $('map-status').textContent=`${chosen.label}: ${map.roads.length} jalan, ${cities.smart.engine.signals.size} simpang berlampu, ${map.objects.length} aset.`;
   if(!cities.smart.engine.origins.length)$('map-status').textContent+=' Peta belum punya ujung jalan untuk kendaraan masuk.';
   if(first)view(false);
@@ -186,8 +186,7 @@ $('city-compass').onclick=()=>controls.northUp();
 
 const mapKey=m=>`${m.name}|${m.roads.length}|${m.nodes.length}|${m.objects.length}`;
 const analysis=createAnalysisView({root:$('analysis-view'),
-  getContext:()=>map&&settings&&history&&{map,key:mapKey(map),options:engineOptions('smart',{...settings,learned:null}),history},
-  onApply:()=>restart()});
+  onApplied:learned=>{document.querySelector('#smart-view .map-chip strong').textContent=learned?'CERDAS + MODEL':'CERDAS';}});
 const equipment=createEquipmentView({root:$('equipment-view'),getCity:()=>cities.smart,
   getFigures:()=>{try{return cities.smart.map&&diagramFigures(cities.smart.map,dataCenterConfig,{zone:settings?.zone});}catch{return null;}},
   onShowOnMap:o=>{setMapMode('smart');showDeviceCard(o.id);lookAt(o.x,o.z,50);viewport.scrollIntoView({behavior:'smooth',block:'center'});}});
@@ -295,7 +294,7 @@ renderer.setAnimationLoop(now=>{
   if(ready&&(!paused||driving.active)){
     accumulator+=dt*(driving.active?1:fastForward?600:multiplier);let steps=0;
     while(accumulator>=0.25&&steps++<480){
-      history?.tick();cities.baseline.step(0.25);cities.smart.step(0.25);accumulator-=0.25;
+      analysis.tick();cities.baseline.step(0.25);cities.smart.step(0.25);accumulator-=0.25;
       if(fastForward&&cities.smart.engine.time>=fastForward){fastForward=0;accumulator=0;break;}
     }
     if(steps>=480)accumulator=0;
@@ -316,6 +315,6 @@ renderer.setAnimationLoop(now=>{
 });
 
 // For tests and inspection.
-window.miniKota={cities,get mode(){return mode;},setMapMode,get map(){return map;},camera:controls,driving,restart,view,
+window.miniKota={cities,analysis,get mode(){return mode;},setMapMode,get map(){return map;},camera:controls,driving,restart,view,
   screen(x,z,y=0,kind=shown()[0]){const r=views[kind].getBoundingClientRect(),v=new THREE.Vector3(x,y,z);camera.aspect=r.width/r.height;camera.updateProjectionMatrix();camera.updateMatrixWorld();v.project(camera);return {x:r.left+(v.x+1)/2*r.width,y:r.top+(1-v.y)/2*r.height};}};
 restart();
