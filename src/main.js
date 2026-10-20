@@ -189,30 +189,37 @@ function ui(){
     $(`${kind}-map-queue`).textContent=`${sum.waiting} dalam · ${sum.backlog} luar`;
     $(`${kind}-map-fuel`).textContent=`${fmt(fuel(sum),2)} L`;
   }
-  // One table, by subject; live counts already on the map (stopped, waiting outside) are not
-  // repeated here.
+  // Cards by subject: Biasa and Cerdas side by side, and how the smart city differs (green
+  // when better). Live counts already on the map (stopped, waiting outside) are not repeated.
+  // [name, ordinary, smart, format, which is better: 'lower' | 'higher' | null, note]
+  const minutes=x=>duration(x),litres=x=>`${fmt(x,2)} L`,count=x=>fmt(x),secs=x=>x?`${fmt(x)} dtk`:'—';
   const groups=[
     ['Lalu lintas',[
-      ['Waktu antre di jalan',duration(b.queueSeconds),duration(s.queueSeconds)],
-      ['Waktu antre masuk kota',duration(b.backlogSeconds),duration(s.backlogSeconds)],
-      ['BBM terbuang saat idle',`${fmt(fuel(b),2)} L`,`${fmt(fuel(s),2)} L`],
-      ['Perjalanan selesai',fmt(b.completed),fmt(s.completed)],
-      ['Rata-rata waktu tempuh',b.completed?`${fmt(b.averageTravel)} dtk`:'—',s.completed?`${fmt(s.averageTravel)} dtk`:'—'],
+      ['Waktu antre di jalan',b.queueSeconds,s.queueSeconds,minutes,'lower'],
+      ['Waktu antre masuk kota',b.backlogSeconds,s.backlogSeconds,minutes,'lower'],
+      ['BBM terbuang saat idle',fuel(b),fuel(s),litres,'lower'],
+      ['Perjalanan selesai',b.completed,s.completed,count,'higher'],
+      ['Rata-rata waktu tempuh',b.completed?b.averageTravel:0,s.completed?s.averageTravel:0,secs,'lower'],
     ]],
     ['Sampah',[
-      ['Perjalanan truk sampah',`${fmt(b.truckTrips)} · ${b.binsEmptied} dikosongkan`,`${fmt(s.truckTrips)} · ${s.binsEmptied} dikosongkan`],
-      ['Tempat sampah penuh',`${duration(b.binFullSeconds)} · kini ${b.binsFull}/${b.bins}`,`${duration(s.binFullSeconds)} · kini ${s.binsFull}/${s.bins}`],
+      ['Perjalanan truk sampah',b.truckTrips,s.truckTrips,count,'lower',`Dikosongkan: ${b.binsEmptied} · ${s.binsEmptied}`],
+      ['Tempat sampah penuh',b.binFullSeconds,s.binFullSeconds,minutes,'lower',`Penuh sekarang: ${b.binsFull}/${b.bins} · ${s.binsFull}/${s.bins}`],
     ]],
     ['Lainnya',[
-      ['Simpang adaptif','—',`${s.sensedSignals} dari ${s.signals}`],
-      ['Angkot singgah di halte',b.busStops,s.busStops],
-      ['Pejalan kaki menyeberang',b.pedestrians?.crossings??0,s.pedestrians?.crossings??0],
-      ['Kendaraan menyalip',b.overtakes,s.overtakes],
-      ['Pelanggaran lampu merah',b.redViolations,s.redViolations],
+      ['Simpang adaptif',null,s.sensedSignals,x=>x===null?'—':`${x} dari ${s.signals}`,null],
+      ['Angkot singgah di halte',b.busStops,s.busStops,count,null],
+      ['Pejalan kaki menyeberang',b.pedestrians?.crossings??0,s.pedestrians?.crossings??0,count,null],
+      ['Kendaraan menyalip',b.overtakes,s.overtakes,count,null],
+      ['Pelanggaran lampu merah',b.redViolations,s.redViolations,count,null],
     ]],
   ];
-  $('comparison-results').innerHTML=groups.map(([name,rows])=>`<tr class="group"><th scope="rowgroup" colspan="3">${name}</th></tr>`
-    +rows.map(([k,x,y])=>`<tr><th scope="row">${k}</th><td>${x}</td><td>${y}</td></tr>`).join('')).join('');
+  const change=(x,y,better)=>{
+    if(!better||!(x>0)||y===null)return '';
+    const d=Math.round((y-x)/x*100);if(!d)return '<span class="delta">sama</span>';
+    const good=better==='lower'?d<0:d>0;return `<span class="delta ${good?'good':'bad'}">${d>0?'+':''}${d}%</span>`;
+  };
+  $('comparison-results').innerHTML=groups.map(([name,rows])=>`<h4>${name}</h4>`+rows.map(([k,x,y,f,better,note])=>
+    `<div class="metric"><span class="metric-name">${k}</span><dl><dt>Biasa</dt><dd>${f(x)}</dd><dt>Cerdas</dt><dd>${f(y)}${change(x,y,better)}</dd></dl>${note?`<small>${note}</small>`:''}</div>`).join('')).join('');
   const pct=(x,y)=>x>0?Math.round((1-y/x)*100):0;
   const q=pct(b.queueSeconds+b.backlogSeconds,s.queueSeconds+s.backlogSeconds),f=fuel(b)-fuel(s),t=b.truckTrips-s.truckTrips;
   $('comparison-saving').textContent=b.time<60?'Kedua kota baru dimulai…':
