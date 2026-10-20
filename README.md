@@ -1,5 +1,7 @@
 # Mini Kota — Kota Biasa vs Kota Cerdas
 
+Coba langsung: https://yudisaefulrizal.github.io/mini-kota/
+
 Simulasi edukasi lalu lintas kota dalam 3D (three.js). Satu peta dijalankan dua kali,
 berdampingan dan pada waktu yang sama:
 
@@ -23,7 +25,8 @@ npm run dev
 
 Buka alamat yang ditampilkan terminal (biasanya http://localhost:5173). Jangan membuka
 `index.html` langsung dari filesystem. Build produksi: `npm run build`; pratinjau:
-`npm run preview`.
+`npm run preview`. Terbitkan ke GitHub Pages: `npm run deploy` (build lalu push `dist/` ke cabang
+`gh-pages`).
 
 | Halaman | Isi |
 |---|---|
