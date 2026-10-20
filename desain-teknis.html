@@ -1,28 +1,33 @@
 <!doctype html>
 <html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#173b37"><link rel="stylesheet" href="/src/theme.css"><script>try{const t=localStorage.getItem("miniKota.theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script><title>Desain Teknis — Mini Kota</title><link rel="stylesheet" href="/src/explanation.css"><link rel="stylesheet" href="/src/technical.css"></head><body>
-<header><a href="./index.html">← Simulasi</a><span class="theme-slot" data-theme-slot></span><span>mini kota.</span></header><main><h1>Desain Teknis</h1><p class="lead">Usulan arsitektur pengolahan data sensor kota cerdas secara real-time: dari sensor di jalan sampai keputusan lampu, dashboard, dan arsip data. Ini rancangan implementasi nyata; simulasi saat ini membaca kondisi dari model internal, tanpa Kafka atau Spark yang berjalan.</p>
-<nav aria-label="Daftar isi"><a href="#arsitektur">Arsitektur aliran data</a><a href="#perangkat">Diagram perangkat</a><a href="#jaringan">Jaringan antar perangkat</a><a href="#sensor">1 · Sensor kota</a><a href="#gateway">2 · Gateway edge</a><a href="#kafka">3 · Apache Kafka</a><a href="#spark">4 · Spark Structured Streaming</a><a href="#output">5 · Output &amp; sink</a><a href="#contoh">Contoh data &amp; analisis window</a><a href="#latensi">Latensi &amp; jalur cepat lampu</a><a href="#kapasitas">Kapasitas pada skenario default</a><a href="#worker">Penambahan worker</a><a href="#batas">Batas rancangan</a></nav>
+<header><a href="./index.html">← Simulasi</a><span class="theme-slot" data-theme-slot></span><span>mini kota.</span></header><main><h1>Desain Teknis</h1><p class="lead">Usulan arsitektur pengolahan data sensor kota cerdas, dirancang untuk skala kota besar sampai nasional: dari sensor di jalan sampai keputusan lampu, dashboard, arsip, dan model yang terus belajar. Mini Kota di simulasi hanyalah contoh kecil dari rancangan ini; angka untuk peta yang sedang dipakai ada di panel Data Center (tab Perangkat).</p>
+<nav aria-label="Daftar isi"><a href="#arsitektur">Arsitektur aliran data</a><a href="#jaringan">Jaringan antar perangkat</a><a href="#sensor">1 · Sensor &amp; aturan pemasangan</a><a href="#gateway">2 · Gateway edge</a><a href="#kafka">3 · Apache Kafka</a><a href="#spark">4 · Spark Structured Streaming</a><a href="#penyimpanan">5 · Penyimpanan</a><a href="#output">6 · Output</a><a href="#pembelajaran">7 · Pembelajaran &amp; alur balik</a><a href="#contoh">Contoh data &amp; analisis window</a><a href="#latensi">Latensi &amp; jalur cepat lampu</a><a href="#membesar">Cara membesar</a><a href="#batas">Batas rancangan</a></nav>
 
-<section id="arsitektur"><h2>Arsitektur aliran data</h2><p>Lima tahap mengikuti pola umum pemantauan IoT. Setiap sensor mengirim hasil deteksi (bukan video) sebagai event, Kafka menampung dan membagi event per topik, lalu Spark menghitung kondisi tiap window dan meneruskan hasilnya.</p>
+<section id="arsitektur"><h2>Arsitektur aliran data</h2><p>Tujuh tahap. Setiap sensor mengirim hasil deteksi (bukan video) sebagai event, Kafka menampung dan membagi event per topik, Spark menghitung kondisi tiap window, hasilnya disimpan dan ditampilkan, lalu model belajar dari riwayatnya dan parameternya kembali ke simpang.</p>
 <ol class="pipeline">
 <li><b>1</b><strong>Sensor kota</strong><span>Kamera detektor antrean · ultrasonik</span></li>
-<li><b>2</b><strong>Gateway edge</strong><span>Kafka producer per kawasan / simpang</span></li>
+<li><b>2</b><strong>Gateway edge</strong><span>Jalur cepat lampu · producer Kafka</span></li>
 <li><b>3</b><strong>Apache Kafka</strong><span>traffic · waste</span></li>
 <li><b>4</b><strong>Spark Streaming</strong><span>Window, agregasi, deteksi kondisi</span></li>
-<li><b>5</b><strong>Output</strong><span>Lampu adaptif · dashboard · data lake</span></li>
-</ol></section>
+<li><b>5</b><strong>Penyimpanan</strong><span>ClickHouse · MinIO + Iceberg</span></li>
+<li><b>6</b><strong>Output</strong><span>Lampu adaptif · Grafana</span></li>
+<li><b>7</b><strong>Pembelajaran</strong><span>Airflow + Spark MLlib → kembali ke gateway</span></li>
+</ol>
+<p><strong>Pola Kappa:</strong> semua data diperlakukan sebagai stream lewat satu jalur (Kafka → Spark). Tidak ada jalur batch terpisah seperti pada arsitektur Lambda; data lama dihitung ulang dengan memutar kembali Kafka atau membaca tabel Iceberg, dengan kode yang sama. Satu jalur berarti satu logika, lebih mudah dijaga konsistensinya.</p>
+<p><strong>Saat ada gangguan:</strong> keputusan lampu tidak bergantung pada data center. Jika jaringan kota putus, simpang tetap diatur gateway dan pengendali; gateway menyangga event lalu mengirimnya saat tersambung lagi. Jalur ke data center mengutamakan ketersediaan (sensor tetap menulis), sedangkan dashboard boleh tertinggal sesaat.</p>
+<p><a href="./diagram-3d.html">Buka diagram 3D alur perangkat →</a> Lihat setiap perangkat dan tools, proses yang dijalankannya, dan telusuri satu event dari kamera sampai model belajar.</p></section>
 
-<section id="perangkat"><h2>Diagram perangkat</h2><p>Klik salah satu alat untuk melihat fungsi, spesifikasi, sistem operasi, perangkat lunak, dan koneksinya. Alat yang terhubung langsung ditandai garis putus-putus. Spesifikasi adalah usulan; merek dan model belum ditetapkan.</p><p><a href="./diagram-3d.html">Buka diagram 3D alur perangkat →</a> Lihat perangkat dalam 3D, proses yang dijalankan tiap alat, dan telusuri satu event dari kamera sampai dashboard.</p>
-<div id="device-diagram" class="device-diagram"></div>
-<div id="device-detail" class="device-detail" aria-live="polite"></div></section>
+
 
 <section id="jaringan"><h2>Jaringan antar perangkat</h2><p>Perangkat yang punya listrik memakai kabel atau serat optik karena paling stabil. Radio hanya dipakai untuk sensor berbaterai.</p><div class="table-wrap" id="network-table"></div></section>
 
-<section id="sensor"><h2>1 · Sensor kota</h2><p>Jumlah perangkat mengikuti perangkat yang terpasang di peta default (Mini Kota lengkap), sama dengan panel Data Center; peta lain dari editor menghasilkan jumlahnya sendiri. <strong>Privasi:</strong> sistem hanya memakai data agregat (jumlah kendaraan per pendekat, isi tempat sampah). Tidak ada pembacaan plat, identitas kendaraan, atau pelacakan perjalanan, sehingga tidak ada pengarahan rute per kendaraan. Kamera menjalankan analitik di perangkat dan hanya mengirim metadata: jumlah kendaraan, panjang antrean, dan arah gerak.</p>
-<div class="table-wrap"><table><thead><tr><th>Sensor</th><th>Perangkat</th><th>Jumlah</th><th>Interval kirim</th><th>Topik</th></tr></thead><tbody>
-<tr><td>Kamera detektor antrean</td><td>Kamera IP tiang + analitik video, satu per arah datang, di seberang simpang menghadap arus datang; zona deteksi 80 m dari garis henti</td><td>51</td><td>250 ms ke gateway · 1 detik ke data center</td><td><code>traffic_events</code></td></tr>
-<tr><td>Sensor isi tempat sampah</td><td>Sensor jarak ultrasonik + radio LoRaWAN</td><td>6</td><td>60 detik</td><td><code>waste_events</code></td></tr>
-</tbody><tfoot><tr><th colspan="2">Total sensor</th><th>57</th><th colspan="2">+ 14 pengendali simpang dengan 50 lampu kendaraan dan 51 lampu penyeberang (aktuator, dikabel ke pengendali) dan 13 gateway edge (masing-masing dengan radio LoRaWAN)</th></tr></tfoot></table></div></section>
+<section id="sensor"><h2>1 · Sensor &amp; aturan pemasangan</h2><p>Jumlah perangkat tidak ditetapkan di rancangan; yang ditetapkan adalah aturan pemasangannya, sehingga berlaku untuk kota sebesar apa pun. Jumlah untuk peta tertentu dihitung dari aturan ini (panel Data Center). Sistem hanya memakai data agregat: kamera menjalankan analitik di perangkat dan hanya mengirim angka (jumlah kendaraan, kendaraan berhenti, panjang antrean). Tidak ada pembacaan plat atau pelacakan kendaraan.</p>
+<div class="table-wrap"><table><thead><tr><th>Perangkat</th><th>Aturan pemasangan</th><th>Interval kirim</th><th>Topik</th></tr></thead><tbody>
+<tr><td>Kamera detektor antrean</td><td>1 per arah datang di setiap simpang berlampu, di seberang simpang menghadap arus datang; zona deteksi 80 m dari garis henti</td><td>250 ms ke gateway · 1 detik ke data center</td><td><code>traffic_events</code></td></tr>
+<tr><td>Sensor isi tempat sampah</td><td>1 per tempat sampah bersensor; ultrasonik + radio LoRaWAN</td><td>60 detik</td><td><code>waste_events</code></td></tr>
+<tr><td>Pengendali simpang</td><td>1 per simpang berlampu atau simpang gabungan; semua lampu kendaraan dan penyeberang dikabel ke pengendalinya</td><td>—</td><td>—</td></tr>
+<tr><td>Gateway edge</td><td>Sesedikit mungkin hingga setiap kamera dan pengendali berada ≤ 75 m dari satu gateway (Ethernet maks. 100 m mengikuti jalan); sensor sampah ke gateway terdekat (LoRaWAN ±1 km)</td><td>Ringkasan 1 detik</td><td>—</td></tr>
+</tbody></table></div></section>
 
 <section id="gateway"><h2>2 · Gateway edge</h2><p>Satu gateway melayani sekelompok sensor di satu simpang atau kawasan. Gateway memberi cap waktu, memvalidasi format, menyangga pesan saat jaringan putus, lalu mengirim ke Kafka sebagai producer. Kunci pesan adalah <code>node_id</code> simpang atau <code>lot_id</code> kawasan, sehingga semua event satu lokasi masuk ke partisi yang sama dan urutannya terjaga.</p>
 <pre><code>{
@@ -37,9 +42,9 @@
 
 <section id="kafka"><h2>3 · Apache Kafka</h2><p>Topik dipisah menurut jenis dan frekuensi data agar retensi dan jumlah konsumen dapat diatur sendiri-sendiri.</p>
 <div class="table-wrap"><table><thead><tr><th>Topik</th><th>Kunci partisi</th><th>Isi</th></tr></thead><tbody>
-<tr><td><code>traffic_events</code></td><td>node_id simpang / ruas</td><td>Antrean dan arus per pendekat simpang · ±51 pesan/detik</td></tr>
+<tr><td><code>traffic_events</code></td><td>node_id simpang / ruas</td><td>Antrean dan arus per arah simpang · 1 pesan/detik per kamera</td></tr>
 <tr><td><code>waste_events</code></td><td>lot_id kawasan</td><td>Persentase isi tempat sampah</td></tr>
-</tbody></table></div><p>Replikasi 2 salinan, sesuai asumsi penyimpanan pada panel Data Center. Retensi Kafka cukup beberapa hari; arsip panjang dipindahkan ke data lake.</p></section>
+</tbody></table></div><p>Minimal 3 broker (kuorum KRaft), replikasi 2, retensi 3 hari; arsip panjang ada di Iceberg. Jumlah partisi <code>traffic_events</code> dibuat dengan cadangan sejak awal (minimal 12, kira-kira 1 per 1.000 pesan/detik), karena menambah partisi belakangan mengubah pemetaan kunci ke partisi.</p></section>
 
 <section id="spark"><h2>4 · Spark Structured Streaming</h2><p>Spark membaca kedua topik, mengurai JSON, lalu menghitung kondisi per lokasi dalam window 1 menit. <em>Watermark</em> 30 detik menerima event yang terlambat sedikit, dan checkpoint menyimpan posisi baca agar tidak ada event yang hilang atau dihitung ganda saat job dimulai ulang.</p>
 <ul class="steps"><li><strong>Read stream</strong> dari Kafka</li><li><strong>Parse &amp; filter</strong> event rusak atau sensor tak dikenal</li><li><strong>Window 1 menit</strong> per <code>node_id</code> / <code>lot_id</code></li><li><strong>Agregasi</strong> rata-rata antrean, maksimum antrean, total arus</li><li><strong>Deteksi kondisi</strong> dengan aturan di bawah</li><li><strong>Stateful + checkpoint</strong> status sensor dan tempat sampah</li></ul>
@@ -50,14 +55,31 @@
 <tr><td>Sensor diam</td><td>Tidak ada event selama 3× interval</td><td>Sensor ditandai bermasalah; lampu simpang memakai mode tetap</td></tr>
 </tbody></table></div><p>Ambang di atas adalah titik awal. Nilainya perlu disesuaikan dengan data lapangan, bukan diambil dari simulasi.</p></section>
 
-<section id="output"><h2>5 · Output &amp; sink</h2><h3>Lampu lalu lintas adaptif</h3><p>Pengendali simpang menerima panjang antrean per arah dan memakai aturan yang sama dengan kota cerdas di simulasi: hijau minimal 10 detik, maksimal dua kali hijau pengaturan (batas 90 detik), kuning 3 detik, merah bersama 1 detik. Lihat <a href="#latensi">jalur cepat</a>.</p><h3>Dashboard real-time</h3><p>Status tiap simpang (lancar, padat, macet), isi tempat sampah dan panggilan truk, serta arus per pendekat. Bentuknya mirip panel perbandingan di simulasi.</p><h3>Contoh kejadian yang tercatat</h3><p>Spark mencatat kejadian di PostgreSQL untuk ditampilkan di dashboard.</p>
+<section id="penyimpanan"><h2>5 · Penyimpanan</h2><p>Dua lapis, satu peran untuk masing-masing: data panas yang cepat di-query untuk dashboard, dan arsip besar yang murah untuk analisis jangka panjang dan pelatihan model.</p>
+<div class="table-wrap"><table><thead><tr><th>Lapis</th><th>Tools</th><th>Isi</th><th>Bentuk</th></tr></thead><tbody>
+<tr><td>Panas</td><td>ClickHouse</td><td>Hasil window per menit dan kejadian, ±90 hari</td><td>Tabel MergeTree dipartisi per hari, diurutkan per wilayah H3, simpang, dan waktu; ringkasan otomatis menit → jam → hari; data lewat batas dipindahkan ke Iceberg</td></tr>
+<tr><td>Arsip</td><td>MinIO + Apache Iceberg</td><td>Event mentah dan hasil, data latih, versi model, checkpoint Spark</td><td>Tabel Iceberg (Parquet) dipartisi per tanggal dan wilayah H3; transaksi ACID; <em>time travel</em> untuk audit keputusan lampu; MinIO dengan erasure coding, minimal 4 node</td></tr>
+</tbody></table></div>
+<p><strong>H3</strong> (indeks heksagonal) dipakai sebagai kunci wilayah: setiap simpang dan tempat sampah diberi sel H3, sehingga data antar kota dan provinsi bisa disatukan, dipartisi, dan diringkas dengan ukuran sel yang seragam.</p></section>
+
+<section id="output"><h2>6 · Output</h2><h3>Lampu lalu lintas adaptif</h3><p>Pengendali simpang menerima panjang antrean per arah dan memakai aturan yang sama dengan kota cerdas di simulasi: hijau minimal 10 detik, maksimal dua kali hijau pengaturan (batas 90 detik), kuning 3 detik, merah bersama 1 detik. Lihat <a href="#latensi">jalur cepat</a>.</p><h3>Dashboard (Grafana)</h3><p>Grafana membaca ClickHouse: status tiap simpang (lancar, padat, macet), isi tempat sampah dan panggilan truk, arus per arah, dan ringkasan per wilayah H3. Metrik sistem (consumer lag, CPU, durasi batch) dari Prometheus tampil di dashboard yang sama, lengkap dengan peringatan.</p><h3>Contoh kejadian yang tercatat</h3><p>Spark mencatat kejadian di ClickHouse untuk ditampilkan di Grafana.</p>
 <pre><code>{
   "node_id": "simpang07",
   "window": "07:42–07:43",
   "event": "QUEUE_CONGESTED",
   "risk": "HIGH",
   "details": { "max_queue_m": 92.0, "avg_stopped": 13.4 }
-}</code></pre><h3>Data lake</h3><p>Event mentah dan hasil window disimpan sebagai Parquet di HDFS atau S3, dipartisi per tanggal. Data ini dipakai untuk analisis jam sibuk, evaluasi pengaturan lampu, dan perencanaan rute truk.</p></section>
+}</code></pre></section>
+
+<section id="pembelajaran"><h2>7 · Pembelajaran &amp; alur balik</h2><p>Model belajar dari data sensor yang sudah ada, tanpa data tambahan. Apache Airflow menjadwalkan satu DAG setiap malam; pekerjaan beratnya dijalankan di Spark (MLlib).</p>
+<ol class="steps"><li><strong>Kualitas data:</strong> kelengkapan per sensor dan nilai yang mustahil.</li><li><strong>Ringkasan &amp; perawatan:</strong> ringkasan harian di ClickHouse, pemadatan file kecil dan pembersihan snapshot lama di Iceberg.</li><li><strong>Latih ulang:</strong> empat model dari data historis di Iceberg, melanjutkan model sebelumnya.</li><li><strong>Uji:</strong> model baru dibandingkan dengan model yang dipakai pada beberapa hari terakhir; dipakai hanya bila jelas lebih baik.</li><li><strong>Kirim:</strong> parameter yang lolos dikirim ke gateway lewat jaringan kota (MQTT TLS); gateway memeriksa batas aman sebelum memakainya.</li></ol>
+<div class="table-wrap"><table><thead><tr><th>Model</th><th>Belajar dari</th><th>Hasil yang dikirim balik</th></tr></thead><tbody>
+<tr><td>Prediksi arus per arah</td><td>Kendaraan masuk zona tiap kamera, per waktu dalam sehari</td><td>Arus perkiraan per 15 menit (dashboard, rencana lampu per jam)</td></tr>
+<tr><td>Penyetelan lampu per simpang</td><td>Catatan pengendali: seberapa sering hijau habis saat kendaraan masih menunggu</td><td>Hijau rencana per fase</td></tr>
+<tr><td>Koordinasi antar simpang</td><td>Korelasi kendaraan yang melewati garis henti di hulu dengan yang masuk zona di hilir</td><td>Waktu tempuh dan bagian rombongan per pasangan simpang; lampu hilir menahan hijau untuk rombongan</td></tr>
+<tr><td>Prediksi isi tempat sampah</td><td>Isi tempat sampah per menit, waktu tiba truk</td><td>Laju isi per tempat sampah; truk dipanggil agar tiba saat isi 80%</td></tr>
+</tbody></table></div>
+<p>Alur balik: Airflow → jaringan kota → gateway → pengendali. Pengaman konflik di kabinet pengendali tetap menjadi lapisan terakhir, apa pun parameter yang diterima. Siklus yang sama dijalankan di tab <strong>Analisis</strong> aplikasi, memakai data sensor simulasi kota cerdas.</p></section>
 
 <section id="contoh"><h2>Contoh data &amp; analisis window</h2><p>Contoh ilustratif satu pendekat simpang pada jam berangkat kerja. Angka bukan keluaran simulasi.</p>
 <div class="table-wrap"><table><thead><tr><th>Window</th><th>Simpang</th><th>Rata-rata antrean</th><th>Maks. antrean</th><th>Status</th></tr></thead><tbody>
@@ -66,10 +88,11 @@
 <tr><td>07:42–07:43</td><td>simpang07</td><td>61 m</td><td>92 m</td><td><span class="tag bad">Macet</span></td></tr>
 </tbody></table></div><p>Window kedua melewati 80 m, tetapi simpang baru ditandai macet pada window ketiga karena aturan meminta dua window berturut-turut. Ini mencegah tanda macet dari lonjakan sesaat.</p></section>
 
-<section id="latensi"><h2>Latensi &amp; jalur cepat lampu lalu lintas</h2><p>Tidak semua data perlu secepat yang sama. Rancangan ini membagi latensi menjadi tiga tingkat, dan hanya tingkat yang tidak kritis yang melewati jaringan kota, Kafka, dan Spark.</p>
+<section id="latensi"><h2>Latensi &amp; jalur cepat lampu lalu lintas</h2><p>Tidak semua data perlu secepat yang sama. Rancangan ini membagi latensi menjadi empat tingkat, dan hanya tingkat yang tidak kritis yang melewati jaringan kota, Kafka, dan Spark.</p>
 <div class="table-wrap"><table><thead><tr><th>Tingkat</th><th>Contoh</th><th>Target</th><th>Tempat dijalankan</th></tr></thead><tbody>
 <tr><td>Keselamatan</td><td>Mencegah dua arah bertabrakan hijau bersamaan</td><td>Seketika, tanpa jaringan</td><td>Pemantau konflik di kabinet pengendali (perangkat keras)</td></tr>
 <tr><td>Kontrol lampu</td><td>Memperpanjang atau mengakhiri hijau mengikuti antrean</td><td>&lt; 0,5 detik dari deteksi sampai perintah</td><td>Kamera → gateway → pengendali di simpang yang sama</td></tr>
+<tr><td>Pembelajaran</td><td>Parameter model baru (hijau rencana, koordinasi, panggilan truk)</td><td>Harian</td><td>Airflow + Spark di data center → gateway</td></tr>
 <tr><td>Pemantauan &amp; analisis</td><td>Kepadatan per simpang, dashboard, arsip</td><td>Detik sampai 1 menit</td><td>Data center (Kafka, Spark)</td></tr>
 </tbody></table></div>
 <h3>Anggaran latensi kontrol lampu</h3><p>Perkiraan untuk jaringan kabel lokal di simpang. Angka ini target rancangan, bukan hasil pengukuran.</p>
@@ -83,22 +106,20 @@
 <p>Setengah detik sudah cukup karena lampu sendiri berubah dalam hitungan detik: hijau minimal 10 detik, lalu kuning 3 detik dan merah bersama 1 detik sebelum arah lain hijau. Di simulasi, lampu adaptif dievaluasi 4 kali per detik, sehingga kamera mengirim ke gateway setiap 250 ms. Ke data center, gateway hanya meneruskan ringkasan per 1 detik; angka inilah yang dipakai pada hitungan kapasitas.</p>
 <ul class="steps"><li><strong>Kafka dan Spark tidak berada di jalur kontrol lampu.</strong> Window 1 menit dan jaringan ke data center terlalu lambat dan tidak pasti untuk lampu.</li><li>Jaringan kota juga tidak dipakai untuk kontrol lampu. Jika putus, lampu tetap bekerja; hanya dashboard dan arsip yang tertunda.</li><li>Pengendali memasang <em>watchdog</em>: tanpa data dari gateway selama 2 detik, simpang kembali ke lampu tetap seperti kota biasa.</li><li>Pemantau konflik di kabinet tetap menjadi pengaman terakhir, terlepas dari software gateway.</li></ul></section>
 
-<section id="kapasitas"><h2>Kapasitas pada skenario default</h2><p>Dihitung dengan rumus di <a href="./penjelasan.html#data-center">Dasar hitungan</a> memakai asumsi default panel Data Center: interval lalu lintas 1 detik, 256 byte per pesan, retensi 30 hari. Angka berubah jika asumsi di panel diubah.</p>
-<div class="stats"><div><span>Sensor</span><strong>57</strong></div><div><span>Pesan sensor</span><strong>51,1/detik</strong></div><div><span>Data per hari</span><strong>1,13 GB</strong></div><div><span>Penyimpanan 30 hari</span><strong>88,2 GB</strong></div><div><span>Jaringan</span><strong>0,14 Mbps</strong></div><div><span>Node</span><strong>1 + 1 cadangan</strong></div></div>
-<p>Kebutuhannya kecil, 2 vCPU dan 6 GB RAM, sehingga Kafka dan Spark untuk satu kota ini cukup berjalan di klaster kecil di gedung data center. Kafka dan Spark baru benar-benar dibutuhkan jika sistem diperluas ke banyak kota atau menyertakan video. Untuk satu kota, broker MQTT dengan satu layanan pengolah juga memadai.</p></section>
 
-<section id="worker"><h2>Penambahan worker</h2><p>Worker adalah node komputasi yang menjalankan executor Spark. Broker Kafka ditambah terpisah, karena broker menanggung penyimpanan dan throughput pesan, bukan perhitungan.</p>
-<h3>Kapan worker ditambah</h3><ul class="steps"><li><strong>Consumer lag</strong> Kafka terus naik selama lebih dari 5 menit. Artinya Spark membaca lebih lambat daripada sensor mengirim.</li><li><strong>Durasi micro-batch</strong> lebih lama dari interval trigger, sehingga batch berikutnya selalu terlambat.</li><li><strong>CPU worker</strong> di atas 60%, sama dengan target utilisasi pada rumus kapasitas, atau RAM hampir penuh.</li></ul>
-<h3>Berapa worker yang dibutuhkan</h3><p>Jumlah node mengikuti rumus panel Data Center: node aktif = maksimum dari 1, ⌈vCPU ÷ 8⌉, dan ⌈RAM ÷ 16 GB⌉, lalu ditambah satu cadangan (N+1). Bebannya hanya pesan sensor dan evaluasi lampu, sehingga jumlah sensor yang menentukan; jumlah kendaraan tidak, karena tidak ada data per kendaraan.</p>
-<div class="table-wrap"><table><thead><tr><th>Kamera (1 pesan/detik)</th><th>vCPU</th><th>RAM</th><th>Penyimpanan 30 hari</th><th>Node aktif + cadangan</th></tr></thead><tbody>
-<tr><td>57 (skala Mini Kota)</td><td>2</td><td>6 GB</td><td>98 GB</td><td>1 + 1</td></tr>
-<tr><td>1.000</td><td>2</td><td>6 GB</td><td>1,7 TB</td><td>1 + 1</td></tr>
-<tr><td>10.000</td><td>13</td><td>24 GB</td><td>17,3 TB</td><td>2 + 1</td></tr>
-<tr><td>30.000</td><td>38</td><td>64 GB</td><td>51,8 TB</td><td>5 + 1</td></tr>
-<tr><td>50.000</td><td>64</td><td>104 GB</td><td>86,3 TB</td><td>8 + 1</td></tr>
-</tbody></table></div><p>Asumsi: semua sensor berupa kamera dengan ringkasan 1 detik, sekitar 0,7 pengendali simpang per kamera, 256 byte per pesan, 0,2 ms per pesan, dan node 8 vCPU / 16 GB. Penyimpanan tumbuh lebih cepat daripada komputasi, sehingga untuk kota besar arsip lebih baik dipindahkan ke data lake dengan retensi lebih pendek di Kafka.</p>
-<h3>Langkah menambah worker</h3><ol class="steps"><li>Daftarkan node baru ke pengelola klaster (Kubernetes, YARN, atau Spark standalone).</li><li>Naikkan jumlah executor job Spark, misalnya satu executor per node, lalu mulai ulang job. Checkpoint menyimpan offset Kafka terakhir, jadi job melanjutkan dari posisi tersebut tanpa kehilangan atau menggandakan event.</li><li>Pastikan jumlah partisi cukup. Satu partisi Kafka hanya dibaca oleh satu task Spark pada satu waktu, sehingga worker di atas jumlah partisi akan menganggur. Buat <code>traffic_events</code> dengan cadangan partisi sejak awal, misalnya 12. Menambah partisi belakangan mengubah pemetaan kunci ke partisi, sehingga urutan event per simpang terganggu sesaat.</li><li>Periksa lagi consumer lag dan durasi batch. Worker sudah cukup jika keduanya stabil.</li></ol>
+
+<section id="membesar"><h2>Cara membesar</h2><p>Setiap tools membesar sendiri-sendiri, mengikuti bebannya. Jumlah node dan penyimpanan untuk peta yang sedang dipakai dihitung di panel Data Center (tab Perangkat) dengan aturan di bawah. Semua layanan dijalankan di <strong>Kubernetes</strong>, sehingga node baru cukup didaftarkan ke klaster.</p>
+<div class="table-wrap"><table><thead><tr><th>Tools</th><th>Bertambah karena</th><th>Cara menambah</th></tr></thead><tbody>
+<tr><td>Kafka</td><td>Pesan per detik dan penyimpanan 3 hari</td><td>Tambah broker, pindahkan sebagian partisi; partisi dibuat berlebih sejak awal</td></tr>
+<tr><td>Spark</td><td>Consumer lag dan beban CPU</td><td>Tambah worker (otomatis dari consumer lag, misalnya dengan KEDA); paling banyak satu task per partisi</td></tr>
+<tr><td>ClickHouse</td><td>Baris per hari dan masa simpan</td><td>Tambah shard per kelompok wilayah H3, masing-masing dengan 1 replika</td></tr>
+<tr><td>MinIO + Iceberg</td><td>Penyimpanan arsip</td><td>Tambah kelompok node MinIO (server pool); tabel Iceberg tidak perlu diubah</td></tr>
+<tr><td>Gateway</td><td>Simpang dan kawasan baru</td><td>Dipasang di lapangan mengikuti aturan pemasangan; tidak mengubah data center</td></tr>
+</tbody></table></div>
+<p>Kota baru bergabung sebagai wilayah H3 baru: gatewaynya menulis ke topik yang sama dengan kunci simpangnya sendiri, sehingga data center tidak perlu dirancang ulang.</p>
+<h3>Kapan worker Spark ditambah</h3><ul class="steps"><li><strong>Consumer lag</strong> Kafka terus naik selama lebih dari 5 menit. Artinya Spark membaca lebih lambat daripada sensor mengirim.</li><li><strong>Durasi micro-batch</strong> lebih lama dari interval trigger, sehingga batch berikutnya selalu terlambat.</li><li><strong>CPU worker</strong> di atas 60%, sama dengan target utilisasi pada rumus kapasitas, atau RAM hampir penuh.</li></ul>
+<h3>Langkah menambah worker Spark</h3><ol class="steps"><li>Daftarkan node baru ke pengelola klaster (Kubernetes, YARN, atau Spark standalone).</li><li>Naikkan jumlah executor job Spark, misalnya satu executor per node, lalu mulai ulang job. Checkpoint menyimpan offset Kafka terakhir, jadi job melanjutkan dari posisi tersebut tanpa kehilangan atau menggandakan event.</li><li>Pastikan jumlah partisi cukup. Satu partisi Kafka hanya dibaca oleh satu task Spark pada satu waktu, sehingga worker di atas jumlah partisi akan menganggur. Buat <code>traffic_events</code> dengan cadangan partisi sejak awal, misalnya 12. Menambah partisi belakangan mengubah pemetaan kunci ke partisi, sehingga urutan event per simpang terganggu sesaat.</li><li>Periksa lagi consumer lag dan durasi batch. Worker sudah cukup jika keduanya stabil.</li></ol>
 <p>Saat beban turun, worker dapat dikurangi dengan langkah yang sama, tetapi node cadangan tetap dipertahankan. Penambahan atau pengurangan worker tidak menghentikan lampu lalu lintas, karena keputusan lampu memakai <a href="#latensi">jalur cepat</a> di simpang.</p></section>
 
-<section id="batas"><h2>Batas rancangan</h2><p>Halaman ini adalah usulan arsitektur, bukan sistem yang sudah dibangun. Simulasi tidak menjalankan Kafka, Spark, gateway, atau kamera. Video mentah, inferensi kamera, GPU, listrik, dan pendinginan tidak termasuk dalam estimasi. Ambang deteksi dan pembagian partisi perlu diuji dengan data lapangan.</p></section>
+<section id="batas"><h2>Batas rancangan</h2><p>Halaman ini adalah usulan arsitektur, bukan sistem yang sudah dibangun. Simulasi tidak menjalankan Kafka, Spark, ClickHouse, MinIO, Airflow, gateway, atau kamera; siklus belajar di tab Analisis memakai data sensor simulasi dengan langkah yang sama, dijalankan di browser. Video mentah, inferensi kamera, GPU, listrik, dan pendinginan tidak termasuk dalam estimasi. Ambang deteksi dan pembagian partisi perlu diuji dengan data lapangan.</p></section>
 <footer><a href="./penjelasan.html">Penjelasan ↗</a><a href="#">Kembali ke atas ↑</a></footer></main><script type="module" src="/src/technical.js"></script></body></html>

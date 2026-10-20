@@ -27,10 +27,10 @@ Buka alamat yang ditampilkan terminal (biasanya http://localhost:5173). Jangan m
 
 | Halaman | Isi |
 |---|---|
-| `index.html` | Simulasi: tab Perbandingan, Kota biasa, Kota cerdas (dengan perangkat dan jaringannya), Perangkat, Editor peta; panel data center; Jelajahi Kota (mengemudi) |
+| `index.html` | Simulasi: tab Perbandingan, Kota biasa, Kota cerdas (dengan perangkat dan jaringannya), Perangkat (dengan data center), Analisis (siklus belajar), Editor peta; Jelajahi Kota (mengemudi) |
 | `editor-peta.html` | Editor peta lengkap dengan simulasi lalu lintas satu kota |
 | `penjelasan.html` | Panduan pengaturan, cara kerja, dan asumsi |
-| `desain-teknis.html` | Usulan arsitektur data (gateway, Kafka, Spark, latensi, kapasitas) |
+| `desain-teknis.html` | Usulan arsitektur data skala besar (gateway, Kafka, Spark, ClickHouse, MinIO + Iceberg, Grafana, Airflow, Kubernetes, alur balik model) |
 | `diagram-3d.html` | Diagram 3D alur perangkat |
 | `aset.html` | Pratinjau semua model 3D |
 
@@ -45,6 +45,7 @@ seret geser, roda zoom ke arah kursor, dobel klik kanan terbang ke titik.
 | Folder | Isi |
 |---|---|
 | `src/map/` | Format peta, geometri jalan, editor (sunting, rapikan, penempatan aset), isi aset otomatis, jaringan perangkat, impor OSM, kamera, peta Mini Kota (`mini-kota-data.js`, `default-map.js`) |
+| `src/analysis/` | Siklus belajar kota cerdas: kumpulkan data sensor, latih empat model, uji, terapkan (berjalan di worker) |
 | `src/traffic/` | Mesin lalu lintas: graf lajur, kendaraan (IDM, rute, pindah lajur), lampu tetap/adaptif, simpang gabungan, bundaran, angkot, truk sampah, pejalan kaki; tampilan 3D |
 | `src/app/` | Aplikasi utama: satu `City` per kota, data center, tab Perangkat, Jelajahi Kota |
 | `src/devices.js` | Katalog perangkat untuk desain teknis dan diagram |

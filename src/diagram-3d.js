@@ -18,7 +18,7 @@ const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // Layout in scene units: zones run left to right in data-flow order.
 const ZONE_LAYOUT={field:{x:-47,w:22,color:0xdbe8d6},edge:{x:-20,w:14,color:0xe3ead9},network:{x:2,w:14,color:0xdde6e8},dc:{x:44,w:48,color:0xe2e0ea}};
-const POS={cam:[-49,-14],ctrl:[-49,0],ultra:[-49,14],gw:[-20,0],net:[2,0],kafka:[24,0],spark:[40,0],db:[52,-13],lake:[53,12],dash:[64,-1]};
+const POS={cam:[-49,-14],ctrl:[-49,0],ultra:[-49,14],gw:[-20,0],net:[2,0],kafka:[24,0],spark:[40,0],db:[52,-13],lake:[53,12],dash:[64,-1],airflow:[37,14]};
 // Home view frames the whole layout (x −58…68) for the current aspect ratio.
 const HOME_TARGET=new THREE.Vector3(5,0,2),HOME_DIR=new THREE.Vector3(0,.62,.78).normalize();
 
@@ -131,6 +131,7 @@ function buildScene(){
     spark:g=>{rack(g,-1.6,0,0xe8742c);rack(g,1.6,0,0xe8742c,true);},
     db:g=>{for(const y of [1.3,2.9,4.5])part(g,new THREE.CylinderGeometry(2,2,1.3,32),mat(0x3c6e8f),0,y,0);},
     lake:g=>{part(g,new THREE.CylinderGeometry(3.4,3.4,3.4,40),mat(0x2c5d7c),0,2.3,0);for(const y of [1.6,3])part(g,new THREE.TorusGeometry(3.42,.08,8,48),mat(0x9fc3dd),0,y,0).rotation.x=Math.PI/2;},
+    airflow:g=>{part(g,new THREE.BoxGeometry(3.4,2.6,2.4),mat(0x2f3b36),0,1.6,0);for(let i=0;i<4;i++){const blade=part(g,new THREE.BoxGeometry(2.6,.12,.5),mat(0xc2547a),0,4.2,0);blade.rotation.y=i*Math.PI/4;}part(g,new THREE.CylinderGeometry(.2,.2,1.4),mat(0x8a9a90),0,3.4,0);},
     dash:g=>{part(g,new THREE.BoxGeometry(.4,3,.4),mat(0x55655d),0,2.1,0);part(g,new THREE.BoxGeometry(6.4,3.9,.3),mat(0x1d2a25),0,5.3,0);
       const c=document.createElement('canvas');c.width=320;c.height=192;const x=c.getContext('2d');x.fillStyle='#16221e';x.fillRect(0,0,320,192);x.fillStyle='#dcefdc';x.font='bold 18px system-ui';x.fillText('Kondisi kota',14,28);
       [['Simpang 7','#c8463c'],['Simpang 3','#e8b923'],['Sampah bisnis','#c8463c'],['Gerbang 2','#2e9e5b']].forEach(([t,col],i)=>{x.fillStyle='#a9bdb0';x.font='14px system-ui';x.fillText(t,14,62+i*30);x.fillStyle=col;x.fillRect(120,50+i*30,40,16);});

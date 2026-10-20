@@ -1,4 +1,4 @@
-import {estimateDataCenter,DATA_CENTER_DEFAULTS} from './data-center.js';
+import {estimateDataCenter,DATA_CENTER_DEFAULTS,toolNeeds} from './data-center.js';
 import {networkSummary} from '../map/network.js';
 import {reachOf} from '../map/placement.js';
 
@@ -15,6 +15,7 @@ export function diagramFigures(map,config=DATA_CENTER_DEFAULTS,{zone=80}={}){
   const camRate=cams/c.sampleSeconds,binRate=bins/60,perGateway=e.gateways?e.eventsPerSecond/e.gateways:0;
   const rowsPerDay=e.totalSensors*24*60;   // one summary row per sensor per minute
   const per=(short,...lines)=>({short,lines});
+  const tools=Object.fromEntries(toolNeeds(e).tools.map(t=>[t.tool,t]));
   return {
     source:map.name||'peta',
     cam:per(`${fmt(cams)} unit`,`${fmt(cams)} unit · 1 per arah datang`,`${fmt(camRate,1)} pesan/dtk`,`Hitung antrean di zona ${fmt(zone)} m`),
@@ -22,11 +23,12 @@ export function diagramFigures(map,config=DATA_CENTER_DEFAULTS,{zone=80}={}){
     ctrl:per(`${fmt(e.signalControllers)} unit · ${fmt(e.signalHeads+e.pedestrianHeads)} lampu`,`${fmt(e.signalControllers)} unit`,`${fmt(e.signalHeads)} lampu kendaraan + ${fmt(e.pedestrianHeads)} lampu penyeberang, dikabel ke pengendali`,'Jalankan fase, cadangan waktu tetap'),
     gw:per(`${fmt(e.gateways)} unit`,`${fmt(e.gateways)} unit, masing-masing dengan radio LoRaWAN`,`Jangkauan kabel ${fmt(reachOf(map).cable)} m, LoRaWAN ${fmt(reachOf(map).lora/1000,1)} km`,`±${fmt(perGateway,1)} pesan/dtk per gateway`,`${fmt(e.signalEvaluationsPerSecond)} evaluasi lampu/dtk (jalur cepat)`),
     net:per(`${fmt(e.networkMbps,2)} Mbps`,`${fmt(net.media.lan)} LAN · ${fmt(net.media.fiber)} fiber · ${fmt(net.media.lora)} LoRaWAN`,`${fmt(e.networkMbps,2)} Mbps ke data center`),
-    kafka:per(`${fmt(e.eventsPerSecond,1)} pesan/dtk`,`${fmt(e.eventsPerSecond,1)} pesan/dtk masuk`,`${size(e.dailyGB)}/hari · 2 topik`),
-    spark:per(`${e.vcpu} vCPU`,`${e.activeNodes} + 1 cadangan · ${e.vcpu} vCPU · ${e.ramGB} GB RAM`,`Beban ±${fmt(e.cpuCores*100/Math.max(1,e.vcpu),1)}% CPU`,'Window 1 menit per lokasi'),
-    db:per(`±${fmt(rowsPerDay/1000)} rb baris/hari`,`±${fmt(rowsPerDay)} baris ringkasan/hari`,'Kondisi terbaru + grafik'),
-    lake:per(`${size(e.storageGB)} / ${fmt(c.retentionDays)} hari`,`${size(e.storageGB)} untuk ${fmt(c.retentionDays)} hari`,'2 salinan, Parquet per tanggal'),
+    kafka:per(`${fmt(e.eventsPerSecond,1)} pesan/dtk`,`${fmt(e.eventsPerSecond,1)} pesan/dtk masuk`,`${size(e.dailyGB)}/hari · 2 topik`,`${tools.Kafka.nodes} broker · ${tools.Kafka.detail}`),
+    spark:per(`${e.vcpu} vCPU`,`${e.activeNodes} + 1 cadangan · ${e.vcpu} vCPU · ${e.ramGB} GB RAM`,`Beban ±${fmt(e.cpuCores*100/Math.max(1,e.vcpu),1)}% CPU`,'Window 1 menit per lokasi; pelatihan model harian (MLlib)'),
+    db:per(`±${fmt(rowsPerDay/1000)} rb baris/hari`,`±${fmt(rowsPerDay)} baris per menit/hari`,`${size(tools.ClickHouse.storageGB)} untuk 90 hari · ${tools.ClickHouse.nodes} node`,'Ringkasan menit → jam → hari; dibaca Grafana'),
+    lake:per(`${size(e.storageGB)} / ${fmt(c.retentionDays)} hari`,`${size(e.storageGB)} untuk ${fmt(c.retentionDays)} hari · ${tools['MinIO + Iceberg'].nodes} node MinIO`,'Tabel Iceberg per tanggal dan wilayah H3; 2 salinan; time travel'),
     dash:per(`${fmt(e.totalSensors)} sensor`,`${fmt(e.totalSensors)} sensor dipantau`,'Diperbarui tiap detik'),
+    airflow:per('4 model · harian','Pekerjaan harian: kualitas data, ringkasan, pemadatan Iceberg','Latih ulang 4 model di Spark, uji, kirim parameter ke gateway'),
     note:`Angka dari peta ${map.name||'ini'}: ${fmt(e.totalSensors)} sensor, ${fmt(e.eventsPerSecond,1)} pesan/dtk, ${fmt(c.payloadBytes)} byte per pesan. Estimasi, bukan pengukuran.`,
   };
 }

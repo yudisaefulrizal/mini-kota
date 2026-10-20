@@ -40,7 +40,8 @@
 <p class="hint" id="data-center-load"></p>
 <div class="comparison-table-wrap"><table class="comparison-table dc-table"><caption>Sensor yang terpasang di peta dan usulan perangkatnya</caption><thead><tr><th scope="col">Fungsi sensor</th><th scope="col">Perangkat &amp; cara deteksi</th><th scope="col">Jumlah</th></tr></thead><tbody id="data-center-sensors"></tbody></table></div>
 <p class="hint" id="data-center-controllers"></p>
-<details open><summary>Kebutuhan komputasi &amp; penyimpanan</summary><div id="data-center-compute" class="dc-compute"></div></details>
+<h4 class="dc-tools-title">Kebutuhan per tools</h4><div class="comparison-table-wrap" id="data-center-tools"></div>
+<details><summary>Dasar hitungan beban</summary><div id="data-center-compute" class="dc-compute"></div></details>
 <details><summary>Ubah asumsi perencanaan</summary><form id="data-center-form" class="dc-form">
 <label class="field">Interval sensor lalu lintas (detik)<input name="sampleSeconds" type="number" min="0.25" max="60" step="0.25" value="1" required></label>
 <label class="field">Ukuran pesan sensor (byte)<input name="payloadBytes" type="number" min="32" max="65536" step="1" value="256" required></label>

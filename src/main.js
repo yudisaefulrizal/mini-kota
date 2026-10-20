@@ -14,7 +14,7 @@ import {createAnalysisView} from './app/analysis.js';
 import {createDriving} from './app/driving.js';
 import {createEquipmentView} from './app/equipment.js';
 import {diagramFigures} from './app/diagram-figures.js';
-import {DATA_CENTER_DEFAULTS,dataCenterInventory,estimateDataCenter,validateDataCenter} from './app/data-center.js';
+import {DATA_CENTER_DEFAULTS,dataCenterInventory,estimateDataCenter,validateDataCenter,toolNeeds} from './app/data-center.js';
 
 // Mini Kota: the same map run twice, side by side. The ordinary city (kota biasa) has
 // fixed-time lights and empties its bins on a fixed round; the smart city (kota cerdas)
@@ -250,9 +250,11 @@ function renderDataCenter(){
 function renderDataCenterLoad(){
   const m=cities.smart.map;if(!m)return;
   let e;try{e=estimateDataCenter(m,dataCenterConfig);$('data-center-error').textContent='';}catch(error){$('data-center-error').textContent=error.message;return;}
-  $('data-center-summary').innerHTML=[['Sensor',fmt(e.totalSensors)],['Pesan/detik',fmt(e.eventsPerSecond,1)],['vCPU',e.vcpu],['RAM',`${e.ramGB} GB`],['Penyimpanan',`${fmt(e.storageGB,1)} GB`],['Jaringan',`${fmt(e.networkMbps,2)} Mbps`]]
+  const needs=toolNeeds(e),gb=x=>x>=1000?`${fmt(x/1000,1)} TB`:`${fmt(x,x<10?1:0)} GB`;
+  $('data-center-summary').innerHTML=[['Sensor',fmt(e.totalSensors)],['Pesan/detik',fmt(e.eventsPerSecond,1)],['Node',fmt(needs.total.nodes)],['vCPU',fmt(needs.total.vcpu)],['RAM',gb(needs.total.ramGB)],['Penyimpanan',gb(needs.total.storageGB)]]
     .map(([k,v])=>`<div><span>${k}</span><strong>${v}</strong></div>`).join('');
   $('data-center-load').textContent=`Beban dari ${fmt(e.totalSensors)} sensor dan ${fmt(e.signalControllers)} pengendali simpang.`;
+  $('data-center-tools').innerHTML=`<table class="comparison-table dc-tools"><thead><tr><th scope="col">Tools</th><th scope="col">Peran</th><th scope="col">Node</th><th scope="col">vCPU</th><th scope="col">RAM</th><th scope="col">Penyimpanan</th></tr></thead><tbody>${needs.tools.map(t=>`<tr><th scope="row">${t.tool}<small>${t.detail}</small></th><td>${t.role}</td><td>${fmt(t.nodes)}</td><td>${fmt(t.vcpu)}</td><td>${gb(t.ramGB)}</td><td>${t.storageGB?gb(t.storageGB):'—'}</td></tr>`).join('')}</tbody></table>`;
   $('data-center-compute').innerHTML=`<p>${fmt(e.eventsPerSecond,1)} pesan sensor/detik, ${fmt(e.signalEvaluationsPerSecond)} evaluasi lampu/detik ≈ ${fmt(e.cpuCores,3)} inti CPU → ${e.vcpu} vCPU (beban 60%).</p>
 <p>Data harian ${fmt(e.dailyGB,2)} GB; retensi ${e.config.retentionDays} hari dengan 2 salinan + 30% cadangan → ${fmt(e.storageGB,1)} GB.</p>
 <p>${e.activeNodes} node aktif (${e.nodeVcpu} vCPU, ${e.nodeRamGB} GB RAM per node) + 1 cadangan = ${e.totalNodes} node.</p>`;

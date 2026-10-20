@@ -44,3 +44,29 @@ export function estimateDataCenter(map,input={},inventory=dataCenterInventory(ma
   const activeNodes=Math.max(1,Math.ceil(vcpu/8),Math.ceil(ramGB/16));
   return {...inventory,config,eventsPerSecond,signalEvaluationsPerSecond,cpuCores,vcpu,ramGB,dailyGB,storageGB,networkMbps,activeNodes,totalNodes:activeNodes+1,nodeVcpu:8,nodeRamGB:16};
 }
+
+// Resources per tool of the data center (Desain Teknis), from the same estimate: Kafka keeps a
+// few days of events, Spark does the stream and the training, ClickHouse keeps per-minute
+// results for months, MinIO + Iceberg the raw archive, plus Grafana and Airflow.
+const KAFKA_DAYS=3,HOT_DAYS=90,ROW_BYTES=64,DRIVE_TB=8;
+export function toolNeeds(e){
+  const c=e.config,bytes=e.eventsPerSecond*c.payloadBytes;
+  const kafkaGB=bytes*86400*KAFKA_DAYS*2*1.3/1e9;
+  const brokers=Math.max(3,Math.ceil(e.eventsPerSecond/20000),Math.ceil(kafkaGB/1000));
+  const partitions=Math.max(12,Math.ceil(e.eventsPerSecond/1000));
+  const rowsPerDay=e.totalSensors*1440;
+  const hotGB=rowsPerDay*ROW_BYTES*HOT_DAYS*2/1e9;
+  const clickhouse=2*Math.max(1,Math.ceil(hotGB/800));
+  // MinIO keeps about half of the raw drive space after erasure coding; 4 drives per node.
+  const minio=Math.max(4,Math.ceil(e.storageGB/(4*DRIVE_TB*1000*0.5)));
+  const tools=[
+    {tool:'Kafka',role:'Antrean event',nodes:brokers,vcpu:brokers*4,ramGB:brokers*16,storageGB:kafkaGB,detail:`${partitions} partisi traffic_events, simpan ${KAFKA_DAYS} hari, replikasi 2`},
+    {tool:'Spark',role:'Stream + pelatihan model',nodes:e.totalNodes,vcpu:e.totalNodes*e.nodeVcpu,ramGB:e.totalNodes*e.nodeRamGB,storageGB:0,detail:`${e.activeNodes} aktif + 1 cadangan; beban ±${e.vcpu} vCPU`},
+    {tool:'ClickHouse',role:'Data panas (per menit)',nodes:clickhouse,vcpu:clickhouse*8,ramGB:clickhouse*32,storageGB:hotGB,detail:`${Math.round(rowsPerDay).toLocaleString('id-ID')} baris/hari, simpan ${HOT_DAYS} hari, 1 replika`},
+    {tool:'MinIO + Iceberg',role:'Arsip & data latih',nodes:minio,vcpu:minio*8,ramGB:minio*32,storageGB:e.storageGB,detail:`mentah ${c.retentionDays} hari, 2 salinan + 30% cadangan`},
+    {tool:'Grafana + Prometheus',role:'Dashboard & pemantauan',nodes:1,vcpu:2,ramGB:4,storageGB:50,detail:'1 VM'},
+    {tool:'Airflow',role:'Orkestrasi & pelatihan ulang',nodes:1,vcpu:4,ramGB:8,storageGB:100,detail:'1 VM; job berat di Spark'},
+  ];
+  const sum=k=>tools.reduce((s,t)=>s+t[k],0);
+  return {tools,total:{nodes:sum('nodes'),vcpu:sum('vcpu'),ramGB:sum('ramGB'),storageGB:sum('storageGB')}};
+}
