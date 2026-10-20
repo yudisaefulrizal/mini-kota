@@ -74,6 +74,16 @@ try{
   assert.equal(await page.evaluate(()=>window.miniKota.mode),'smart');
   assert.equal(await page.isVisible('#device-card'),true);
 
+  // Analisis: one learning round in a worker (1 h of data), four model cards, a decision.
+  await page.click('[data-mode=analysis]');
+  assert.equal(await page.isVisible('#viewport'),false);
+  await page.selectOption('#analysis-hours','1');await page.click('#analysis-run');
+  await page.waitForFunction(()=>document.querySelector('#analysis-history tr')&&!document.getElementById('analysis-run').disabled,null,{timeout:180000});
+  assert.equal(await page.locator('#analysis-models .analysis-model').count(),4);
+  assert.equal(await page.locator('#analysis-eval .metric').count(),4);
+  assert.match(await page.textContent('#analysis-history'),/1\s*60 mnt.*(Dipakai|Ditolak)/s);
+  assert.match(await page.textContent('#analysis-status'),/Putaran 1 · 60 menit data/);
+
   // Data center (in the Perangkat tab): sized from the devices on the map; assumptions can be changed.
   await page.click('[data-mode=equipment]');
   assert.equal(await page.isVisible('.comparison-panel'),false);

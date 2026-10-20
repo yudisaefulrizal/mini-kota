@@ -20,7 +20,7 @@ export const CITY_NAMES={baseline:'Kota biasa',smart:'Kota cerdas'};
 // Engine options from the app settings (see main.js).
 export function engineOptions(kind,s){
   // A bin holds about 120 kg; the city's daily waste is shared over its bins.
-  return {seed:s.seed,demand:s.demand,pedestrians:s.pedestrians,green:s.green,speedSpread:s.speedSpread??0.1,zone:s.zone??80,overtaking:s.overtaking??true,adaptive:kind==='smart',
+  return {seed:s.seed,demand:s.demand,pedestrians:s.pedestrians,green:s.green,speedSpread:s.speedSpread??0.1,learned:kind==='smart'?s.learned??null:null,zone:s.zone??80,overtaking:s.overtaking??true,adaptive:kind==='smart',
     binMode:kind==='smart'?'sensor':'schedule',binSchedule:s.truckRoundHours*3600,binFill:s.binFill};
 }
 

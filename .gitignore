@@ -3,3 +3,6 @@ dist/
 test-results/
 __pycache__/
 *.blend1
+
+# Materi kuliah dosen (bukan milik proyek; repositori publik)
+materi-dosen/

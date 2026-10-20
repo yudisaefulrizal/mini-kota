@@ -9,7 +9,8 @@ import {loadDraft,parseMapFile} from './map/storage.js';
 import {importOSM} from './map/osm.js';
 import {DEVICE_ICONS} from './map/network.js';
 import {deviceReadings,deviceLinks,legendHtml} from './map/device-info.js';
-import {City,CITY_NAMES} from './app/city.js';
+import {City,CITY_NAMES,engineOptions} from './app/city.js';
+import {createAnalysisView} from './app/analysis.js';
 import {createDriving} from './app/driving.js';
 import {createEquipmentView} from './app/equipment.js';
 import {diagramFigures} from './app/diagram-figures.js';
@@ -87,11 +88,14 @@ async function restart(){
   const bins=chosen.map.objects.filter(o=>o.asset==='bin-sensor').length;
   settings.binFill=bins?settings.dailyWasteKg/bins/120/86400:null;
   const first=!map;map=chosen.map;
+  // The smart city runs the model learned in the Analisis tab (for this map), if any.
+  settings.learned=analysis.learnedFor(mapKey(map));
   $('loading').hidden=false;$('loading').textContent='Menyiapkan dua kota…';
   try{await Promise.all(Object.values(cities).map(c=>c.load(map,settings)));}
   catch(error){$('loading').textContent=`Peta tidak bisa dijalankan: ${error.message}`;return;}
   if(loading!==run)return;
   $('loading').hidden=true;accumulator=0;fastForward=0;
+  document.querySelector('#smart-view .map-chip strong').textContent=settings.learned?'CERDAS + MODEL':'CERDAS';
   $('map-status').textContent=`${chosen.label}: ${map.roads.length} jalan, ${cities.smart.engine.signals.size} simpang berlampu, ${map.objects.length} aset.`;
   if(!cities.smart.engine.origins.length)$('map-status').textContent+=' Peta belum punya ujung jalan untuk kendaraan masuk.';
   if(first)view(false);
@@ -114,11 +118,11 @@ $('map-file').onchange=async e=>{
 };
 
 // ---------------------------------------------------------------- modes (tabs)
-const MAP_MODES={compare:'Perbandingan lalu lintas',baseline:'Kota biasa',smart:'Kota cerdas',equipment:'Perangkat kota cerdas',editor:'Editor peta'};
+const MAP_MODES={compare:'Perbandingan lalu lintas',baseline:'Kota biasa',smart:'Kota cerdas',equipment:'Perangkat kota cerdas',analysis:'Analisis & pembelajaran',editor:'Editor peta'};
 function setMapMode(next){
   mode=next;viewport.dataset.mode=mode;$('map-title').textContent=MAP_MODES[mode];
   for(const b of document.querySelectorAll('.map-tabs [data-mode]'))b.setAttribute('aria-selected',String(b.dataset.mode===mode));
-  $('equipment-view').hidden=mode!=='equipment';$('editor-view').hidden=mode!=='editor';
+  $('equipment-view').hidden=mode!=='equipment';$('analysis-view').hidden=mode!=='analysis';$('editor-view').hidden=mode!=='editor';
   // The Perangkat tab also shows the data center sized for these devices; the comparison
   // belongs to the city views.
   $('data-center-panel').hidden=mode!=='equipment';document.querySelector('main').dataset.mode=mode;
@@ -178,6 +182,10 @@ window.addEventListener('keydown',e=>{
 });
 $('city-compass').onclick=()=>controls.northUp();
 
+const mapKey=m=>`${m.name}|${m.roads.length}|${m.nodes.length}|${m.objects.length}`;
+const analysis=createAnalysisView({root:$('analysis-view'),
+  getContext:()=>map&&settings&&{map,key:mapKey(map),options:engineOptions('smart',{...settings,learned:null})},
+  onApply:()=>restart()});
 const equipment=createEquipmentView({root:$('equipment-view'),getCity:()=>cities.smart,
   getFigures:()=>{try{return cities.smart.map&&diagramFigures(cities.smart.map,dataCenterConfig,{zone:settings?.zone});}catch{return null;}},
   onShowOnMap:o=>{setMapMode('smart');showDeviceCard(o.id);lookAt(o.x,o.z,50);viewport.scrollIntoView({behavior:'smooth',block:'center'});}});

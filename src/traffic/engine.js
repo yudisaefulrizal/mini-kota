@@ -66,7 +66,7 @@ export class TrafficEngine{
   // `binSchedule` seconds whatever its fill, as without sensors); `binFill` is the fill
   // fraction added per second (from population × waste per person), else a random rate.
   constructor(map,{seed=42,demand=900,adaptive=false,minibus=0.12,pedestrians=0,offsets=null,prepared=null,
-    green=null,speedSpread=0.1,overtaking=true,zone=ZONE,binMode='sensor',binFill=null,binSchedule=3600}={}){
+    green=null,speedSpread=0.1,overtaking=true,zone=ZONE,learned=null,binMode='sensor',binFill=null,binSchedule=3600}={}){
     this.map=prepared?.map||validateMap(structuredClone(map));
     this.geometry=prepared?.geometry||buildGeometry(this.map);
     this.graph=prepared?.graph||buildLaneGraph(this.map,this.geometry);
@@ -96,8 +96,17 @@ export class TrafficEngine{
       const node=this.map.nodes.find(n=>n.id===j.id);
       if(node?.signal!==true||j.legs.some(l=>l.ring))continue;
       const plan=buildPlan(j,{...(green?{green:Array(8).fill(green)}:{}),...(node.signalPlan||{})});
+      // A learned model (src/analysis/learn.js) may set each phase's green from the flows it
+      // predicts for this junction.
+      const g=learned?.greens?.[j.id];
+      if(g)plan.phases.forEach((p,i)=>{if(Number.isFinite(g[i]))p.green=Math.max(TIMING.minGreen,Math.min(TIMING.maxGreen,g[i]));});
       this.signals.set(j.id,{plan,j,phase:0,stage:'green',t:0,sensed:new Set()});
     }
+    // Learned links between neighbouring signals: a platoon released upstream reaches this
+    // approach `travel` seconds later, `share` of it; and learned bin fill rates and truck
+    // lead times. Only counts are used (cameras and bin sensors), no vehicle is followed.
+    this.learned=learned;
+    this.links=new Map();for(const l of learned?.links||[])this.links.set(`${l.node}:${l.leg}`,l);
     // Simpang gabungan (see geometry.CLUSTER_LINK): signalised junctions joined by a link
     // too short to queue in work as one. Traffic that got green at the first one is not
     // stopped again at the next (it gives way to crossing traffic and people there).
@@ -189,7 +198,9 @@ export class TrafficEngine{
     this.binTimer=5;
     const busy=this.bins.filter(b=>b.truck&&b.truck!=='unreachable').length;
     // With sensors the fullest bins get the free trucks; without, the bins due on the round.
-    const due=b=>this.binMode==='schedule'?this.time>=b.nextVisit:b.fill>=BIN_CALL;
+    // A learned model calls the truck early enough to arrive as the bin reaches the mark.
+    const lead=b=>{const m=this.learned?.bins?.[b.id];return m?m.rate*m.lead:0;};
+    const due=b=>this.binMode==='schedule'?this.time>=b.nextVisit:b.fill+lead(b)>=BIN_CALL;
     const waiting=this.bins.filter(b=>!b.truck&&due(b)).sort((a,b)=>this.binMode==='schedule'?a.nextVisit-b.nextVisit:b.fill-a.fill);
     for(const bin of waiting.slice(0,Math.max(0,TRUCKS-busy))){
       let trip=null;
@@ -254,11 +265,14 @@ export class TrafficEngine{
         if(adaptive){
           // Keep the green while traffic keeps coming, up to twice the planned green (90 s at
           // most); end it after 8 s once its approaches are empty and another phase waits.
-          const here=this.demandFor(sig,sig.phase);
+          let here=this.demandFor(sig,sig.phase);
+          if(here===0&&this.links.size)here=this.platoonFor(sig,sig.phase);
           if(here!==null){
             const others=sig.plan.phases.some((_,i)=>{if(i===sig.phase)return false;const d=this.demandFor(sig,i);return d===null||d>0;});
             const maxGreen=Math.min(phase.green*2,TIMING.maxGreen);
             end=sig.t>=maxGreen||(sig.t>=8&&here===0&&others);
+            // The controller's log: how often a green ran out while vehicles still waited.
+            if(end){const log=sig.log||(sig.log=sig.plan.phases.map(()=>({greens:0,maxouts:0,seconds:0})));log[sig.phase].greens++;log[sig.phase].seconds+=sig.t;if(sig.t>=maxGreen&&here>0)log[sig.phase].maxouts++;}
           }
         }
         if(end){sig.stage='yellow';sig.t=0;}
@@ -269,6 +283,22 @@ export class TrafficEngine{
         sig.phase=next;sig.stage='green';sig.t=0;
       }
     }
+  }
+  // Vehicles expected to reach a phase's approaches within the next few seconds, from the
+  // counts that left the upstream signal one learned travel time ago (coordination).
+  platoonFor(sig,phaseIndex,horizon=8){
+    let n=0;
+    for(const m of sig.plan.phases[phaseIndex].movements){
+      const link=this.links.get(`${sig.j.id}:${m.from}`);if(!link)continue;
+      let left=0;
+      for(const sensor of this.sensorsByNode.get(link.from)||[]){
+        if([...sensor.legs].some(l=>l===link.exclude))continue;
+        const p=sensor.passes||[];while(p.length&&p[0]<this.time-240)p.shift();
+        for(const t of p)if(t>this.time-link.travel&&t<=this.time-link.travel+horizon)left++;
+      }
+      n+=left*link.share;
+    }
+    return n>=1?Math.round(n):0;
   }
   cycleOf(sig){return sig.plan.phases.reduce((t,p)=>t+p.green+TIMING.yellow+TIMING.allRed,0);}
   // One controller per simpang gabungan: every member runs the same cycle (the longest one;
@@ -583,7 +613,7 @@ export class TrafficEngine{
             }
             v.commits.add(nxt.id);this.onConnector.get(nxt.id).add(v.id);
           }
-          for(const sensor of this.sensorsByNode.get(nxt.node)||[])if(sensor.legs.has(nxt.legFrom))sensor.count++;
+          for(const sensor of this.sensorsByNode.get(nxt.node)||[])if(sensor.legs.has(nxt.legFrom)){sensor.count++;(sensor.passes||(sensor.passes=[])).push(this.time);}
         }
         if(cur.kind==='connector'){this.onConnector.get(cur.id).delete(v.id);v.commits.delete(cur.id);}
         v.s-=cur.length;v.idx++;
