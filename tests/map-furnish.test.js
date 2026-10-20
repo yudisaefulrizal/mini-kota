@@ -92,3 +92,17 @@ test('deterministic, and a second run adds nothing; works on maps without lots',
   const {map:osm}=importOSM(readFileSync(new URL('./fixtures/contoh.osm',import.meta.url),'utf8'));
   assert.ok(furnish(osm).added.cctv>=3);
 });
+
+test('assets placed automatically can be removed in one go; the user\'s own stay',async()=>{
+  const {removeAutoObjects,addObject,setGateway,moveObject}=await import('../src/map/edit.js');
+  const {map}=full(),own=map.objects.filter(o=>!o.auto).map(o=>o.id),auto=map.objects.length-own.length;
+  assert.ok(auto>300,`${auto} automatic`);
+  const mine=addObject(map,'bench',{x:5,z:5}),moved=map.objects.find(o=>o.asset==='street-light');moveObject(map,moved.id,{x:moved.x+1,z:moved.z});
+  const cam=map.objects.find(o=>o.asset==='cctv'),gw=map.objects.find(o=>o.asset==='gateway');setGateway(map,mine.id,gw.id);
+  assert.equal(removeAutoObjects(map),auto-1);
+  assert.deepEqual(map.objects.map(o=>o.id).sort(),[...own,mine.id,moved.id].sort());
+  assert.equal(mine.gateway,undefined,'a link to a removed gateway is cleared');
+  validateMap(map);assert.equal(removeAutoObjects(map),0);
+  assert.ok(furnish(map).total>auto*0.9,'filled again');
+  void cam;
+});

@@ -169,14 +169,22 @@ export function addObject(map,asset,placed){
   const object={id:nextId(map.objects,'o'),asset,x:round(placed.x),z:round(placed.z),rotation:Math.round(placed.rotation||0)};
   map.objects.push(object);return object;
 }
+// An automatically placed asset that is moved or turned by hand becomes the user's own.
 export function moveObject(map,id,placed){
-  const o=map.objects.find(o=>o.id===id);o.x=round(placed.x);o.z=round(placed.z);
+  const o=map.objects.find(o=>o.id===id);o.x=round(placed.x);o.z=round(placed.z);delete o.auto;
   if(placed.rotation!==undefined)o.rotation=Math.round(placed.rotation);
 }
-export function rotateObject(map,id,degrees){const o=map.objects.find(o=>o.id===id);o.rotation=Math.round((((o.rotation||0)+degrees)%360+360)%360);}
+export function rotateObject(map,id,degrees){const o=map.objects.find(o=>o.id===id);delete o.auto;o.rotation=Math.round((((o.rotation||0)+degrees)%360+360)%360);}
 export function deleteObject(map,id){
   map.objects=map.objects.filter(o=>o.id!==id);
   for(const o of map.objects)if(o.gateway===id)delete o.gateway;
+}
+// Removes every asset placed automatically by furnish() (marked `auto`); returns how many.
+// "Rapikan seluruh peta" does this before filling the map again.
+export function removeAutoObjects(map){
+  const ids=map.objects.filter(o=>o.auto).map(o=>o.id);
+  for(const id of ids)deleteObject(map,id);
+  return ids.length;
 }
 // gatewayId null = automatic (nearest gateway).
 export function setGateway(map,id,gatewayId){const o=map.objects.find(o=>o.id===id);if(gatewayId)o.gateway=gatewayId;else delete o.gateway;}

@@ -224,7 +224,7 @@ function renderDataCenter(){
   const m=cities.smart.map;if(!m)return;
   const inv=dataCenterInventory(m);
   $('data-center-sensors').innerHTML=inv.sensors.length?inv.sensors.map(s=>`<tr><th scope="row">${esc(s.name)}<small>${esc(s.status)}</small></th><td><strong>${esc(s.device)}</strong><br>${esc(s.method)}</td><td>${s.count}<small>${esc(s.basis)}</small></td></tr>`).join('')
-    :'<tr><td colspan="3">Belum ada sensor di peta ini. Pasang kamera detektor antrean atau sensor tempat sampah di editor (atau "Isi aset otomatis").</td></tr>';
+    :'<tr><td colspan="3">Belum ada sensor di peta ini. Pasang kamera detektor antrean atau sensor tempat sampah di editor (atau "Rapikan seluruh peta").</td></tr>';
   $('data-center-controllers').textContent=`Juga terpasang: ${inv.signalControllers} pengendali simpang dengan ${inv.signalHeads} kepala lampu, ${inv.gateways} gateway edge, ${inv.dataCentres} pusat data.`;
   renderDataCenterLoad();
 }

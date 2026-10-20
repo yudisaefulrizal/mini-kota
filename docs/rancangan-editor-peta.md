@@ -554,6 +554,14 @@ dan nama aset. "Detektor" karena kamera tidak merekam untuk diawasi, hanya mengi
 (sejalan dengan prinsip privasi); "pendekat" (istilah MKJI) diganti "arah datang" di teks
 untuk pembaca umum. Kamera kubah dari peta lama: *Kamera kubah simpang (peta lama)*.
 
+## Satu tombol Rapikan (tahap 23)
+
+*Isi aset otomatis*, *Hapus aset otomatis*, dan *Rapikan seluruh peta* digabung menjadi satu
+tombol **Rapikan seluruh peta**: jalan dirapikan (`normalize`), aset yang dipasang otomatis
+(ditandai `auto`) dihapus, lalu peta diisi ulang (`furnish`) sesuai jalan yang sudah rapi.
+Aset yang dipasang, dipindah, atau diputar pengguna tidak bertanda `auto` sehingga tetap ada.
+Satu langkah undo. Menekannya lagi pada peta yang sudah rapi memberi aset yang sama.
+
 ## Tahapan dan cara uji
 
 | Tahap | Isi | Uji | Status |
@@ -580,6 +588,7 @@ untuk pembaca umum. Kamera kubah dari peta lama: *Kamera kubah simpang (peta lam
 | 20 | Pengemudi berbeda (kecepatan pilihan), menyalip di jalan 2 lajur, aliran acak terpisah agar kedua kota mendapat perjalanan identik | `tests/traffic.test.js` | **Selesai** |
 | 21 | Jangkauan gateway (kabel 75 m, LoRaWAN 1 km), gateway sesedikit mungkin (19 → 13), sambungan antar-gateway, kabel lampu ke pengendali | `tests/map-network.test.js` | **Selesai** |
 | 22 | Nama: Kamera detektor antrean | tes yang memeriksa teks | **Selesai** |
+| 23 | Satu tombol Rapikan: rapikan jalan + perbarui aset otomatis | `tests/map-furnish.test.js`; `tests/map-full-smoke.mjs` | **Selesai** |
 
 ## Batasan yang diketahui
 

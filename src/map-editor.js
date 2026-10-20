@@ -707,11 +707,16 @@ $('profile-buttons').onclick=e=>{const b=e.target.closest('[data-profile]');if(!
 document.querySelector('[data-mode]').parentElement.onclick=e=>{const b=e.target.closest('[data-mode]');if(!b)return;drawMode=b.dataset.mode;for(const x of b.parentElement.children)x.setAttribute('aria-pressed',String(x===b));setTool('road');};
 for(const b of document.querySelectorAll('[data-tool]'))b.onclick=()=>setTool(b.dataset.tool);
 $('undo').onclick=undo;$('redo').onclick=redo;
+// One button for the whole map: tidy the roads, then renew the automatic assets for them
+// (the user's own assets stay). One undo step.
 $('tidy-all').onclick=()=>{
+  if(sim){status('Hentikan simulasi dulu untuk mengedit peta.',true);return;}
   history.record(map);
-  const result=describeChanges(normalize(map));
-  if(!result){history.undoStack.pop();status('Peta sudah rapi; tidak ada yang diubah.');return;}
-  rebuild();markDirty();status(`Seluruh peta dirapikan: ${result}.`);
+  const before=JSON.stringify(map.objects),roads=describeChanges(normalize(map));
+  const removed=edit.removeAutoObjects(map),{total}=furnish(map);
+  if(!roads&&JSON.stringify(map.objects)===before){history.undoStack.pop();rebuild();status('Peta sudah rapi; tidak ada yang diubah.');return;}
+  selection=null;rebuild();markDirty();
+  status(`Peta dirapikan. Jalan: ${roads||'sudah rapi'}. Aset otomatis: ${removed} dihapus, ${total} dipasang; aset Anda tetap.`);
 };
 $('map-name').onchange=e=>{const name=e.target.value.trim()||'Peta';change(()=>{map.name=name;},{tidy:false});};
 $('open-file').onclick=()=>$('file-input').click();
@@ -886,14 +891,9 @@ function showAdaptiveNote(){
   else{signals=geometry.junctions.filter(j=>map.nodes.find(n=>n.id===j.id)?.signal===true).length;sensed=null;}
   note.hidden=false;
   note.textContent=sensed===null?'Lampu hanya adaptif di arah yang dipantau kamera detektor antrean (di seberang simpang, menghadap arus datang).'
-    :sensed<signals?`${signals-sensed} dari ${signals} simpang berlampu belum punya kamera detektor dan tetap memakai waktu tetap. Pasang kamera detektor antrean di seberang simpang itu, menghadap arus datang, atau pakai "Isi aset otomatis".`
+    :sensed<signals?`${signals-sensed} dari ${signals} simpang berlampu belum punya kamera detektor dan tetap memakai waktu tetap. Pasang kamera detektor antrean di seberang simpang itu, menghadap arus datang, atau pakai "Rapikan seluruh peta".`
     :'Semua simpang berlampu punya kamera detektor.';
 }
-$('furnish').onclick=()=>{
-  let result;
-  if(change(()=>{result=furnish(map);if(!result.total)throw Error('Tidak ada aset baru: tempat yang cocok sudah terisi.');},{tidy:false}))
-    status(`${result.total} aset dipasang otomatis: ${Object.entries(result.added).map(([id,n])=>`${n} ${objects.assets.get(id)?.name.split(' · ')[0].toLowerCase()||id}`).join(', ')}.`);
-};
 
 const resize=()=>{const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();};
 new ResizeObserver(resize).observe(stage);resize();

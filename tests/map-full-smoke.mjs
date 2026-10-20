@@ -53,12 +53,16 @@ try{
   await page.click('#sim-start');await page.waitForFunction(()=>window.mapEditor.sim?.engine);
   assert.match(await page.textContent('#sim-adaptive-note'),/belum punya kamera detektor/);
   await page.click('#sim-stop');
-  // Fill it automatically; one undo takes it all back.
+  // "Rapikan seluruh peta" tidies the roads and fills the assets; again, it renews only the
+  // automatic ones (the same set); one undo takes it all back.
   const before=await page.evaluate(()=>window.mapEditor.map.objects.length);
-  await page.click('#furnish');
+  await page.click('#tidy-all');
   const after=await page.evaluate(()=>window.mapEditor.map.objects.length);
   assert.ok(after>before+30,`${before} → ${after}`);
-  assert.match(await page.textContent('#status'),/aset dipasang otomatis/);
+  assert.match(await page.textContent('#status'),/Peta dirapikan.*Aset otomatis: 0 dihapus, \d+ dipasang/);
+  await page.click('#tidy-all');
+  assert.equal(await page.evaluate(()=>window.mapEditor.map.objects.length),after);
+  assert.match(await page.textContent('#status'),/sudah rapi/);
   await page.click('#undo');
   assert.equal(await page.evaluate(()=>window.mapEditor.map.objects.length),before);
   assert.deepEqual(errors,[]);

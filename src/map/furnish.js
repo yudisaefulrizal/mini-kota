@@ -6,7 +6,8 @@ import {facing,cameraSpots,reachOf} from './placement.js';
 // Fills a map with assets automatically: traffic lights, CCTV and controllers at signalised
 // junctions, buildings in the lots, street lights and trees along the roads, bus stops,
 // bin sensors, as few gateways as reach all of them, and a few people. Existing objects are kept and nothing
-// is placed on top of them. Deterministic for a given seed.
+// is placed on top of them. Deterministic for a given seed. What it places is marked `auto`,
+// so it can be removed again in one go (removeAutoObjects in edit.js).
 
 const left=d=>({x:d.z,z:-d.x}),right=d=>({x:-d.z,z:d.x});
 const add=(a,b,k=1)=>({x:a.x+b.x*k,z:a.z+b.z*k}),norm=a=>{const l=Math.hypot(a.x,a.z)||1;return {x:a.x/l,z:a.z/l};};
@@ -50,7 +51,7 @@ export function furnish(input,{seed=7,signals=true,buildings=true,street=true}={
     const r=RADIUS[asset]??1;
     if(!force&&!free(p,r))return null;
     if(onRoad(p))return null;   // never on a carriageway (e.g. a lot entrance right beside a junction)
-    const object={id:nextObjectId(map),asset,x:round(p.x),z:round(p.z),rotation:Math.round(((rotation%360)+360)%360),...extra};
+    const object={id:nextObjectId(map),asset,x:round(p.x),z:round(p.z),rotation:Math.round(((rotation%360)+360)%360),auto:true,...extra};
     map.objects.push(object);placed.push({x:p.x,z:p.z,r});added[asset]=(added[asset]||0)+1;return object;
   };
 
