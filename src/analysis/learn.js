@@ -17,28 +17,47 @@ const DECAY=0.7;                     // weight kept by the previous rounds' hist
 const legsOf=sig=>sig.j.legs.filter(l=>!l.ring);
 const mean=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
 
-// Runs the engine for `seconds` and samples its sensors. onProgress(fraction) now and then.
-export function collect(engine,{seconds,onProgress=()=>{}}){
+// The history of a running engine: call tick() after each step; data() is what was sampled
+// since the recorder started (or was last cleared). The controllers' log counts from the
+// engine's start, so clear() keeps a baseline to subtract.
+export function recorder(engine){
   const cams=engine.sensors.map(s=>({id:s.id,node:s.node,legs:[...s.legs]}));
-  const data={step:STEP,t0:engine.time,cams,count:cams.map(()=>[]),inZone:cams.map(()=>[]),bins:engine.bins.map(b=>({id:b.id})),fill:engine.bins.map(()=>[]),leads:[]};
-  const called=new Map(),end=engine.time+seconds;let next=engine.time,minute=engine.time,report=0;
-  while(engine.time<end){
-    if(engine.time>=next){
-      next+=STEP;
-      engine.sensors.forEach((s,i)=>{data.count[i].push(s.count);data.inZone[i].push(engine.sensorState(s.id)?.inZone??0);});
-      for(const b of engine.bins){
-        if(b.truck==='called'&&!called.has(b.id))called.set(b.id,engine.time);
-        if(typeof b.truck==='number'&&called.has(b.id)){data.leads.push(engine.time-called.get(b.id));called.delete(b.id);}
-      }
-      if(engine.time>=minute){minute+=60;engine.bins.forEach((b,i)=>data.fill[i].push(b.fill));}
-      if(++report%60===0)onProgress((engine.time-data.t0)/seconds);
-    }
-    engine.step(0.25);
+  let data,next,minute,called,base;
+  const logs=()=>new Map([...engine.signals].map(([node,sig])=>[node,(sig.log||[]).map(x=>({...x}))]));
+  function clear(){
+    data={step:STEP,t0:engine.time,cams,count:cams.map(()=>[]),inZone:cams.map(()=>[]),bins:engine.bins.map(b=>({id:b.id})),fill:engine.bins.map(()=>[]),leads:[]};
+    next=engine.time;minute=engine.time;called=new Map();base=logs();
   }
-  // The controllers' log over the run: per phase, greens given and greens that ran out.
-  data.signals=[...engine.signals].map(([node,sig])=>({node,plan:sig.plan.phases.map(p=>p.green),log:(sig.log||[]).map(x=>({...x}))}));
+  function tick(){
+    if(engine.time<next)return;
+    next+=STEP;
+    engine.sensors.forEach((s,i)=>{data.count[i].push(s.count);data.inZone[i].push(engine.sensorState(s.id)?.inZone??0);});
+    for(const b of engine.bins){
+      if(b.truck==='called'&&!called.has(b.id))called.set(b.id,engine.time);
+      if(typeof b.truck==='number'&&called.has(b.id)){data.leads.push(engine.time-called.get(b.id));called.delete(b.id);}
+    }
+    if(engine.time>=minute){minute+=60;engine.bins.forEach((b,i)=>data.fill[i].push(b.fill));}
+  }
+  clear();
+  return {
+    tick,clear,
+    get seconds(){return (data.count[0]?.length||0)*STEP;},
+    // A copy (it goes to the worker), with the controllers' log over the recorded time: per
+    // phase, greens given and greens that ran out.
+    data(){
+      const now=logs();
+      return {...data,count:data.count.map(a=>a.slice()),inZone:data.inZone.map(a=>a.slice()),fill:data.fill.map(a=>a.slice()),leads:data.leads.slice(),
+        signals:[...engine.signals].map(([node,sig])=>({node,plan:sig.plan.phases.map(p=>p.green),log:now.get(node).map((x,i)=>{const b=base.get(node)?.[i]||{greens:0,maxouts:0,seconds:0};return {greens:x.greens-b.greens,maxouts:x.maxouts-b.maxouts,seconds:x.seconds-b.seconds};})}))};
+    },
+  };
+}
+
+// Runs the engine for `seconds` and returns what a recorder saw. onProgress(fraction) now and then.
+export function collect(engine,{seconds,onProgress=()=>{}}){
+  const rec=recorder(engine),end=engine.time+seconds;let k=0;
+  while(engine.time<end){rec.tick();engine.step(0.25);if(++k%240===0)onProgress(rec.seconds/seconds);}
   onProgress(1);
-  return data;
+  return rec.data();
 }
 
 // Per camera and sample: vehicles that entered its zone, and that crossed its stop line.

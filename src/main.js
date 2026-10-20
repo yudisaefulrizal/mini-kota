@@ -11,6 +11,7 @@ import {DEVICE_ICONS} from './map/network.js';
 import {deviceReadings,deviceLinks,legendHtml} from './map/device-info.js';
 import {City,CITY_NAMES,engineOptions} from './app/city.js';
 import {createAnalysisView} from './app/analysis.js';
+import {recorder} from './analysis/learn.js';
 import {createDriving} from './app/driving.js';
 import {createEquipmentView} from './app/equipment.js';
 import {diagramFigures} from './app/diagram-figures.js';
@@ -80,7 +81,7 @@ function chosenMap(){
   if(source==='file'&&mapFile)return {map:mapFile.map,label:mapFile.name};
   return {map:miniKotaLengkap(),label:'Mini Kota lengkap'};
 }
-let loading=null;
+let loading=null,history=null;
 async function restart(){
   const run=Symbol();loading=run;
   try{settings=readSettings();$('form-error').textContent='';}catch(error){$('form-error').textContent=error.message;return;}
@@ -95,6 +96,7 @@ async function restart(){
   catch(error){$('loading').textContent=`Peta tidak bisa dijalankan: ${error.message}`;return;}
   if(loading!==run)return;
   $('loading').hidden=true;accumulator=0;fastForward=0;
+  history=recorder(cities.smart.engine);   // the smart city's sensor history, for the Analisis tab
   document.querySelector('#smart-view .map-chip strong').textContent=settings.learned?'CERDAS + MODEL':'CERDAS';
   $('map-status').textContent=`${chosen.label}: ${map.roads.length} jalan, ${cities.smart.engine.signals.size} simpang berlampu, ${map.objects.length} aset.`;
   if(!cities.smart.engine.origins.length)$('map-status').textContent+=' Peta belum punya ujung jalan untuk kendaraan masuk.';
@@ -184,7 +186,7 @@ $('city-compass').onclick=()=>controls.northUp();
 
 const mapKey=m=>`${m.name}|${m.roads.length}|${m.nodes.length}|${m.objects.length}`;
 const analysis=createAnalysisView({root:$('analysis-view'),
-  getContext:()=>map&&settings&&{map,key:mapKey(map),options:engineOptions('smart',{...settings,learned:null})},
+  getContext:()=>map&&settings&&history&&{map,key:mapKey(map),options:engineOptions('smart',{...settings,learned:null}),history},
   onApply:()=>restart()});
 const equipment=createEquipmentView({root:$('equipment-view'),getCity:()=>cities.smart,
   getFigures:()=>{try{return cities.smart.map&&diagramFigures(cities.smart.map,dataCenterConfig,{zone:settings?.zone});}catch{return null;}},
@@ -194,6 +196,7 @@ const equipment=createEquipmentView({root:$('equipment-view'),getCity:()=>cities
 const fuel=s=>(s.queueSeconds+s.backlogSeconds)*settings.idle/3600;
 function ui(){
   if(!cities.baseline.engine||!cities.smart.engine)return;
+  if(mode==='analysis')analysis.refresh();
   const b=cities.baseline.engine.summary(),s=cities.smart.engine.summary();
   for(const [kind,sum] of [['baseline',b],['smart',s]]){
     $(`${kind}-clock`).textContent=clock(sum.time);
@@ -292,7 +295,7 @@ renderer.setAnimationLoop(now=>{
   if(ready&&(!paused||driving.active)){
     accumulator+=dt*(driving.active?1:fastForward?600:multiplier);let steps=0;
     while(accumulator>=0.25&&steps++<480){
-      cities.baseline.step(0.25);cities.smart.step(0.25);accumulator-=0.25;
+      history?.tick();cities.baseline.step(0.25);cities.smart.step(0.25);accumulator-=0.25;
       if(fastForward&&cities.smart.engine.time>=fastForward){fastForward=0;accumulator=0;break;}
     }
     if(steps>=480)accumulator=0;

@@ -172,7 +172,7 @@ main[data-mode=equipment] .comparison-panel,main[data-mode=analysis] .comparison
 /* Analisis tab */
 .analysis-status{font-size:12px;color:var(--c-6c806e)}
 .analysis-controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:12px;color:var(--c-566e60)}
-.analysis-controls select{margin-left:6px}
+.analysis-history-size{font-weight:600;color:var(--c-23483d)}
 .analysis-run{border:0;background:var(--c-173f37);color:var(--c-ffffff);border-radius:7px;padding:9px 14px;font-weight:600;font-size:12px}
 .analysis-run:disabled{opacity:.6;cursor:wait}
 .analysis-reset{border:1px solid var(--c-dfe6df);background:var(--c-ffffff);border-radius:7px;padding:8px 12px;font-size:12px;color:var(--c-52695b)}

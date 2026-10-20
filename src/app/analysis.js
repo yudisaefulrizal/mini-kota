@@ -1,19 +1,21 @@
 import {tip} from '../theme.js';
 
-// "Analisis" tab: the smart city learns from its own sensor data. Each round collects a day of
-// simulated sensor data (queue cameras, bin sensors), trains four models, tests them on the
-// same day against the model in use, and adopts them only when they do better. The adopted
-// model then runs the smart city. The work runs in a worker (src/analysis/worker.js).
+// "Analisis" tab: the smart city learns from its own sensor history. While it runs, its sensors
+// (queue cameras, bin sensors) are recorded; a learning round trains four models on that
+// history, tests them on test days against the model in use, and adopts them only when they do
+// better. The adopted model then runs the smart city. The work runs in a worker
+// (src/analysis/worker.js).
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmt=(n,d=0)=>Number(n).toLocaleString('id-ID',{maximumFractionDigits:d});
 const duration=s=>{s=Math.round(s);const h=Math.floor(s/3600),m=Math.floor(s/60)%60;return h?`${h} j ${m} mnt`:`${m} mnt ${s%60} dtk`;};
-const STAGES={collect:'Mengumpulkan data sensor',train:'Melatih model',evaluate:'Menguji pada hari yang sama'};
+const STAGES={train:'Melatih model dari histori',evaluate:'Menguji pada hari uji'};
+const MIN_HISTORY=1800;   // seconds of history before a round can train
 
 export function createAnalysisView({root,getContext,onApply}){
   let model=null,applied=null,history=[],worker=null,key=null;
-  root.innerHTML=`<section class="equipment-block"><div class="equipment-head"><h3>Siklus belajar${tip(`<p>Setiap putaran: kota cerdas dijalankan selama waktu yang dipilih dan data sensornya dikumpulkan (hitungan kamera detektor antrean tiap 5 detik, isi tempat sampah tiap menit). Empat model dilatih dari data itu dan dari putaran sebelumnya, lalu diuji pada hari uji yang sama dengan model yang sedang dipakai. Model baru dipakai hanya jika waktu antrenya lebih kecil minimal 2% (rata-rata 4 hari uji), supaya kebetulan tidak dianggap perbaikan.</p><p>Tidak ada data per kendaraan: hanya hitungan, seperti yang dikirim perangkat ke data center. Di lapangan langkah yang sama dijalankan terjadwal pada riwayat data center.</p>`)}</h3><span id="analysis-status" class="analysis-status">Belum ada model; kota cerdas memakai aturan dasar.</span></div>
-<div class="analysis-controls"><label>Data per putaran <select id="analysis-hours"><option value="1">1 jam simulasi</option><option value="2" selected>2 jam simulasi</option><option value="4">4 jam simulasi</option></select></label>
-<button type="button" id="analysis-run" class="analysis-run">Jalankan putaran belajar</button><button type="button" id="analysis-reset" class="analysis-reset" hidden>Mulai dari nol</button></div>
+  root.innerHTML=`<section class="equipment-block"><div class="equipment-head"><h3>Siklus belajar${tip(`<p>Selama kota cerdas berjalan, data sensornya disimpan sebagai histori: hitungan kamera detektor antrean tiap 5 detik, isi tempat sampah tiap menit, dan catatan pengendali simpang. Latih model memakai histori itu (minimal 30 menit) dan model putaran sebelumnya, lalu histori dikosongkan untuk putaran berikutnya.</p><p>Model baru diuji pada 4 hari uji yang disimulasikan di latar belakang (seperti <em>digital twin</em>: kota sungguhan tidak bisa sekaligus memakai dua model), dan dipakai hanya jika waktu antrenya lebih kecil minimal 2%, supaya kebetulan tidak dianggap perbaikan.</p><p>Histori dimulai ulang bila kota cerdas dimulai ulang (pengaturan atau peta berubah, model baru dipakai). Percepat simulasi atau pakai +1 jam simulasi untuk mengumpulkan histori lebih cepat.</p><p>Tidak ada data per kendaraan: hanya hitungan, seperti yang dikirim perangkat ke data center. Di lapangan langkah yang sama dijalankan Airflow tiap hari pada histori data center.</p>`)}</h3><span id="analysis-status" class="analysis-status">Belum ada model; kota cerdas memakai aturan dasar.</span></div>
+<div class="analysis-controls"><span id="analysis-history-size" class="analysis-history-size">Histori: 0 mnt</span>
+<button type="button" id="analysis-run" class="analysis-run" disabled>Latih model</button><button type="button" id="analysis-reset" class="analysis-reset" hidden>Mulai dari nol</button></div>
 <div id="analysis-progress" class="analysis-progress" hidden><div><i></i></div><span></span></div>
 <div id="analysis-eval" class="compare-grid"></div>
 <div class="comparison-table-wrap" id="analysis-history-wrap" hidden><table class="comparison-table analysis-history"><thead><tr><th scope="col">Putaran</th><th scope="col">Data</th><th scope="col">Antre: dipakai → baru</th><th scope="col">Keputusan</th></tr></thead><tbody id="analysis-history"></tbody></table></div></section>
@@ -64,20 +66,26 @@ export function createAnalysisView({root,getContext,onApply}){
     $('analysis-status').textContent=!model?'Belum ada model; kota cerdas memakai aturan dasar.'
       :applied?`Putaran ${model.round} · ${fmt(model.minutes)} menit data · kota cerdas memakai model.`:`Putaran ${model.round} · ${fmt(model.minutes)} menit data · model belum lebih baik, kota cerdas tetap memakai aturan dasar.`;
   }
-  function render(){renderHistory();renderEval();renderModels();}
+  function render(){renderHistory();renderEval();renderModels();refresh();}
+  // How much history the running smart city has recorded; training needs MIN_HISTORY.
+  function refresh(){
+    const h=getContext()?.history,sec=h?.seconds||0;
+    $('analysis-history-size').textContent=`Histori: ${duration(sec)}${sec<MIN_HISTORY?` · perlu ${fmt(MIN_HISTORY/60)} mnt untuk melatih`:''}`;
+    $('analysis-run').disabled=!!worker||sec<MIN_HISTORY;
+  }
 
   function run(){
     if(worker)return;
-    const ctx=getContext();if(!ctx)return;
+    const ctx=getContext();if(!ctx||ctx.history.seconds<MIN_HISTORY)return;
     if(key&&key!==ctx.key){model=null;applied=null;history=[];}   // another map: start over
     key=ctx.key;
-    const hours=Number($('analysis-hours').value)||2;
+    const data=ctx.history.data();ctx.history.clear();   // this history is used up; the next round records anew
     worker=new Worker(new URL('../analysis/worker.js',import.meta.url),{type:'module'});
     $('analysis-run').disabled=true;$('analysis-progress').hidden=false;
     const bar=$('analysis-progress').querySelector('i'),label=$('analysis-progress').querySelector('span');
     worker.onmessage=({data})=>{
-      if(data.type==='progress'){bar.style.width=`${Math.round((data.stage==='collect'?data.fraction*0.6:data.stage==='train'?0.62:0.62+data.fraction*0.38)*100)}%`;label.textContent=STAGES[data.stage];return;}
-      worker.terminate();worker=null;$('analysis-run').disabled=false;$('analysis-progress').hidden=true;
+      if(data.type==='progress'){bar.style.width=`${Math.round((data.stage==='train'?0.05:0.05+data.fraction*0.95)*100)}%`;label.textContent=STAGES[data.stage];return;}
+      worker.terminate();worker=null;$('analysis-progress').hidden=true;refresh();
       if(data.type==='error'){$('analysis-status').textContent=`Gagal: ${data.message}`;return;}
       model=data.model;
       const ev=model.evaluation,cost=r=>r.queueSeconds+r.backlogSeconds;
@@ -85,7 +93,7 @@ export function createAnalysisView({root,getContext,onApply}){
       if(model.adopted){applied=model.learned;onApply(applied);}
       render();
     };
-    worker.postMessage({map:ctx.map,options:ctx.options,collectSeconds:hours*3600,evalSeconds:3600,previous:model&&{...model,evaluation:undefined},applied});
+    worker.postMessage({map:ctx.map,options:ctx.options,history:data,evalSeconds:3600,previous:model&&{...model,evaluation:undefined},applied});
   }
   $('analysis-run').onclick=run;
   $('analysis-reset').onclick=()=>{model=null;applied=null;history=[];onApply(null);render();};
@@ -94,5 +102,6 @@ export function createAnalysisView({root,getContext,onApply}){
     // The learned model for the smart city on this map (null: rules only).
     learnedFor(mapKey){return mapKey===key?applied:null;},
     get model(){return model;},
+    refresh,
   };
 }
