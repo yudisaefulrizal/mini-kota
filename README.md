@@ -30,6 +30,7 @@ Buka alamat yang ditampilkan terminal (biasanya http://localhost:5173). Jangan m
 
 | Halaman | Isi |
 |---|---|
+| `artikel/index.html` | Artikel interaktif: latar belakang, dokumentasi lapangan, simpang dua arah, alur big data, data histori, empat model |
 | `index.html` | Simulasi: tab Perbandingan, Kota biasa, Kota cerdas (dengan perangkat dan jaringannya), Perangkat (dengan data center), Analisis (siklus belajar), Editor peta; Jelajahi Kota (mengemudi) |
 | `editor-peta.html` | Editor peta lengkap dengan simulasi lalu lintas satu kota |
 | `penjelasan.html` | Panduan pengaturan, cara kerja, dan asumsi |

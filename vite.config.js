@@ -13,6 +13,7 @@ export default defineConfig({
         diagram3d: fileURLToPath(new URL('./diagram-3d.html', import.meta.url)),
         aset: fileURLToPath(new URL('./aset.html', import.meta.url)),
         editorPeta: fileURLToPath(new URL('./editor-peta.html', import.meta.url)),
+        artikel: fileURLToPath(new URL('./artikel/index.html', import.meta.url)),
       },
     },
   },

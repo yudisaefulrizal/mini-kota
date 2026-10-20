@@ -1,0 +1,74 @@
+/* Artikel: gaya rambu jalan. Dasar abu terang, judul gelap, kuning lampu untuk fakta, hijau sinyal. */
+:root{--ground:#F1F3F2;--ink:#16201C;--muted:#4E5E57;--soft:#3D4A44;--card:#FFFFFF;--line:#E3E8E5;--green:#1F6B46;--signal:#2F8F5B;--amber:#F2B53A;--fact:#FFF4DA;--pale:#B9C4BF;--hl:#E4F2EA}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:Archivo,system-ui,sans-serif;line-height:1.6}
+a{color:var(--green)}a:hover{color:#134A30}
+.mono{font-family:'IBM Plex Mono',monospace}
+.small{font-size:13px;letter-spacing:.06em;margin:0 0 6px;color:var(--muted)}
+.accent{color:var(--green);font-weight:600}
+.wrap{max-width:980px;margin:0 auto;padding:0 24px}
+.hero{background:var(--ink);color:var(--ground);padding:72px 0 64px}
+.hero .wrap{display:flex;flex-direction:column;gap:24px;align-items:flex-start}
+.eyebrow{display:flex;gap:10px;align-items:center;font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.12em;color:var(--pale)}
+.eyebrow span{margin-left:8px}
+.lamp{width:18px;height:18px;border-radius:50%}.lamp.red{background:#5B2A26}.lamp.amber{background:var(--amber)}.lamp.green{background:var(--signal)}
+h1{margin:0;font-size:clamp(32px,5vw,52px);line-height:1.08;font-weight:800;letter-spacing:-.01em}
+.lead{margin:0;font-size:20px;color:#C9D3CE;max-width:760px}
+.byline{margin:0;font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--pale)}
+.cta{display:inline-flex;align-items:center;gap:10px;min-height:48px;padding:12px 22px;border-radius:24px;background:var(--amber);color:var(--ink);font-weight:800;font-size:16px;text-decoration:none}
+.cta:hover{color:var(--ink);background:#F6C55E}
+section{padding:48px 0 24px}
+main>section:first-child{padding-top:64px}
+.kicker{margin:0 0 8px;font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.12em;color:var(--muted)}
+h2{margin:0 0 12px;font-size:clamp(28px,4vw,36px);line-height:1.15;font-weight:800}
+#latar{margin-bottom:32px}
+h3{margin:0;font-size:21px;font-weight:800}
+.intro{margin:0 0 24px;font-size:17px;max-width:760px}
+.note{margin:10px 0 0;font-size:14px;color:var(--muted)}
+.points{display:flex;flex-direction:column;gap:16px}
+.point{display:flex;flex-wrap:wrap;gap:20px;background:var(--card);border-radius:14px;padding:28px}
+.point .no{font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:600;color:var(--green);flex:0 0 56px}
+.point .body{flex:999 1 520px;min-width:0;display:flex;flex-direction:column;gap:8px}
+.point p{margin:0;font-size:17px}
+.point.dark{background:var(--ink);color:var(--ground)}.point.dark .no{color:#7FD3A3}.point.dark p{color:#D5DDD9}
+.fact{margin-top:8px;display:flex;flex-wrap:wrap;gap:12px;align-items:baseline;background:var(--fact);border-radius:10px;padding:14px 16px}
+.fact b{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600}
+.fact span{font-size:15px;color:var(--soft);flex:1 1 300px}
+.photos{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+figure{margin:0;background:var(--card);border-radius:14px;overflow:hidden}
+figure img{display:block;width:100%;height:420px;object-fit:cover}
+figcaption{padding:14px 16px;font-size:15px}
+.card{background:var(--card);border-radius:14px;padding:28px}
+.stack{display:flex;flex-direction:column;gap:28px}
+.sliders{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px}
+.sliders label{display:flex;flex-direction:column;gap:8px;font-weight:600;font-size:16px}
+input[type=range]{width:100%;accent-color:var(--green)}
+.plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
+.plan{border-radius:12px;padding:22px;display:flex;flex-direction:column;gap:14px;background:var(--ground)}
+.plan.adaptive{background:var(--hl)}
+.plan-head,.row,.result{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.plan-head span{font-family:'IBM Plex Mono',monospace;font-size:14px}
+.row{font-size:15px}.row span:last-child{font-family:'IBM Plex Mono',monospace}
+.bar{height:12px;border-radius:6px;background:var(--line);overflow:hidden;margin-bottom:6px}.bar i{display:block;height:12px;background:var(--signal)}
+.result{border-top:1px solid #D5DDD9;padding-top:12px}.result span:first-child{font-size:15px}
+.result b{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:600}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.tile{background:var(--card);border-radius:14px;padding:22px}.tile p:last-child{margin:0;font-size:17px;font-weight:600}
+.tile.dark{background:var(--ink);color:var(--ground)}.tile.dark .small{color:var(--pale)}
+.pills{display:flex;flex-wrap:wrap;gap:8px}
+.pills button{min-height:44px;border:0;border-radius:22px;padding:10px 18px;font:600 15px Archivo,system-ui,sans-serif;cursor:pointer;background:var(--card);color:var(--ink)}
+.pills button[aria-pressed=true]{background:var(--ink);color:var(--ground)}
+.detail{margin-top:16px;display:flex;flex-wrap:wrap;gap:24px}
+.detail-head{flex:1 1 220px}.detail-head h3{font-size:26px}
+.detail>p{margin:0;font-size:17px;flex:999 1 420px;min-width:0}
+.scroll{margin-top:16px;padding:8px;overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:720px;font-family:'IBM Plex Mono',monospace;font-size:14px}
+th{text-align:left;padding:12px;border-bottom:2px solid var(--ink);font-weight:600}
+td{padding:12px;border-bottom:1px solid var(--line)}
+.models{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.models .card{padding:24px;display:flex;flex-direction:column;gap:10px}
+.models .card p{margin:0;font-size:16px}.models .method{font-size:15px;color:var(--soft)}
+.banner{margin-top:28px;background:var(--ink);color:var(--ground);border-radius:14px;padding:28px;display:flex;flex-wrap:wrap;gap:20px;align-items:center;justify-content:space-between}
+.banner p{margin:0;font-size:20px;font-weight:800;flex:1 1 360px}
+.sources{padding-bottom:80px}.sources h2{font-size:24px}
+.sources ol{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:8px;font-size:15px}
