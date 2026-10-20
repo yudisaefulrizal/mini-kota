@@ -1,6 +1,6 @@
 // Publishes the built app (dist/) on GitHub Pages: builds, then commits dist/ to the
 // gh-pages branch (through a temporary worktree) and pushes it. Served at
-// https://yudisaefulrizal.github.io/mini-kota/.
+// https://yudisaefulrizal.github.io/smart-city-simulasi/.
 import {execFileSync} from 'node:child_process';
 import {mkdtempSync,rmSync,readdirSync,cpSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';

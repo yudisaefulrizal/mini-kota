@@ -2,7 +2,7 @@ import {defineConfig} from 'vite';
 import {fileURLToPath} from 'node:url';
 
 export default defineConfig({
-  // Relative paths, so the build works from any folder (GitHub Pages serves it under /mini-kota/).
+  // Relative paths, so the build works from any folder (GitHub Pages serves it under /smart-city-simulasi/).
   base: './',
   // Dev and preview on 8071; smart-city.nuscode.id is the tunnel to it.
   server: {port: 8071, allowedHosts: ['smart-city.nuscode.id']},
