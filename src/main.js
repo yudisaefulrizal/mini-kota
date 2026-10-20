@@ -189,7 +189,7 @@ function ui(){
     $(`${kind}-map-queue`).textContent=`${sum.waiting} dalam · ${sum.backlog} luar`;
     $(`${kind}-map-fuel`).textContent=`${fmt(fuel(sum),2)} L`;
   }
-  // Cards by subject: Biasa and Cerdas side by side, and how the smart city differs (green
+  // One grid of cards (in order: traffic, waste, the rest): Biasa and Cerdas side by side, and how the smart city differs (green
   // when better). Live counts already on the map (stopped, waiting outside) are not repeated.
   // [name, ordinary, smart, format, which is better: 'lower' | 'higher' | null, note]
   const minutes=x=>duration(x),litres=x=>`${fmt(x,2)} L`,count=x=>fmt(x),secs=x=>x?`${fmt(x)} dtk`:'—';
@@ -218,8 +218,8 @@ function ui(){
     const d=Math.round((y-x)/x*100);if(!d)return '<span class="delta">sama</span>';
     const good=better==='lower'?d<0:d>0;return `<span class="delta ${good?'good':'bad'}">${d>0?'+':''}${d}%</span>`;
   };
-  $('comparison-results').innerHTML=groups.map(([name,rows])=>`<h4>${name}</h4>`+rows.map(([k,x,y,f,better,note])=>
-    `<div class="metric"><span class="metric-name">${k}</span><dl><dt>Biasa</dt><dd>${f(x)}</dd><dt>Cerdas</dt><dd>${f(y)}${change(x,y,better)}</dd></dl>${note?`<small>${note}</small>`:''}</div>`).join('')).join('');
+  $('comparison-results').innerHTML=groups.map(([,rows])=>rows.map(([k,x,y,f,better,note])=>
+    `<div class="metric"><span class="metric-name">${k}${change(x,y,better)}</span><dl><dt>Biasa</dt><dd>${f(x)}</dd><dt>Cerdas</dt><dd>${f(y)}</dd></dl>${note?`<small>${note}</small>`:''}</div>`).join('')).join('');
   const pct=(x,y)=>x>0?Math.round((1-y/x)*100):0;
   const q=pct(b.queueSeconds+b.backlogSeconds,s.queueSeconds+s.backlogSeconds),f=fuel(b)-fuel(s),t=b.truckTrips-s.truckTrips;
   $('comparison-saving').textContent=b.time<60?'Kedua kota baru dimulai…':
