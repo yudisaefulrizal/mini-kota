@@ -149,6 +149,8 @@ export class MapCamera{
       if(k.has('d')||k.has('arrowright'))move.add(right);
       if(k.has('a')||k.has('arrowleft'))move.sub(right);
       if(move.lengthSq()){this.anim=null;this.pan(move.x*speed,move.z*speed);}
+      // Turning leaves the top view, like a tilt with the mouse does.
+      if((k.has('q')||k.has('e'))&&this.topView){this.topView=false;this.onLeaveTop();}
       if(k.has('q'))this.orbit(this.target.clone(),-1.4*dt,0);
       if(k.has('e'))this.orbit(this.target.clone(),1.4*dt,0);
       if(k.has('+')||k.has('='))this.zoomAt(this.target.clone(),1-1.6*dt);
@@ -224,6 +226,9 @@ export class MapCamera{
     // A left drag starts a few pixels late: catch up so the grabbed point is under the cursor.
     if(mode==='pan'&&(from.x!==e.clientX||from.y!==e.clientY)){const q=this.onPlane(this.ray(e.clientX,e.clientY),anchor.y);if(q)this.pan(anchor.x-q.x,anchor.z-q.z);}
   }
+  // On-screen buttons hold a key down the same way the keyboard does.
+  press(key){this.keys.add(key);this.anim=null;}
+  release(key){this.keys.delete(key);}
   // Called by the page for keys it does not use itself.
   keyDown(key){
     if(!this.enabled||(this.keysOnHover&&!this.hover))return false;

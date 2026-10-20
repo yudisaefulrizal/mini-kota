@@ -131,13 +131,13 @@ body.driving #viewport[data-mode=equipment]{display:block}
 .editor-view-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}.editor-view-head p{margin:0;font-size:13px;color:var(--c-536e57);max-width:720px;line-height:1.5}.editor-view-head a{font-size:13px;color:var(--c-2f5d45)}
 #editor-frame{width:100%;height:min(860px,calc(100vh - 140px));min-height:620px;border:1px solid var(--c-dbe3d6);border-radius:12px;background:var(--c-eef3ec);display:block}
 @media(max-width:650px){#editor-frame{height:1400px}}
-.city-compass{position:absolute;z-index:3;right:18px;bottom:106px;width:35px;height:35px;border-radius:50%;border:1px solid var(--c-dbe3d6);background:var(--c-ffffff);padding:0;cursor:pointer;display:grid;place-items:center}
-.city-compass svg{width:26px;height:26px}.city-compass span{position:absolute;top:-1px;font-size:8px;font-weight:700;color:var(--c-173b37)}
+.city-compass{position:relative;width:30px;height:30px;border-radius:50%;border:1px solid var(--c-dbe3d6);background:var(--c-ffffff);padding:0;cursor:pointer;display:grid;place-items:center}
+.city-compass svg{width:22px;height:22px}.city-compass span{position:absolute;top:-1px;font-size:8px;font-weight:700;color:var(--c-173b37)}
 .city-compass:hover{border-color:var(--c-456047)}
 body.driving .city-compass{display:none}
 
 /* "!" with how to use the map, above the compass. */
-.map-help{position:absolute;z-index:4;right:24px;bottom:150px}.map-help .tip{margin:0}.map-help .tip>summary{width:23px;height:23px;font-size:13px}
+.map-help{position:absolute;z-index:4;right:24px;bottom:218px}.map-help .tip{margin:0}.map-help .tip>summary{width:23px;height:23px;font-size:13px}
 body.driving .map-help{display:none}
 .panel .section-title .title-with-tip{font-size:inherit;font-weight:inherit;letter-spacing:inherit;color:inherit;display:inline-flex;align-items:center}
 .sidebar .field{white-space:nowrap}.sidebar .field input{width:64px;min-width:64px}
@@ -187,3 +187,10 @@ table.mini{width:100%;border-collapse:collapse;font-size:11.5px}table.mini th,ta
 .analysis-controls input[type=number]{width:90px;margin:0 4px 0 6px}.analysis-controls .check{display:flex;align-items:center;gap:6px}
 .analysis-controls+.analysis-controls{margin-top:10px}
 .analysis-history-size{margin:0 0 10px;font-size:12px}
+
+/* Compact camera pad: turn, pan and zoom, compass in the middle. */
+.nav-pad{position:absolute;z-index:3;right:12px;bottom:106px;display:grid;grid-template-columns:repeat(3,30px);gap:3px;padding:4px;border-radius:12px;background:var(--c-ffffffe8);border:1px solid var(--c-dbe3d6)}
+.nav-pad>button{width:30px;height:30px;padding:0;border:1px solid var(--c-dbe3d6);border-radius:8px;background:var(--c-ffffff);color:var(--c-173b37);font-size:14px;line-height:1;display:grid;place-items:center;touch-action:none;user-select:none}
+.nav-pad>button:hover{border-color:var(--c-456047)}.nav-pad>button:active{background:var(--c-eef3ec)}
+.nav-pad>.city-compass{border-radius:50%}
+body.driving .nav-pad{display:none}

@@ -183,6 +183,15 @@ window.addEventListener('keydown',e=>{
   if(controls.keyDown(key))e.preventDefault();
 });
 $('city-compass').onclick=()=>controls.northUp();
+// Camera pad: hold a button to keep moving; a tap lasts at least 180 ms so it still moves.
+for(const btn of document.querySelectorAll('[data-nav]')){
+  const key=btn.dataset.nav;let start=0,timer=0;
+  const down=e=>{if(e.type==='keydown'&&(e.repeat||(e.key!==' '&&e.key!=='Enter')))return;e.preventDefault();start=performance.now();clearTimeout(timer);controls.press(key);};
+  const up=()=>{clearTimeout(timer);timer=setTimeout(()=>controls.release(key),Math.max(0,180-(performance.now()-start)));};
+  btn.addEventListener('pointerdown',e=>{down(e);try{btn.setPointerCapture(e.pointerId);}catch{}});
+  btn.addEventListener('pointerup',up);btn.addEventListener('pointercancel',up);btn.addEventListener('lostpointercapture',up);
+  btn.addEventListener('keydown',down);btn.addEventListener('keyup',up);btn.addEventListener('blur',up);
+}
 
 const mapKey=m=>`${m.name}|${m.roads.length}|${m.nodes.length}|${m.objects.length}`;
 const analysis=createAnalysisView({root:$('analysis-view'),
