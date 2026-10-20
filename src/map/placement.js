@@ -178,7 +178,7 @@ function place(map,geometry,asset,p,rule){
 // A gateway serves the devices within its reach: cabled devices (cameras, junction
 // controllers) up to CABLE_REACH in a straight line by default, which is about the 100 m an
 // Ethernet cable may run once it follows the kerbs; bin sensors by LoRaWAN radio up to
-// LORA_REACH, and only gateways with a LoRaWAN module (`lora`) hear them when any has one.
+// LORA_REACH, to the nearest gateway (every gateway has the radio).
 // A map may set its own reach (`map.network`, set in the editor).
 export const CABLE_REACH=75,LORA_REACH=1000;
 export const REACH_LIMITS={cableReach:[10,100],loraReach:[100,5000]};
@@ -199,8 +199,7 @@ export function gatewayOf(map,object){
   const gateways=map.objects.filter(g=>g.asset==='gateway');if(!gateways.length)return null;
   const {cable,lora}=reachOf(map),reach=object.asset==='bin-sensor'?lora:cable;
   let g=null;
-  if(object.asset==='bin-sensor'){const radio=gateways.filter(x=>x.lora);g=nearestOf(radio.length?radio:gateways,object);}
-  else if(object.asset!=='controller'){
+  if(object.asset!=='controller'&&object.asset!=='bin-sensor'){
     const own=controllerOf(map,object),via=own&&gatewayOf(map,own),viaGateway=via&&gateways.find(x=>x.id===via.id);
     if(viaGateway&&dist(viaGateway,object)<=reach)g=viaGateway;
   }

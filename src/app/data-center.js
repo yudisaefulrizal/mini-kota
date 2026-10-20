@@ -27,8 +27,7 @@ export function dataCenterInventory(map){
       count:count(map,'bin-sensor'),basis:'1 per tempat sampah bersensor',interval:60,status:'Panggilan truk sampah'},
   ].filter(s=>s.count>0);
   return {sensors,totalSensors:sensors.reduce((sum,s)=>sum+s.count,0),signalControllers:count(map,'controller'),
-    signalHeads:map.objects.filter(o=>/^traffic-light/.test(o.asset)).length,pedestrianHeads:count(map,'pedestrian-light'),gateways:count(map,'gateway'),
-    loraGateways:map.objects.filter(o=>o.asset==='gateway'&&o.lora).length,dataCentres:count(map,'data-center')};
+    signalHeads:map.objects.filter(o=>/^traffic-light/.test(o.asset)).length,pedestrianHeads:count(map,'pedestrian-light'),gateways:count(map,'gateway'),dataCentres:count(map,'data-center')};
 }
 
 export function estimateDataCenter(map,input={},inventory=dataCenterInventory(map)){

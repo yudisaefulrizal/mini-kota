@@ -190,9 +190,8 @@ export function furnish(input,{seed=7,signals=true,buildings=true,street=true}={
 
   // ---------------------------------------------------------------- gateways
   // As few as possible: junction corners are tried, the one reaching the most cameras and
-  // controllers not yet reached first, until every one is within cable reach. Then LoRaWAN
-  // modules go on the fewest gateways that hear every bin sensor.
-  const gateways=()=>map.objects.filter(o=>o.asset==='gateway'),{cable:CABLE_REACH,lora:LORA_REACH}=reachOf(map);
+  // controllers not yet reached first, until every one is within cable reach.
+  const gateways=()=>map.objects.filter(o=>o.asset==='gateway'),{cable:CABLE_REACH}=reachOf(map);
   let open=map.objects.filter(o=>/^cctv/.test(o.asset)||o.asset==='controller').filter(o=>!o.gateway&&!gateways().some(g=>dist(g,o)<=CABLE_REACH));
   while(open.length){
     let best=null;
@@ -201,18 +200,11 @@ export function furnish(input,{seed=7,signals=true,buildings=true,street=true}={
     put('gateway',best.s.at,best.s.rotation,{force:true});gatewaySpots.splice(gatewaySpots.indexOf(best.s),1);
     open=open.filter(o=>dist(o,best.s.at)>CABLE_REACH);
   }
+  // Bin sensors use the nearest gateway's LoRaWAN radio; a map without any gets one by the bins.
   const bins=map.objects.filter(o=>o.asset==='bin-sensor');
-  if(bins.length){
-    const middle={x:bins.reduce((a,b)=>a+b.x,0)/bins.length,z:bins.reduce((a,b)=>a+b.z,0)/bins.length};
-    if(!gateways().length){const spot=vergeSpot(middle,{behind:true});if(spot)put('gateway',spot.at,facing(spot.toRoad));}
-    let deaf=bins.filter(b=>!gateways().some(g=>g.lora&&dist(g,b)<=LORA_REACH));
-    while(deaf.length){
-      let best=null;
-      for(const g of gateways())if(!g.lora){const k=deaf.filter(b=>dist(g,b)<=LORA_REACH).length,d=dist(g,middle);if(k&&(!best||k>best.k||(k===best.k&&d<best.d)))best={g,k,d};}
-      if(!best)break;
-      best.g.lora=true;added['lora']=(added['lora']||0)+1;
-      deaf=deaf.filter(b=>dist(best.g,b)>LORA_REACH);
-    }
+  if(bins.length&&!gateways().length){
+    const middle={x:bins.reduce((a,b)=>a+b.x,0)/bins.length,z:bins.reduce((a,b)=>a+b.z,0)/bins.length},spot=vergeSpot(middle,{behind:true});
+    if(spot)put('gateway',spot.at,facing(spot.toRoad));
   }
 
   // ---------------------------------------------------------------- along roads

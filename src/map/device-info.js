@@ -51,7 +51,7 @@ export function deviceReadings(engine,network,o){
   }else if(o.asset==='gateway'){
     const links=network?.linksOf(o.id)||[],served=(network?.map?.objects||[]).filter(x=>gatewayOf(network.map,x)?.id===o.id);
     const n=asset=>served.filter(x=>x.asset===asset).length,relays=links.filter(l=>l.kind==='relay');
-    rows.push(['Melayani',`${n('cctv')+n('cctv-dome')} kamera · ${n('controller')} pengendali · ${n('bin-sensor')} sensor sampah`],['Jangkauan',`kabel ${km(reachOf(network?.map).cable)}${o.lora?` · LoRaWAN ${km(reachOf(network?.map).lora)}`:''}`],['Modul LoRaWAN',o.lora?'Ada':'Tidak'],
+    rows.push(['Melayani',`${n('cctv')+n('cctv-dome')} kamera · ${n('controller')} pengendali · ${n('bin-sensor')} sensor sampah`],['Jangkauan',`kabel ${km(reachOf(network?.map).cable)} · LoRaWAN ${km(reachOf(network?.map).lora)}`],
       ...(relays.length?[['Antar-gateway',relays.map(l=>l.from===o.id?`ke ${l.to}`:`dari ${l.from}`).join(', ')]]:[]),['Data diterima',fmt(stats.received)],['Data dikirim',fmt(stats.sent)],['Jalur ke pusat data',links.some(l=>l.kind==='uplink')?'Fiber optik':'Belum ada']);
   }else if(o.asset==='data-center'){
     const ups=(network?.linksOf(o.id)||[]).filter(l=>l.kind==='uplink');

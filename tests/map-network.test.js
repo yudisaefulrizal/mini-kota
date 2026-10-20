@@ -5,6 +5,7 @@ import {validateMap} from '../src/map/format.js';
 import {miniKotaRoads as convertMiniKota} from '../src/map/default-map.js';
 import {furnish} from '../src/map/furnish.js';
 import {addObject} from '../src/map/edit.js';
+import {gatewayOf} from '../src/map/placement.js';
 import {networkLinks,networkSummary,LAN_REACH,CABLE_REACH,LORA_REACH} from '../src/map/network.js';
 
 const full=miniKotaLengkap;
@@ -26,12 +27,13 @@ test('every device of the full map is on the network, with the right medium',()=
   assert.deepEqual(s.lamps,{vehicle:50,pedestrian:51,wired:101});
 });
 
-test('as few gateways as reach every device: cables 75 m, LoRaWAN 1 km on one gateway',()=>{
+test('as few gateways as reach every device within 75 m of cable; bins use the nearest gateway',()=>{
   const map=full(),gateways=map.objects.filter(o=>o.asset==='gateway'),d=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
   assert.ok(gateways.length<=13,`${gateways.length} gateways`);
   for(const o of map.objects.filter(o=>/^cctv|controller/.test(o.asset)))assert.ok(gateways.some(g=>d(g,o)<=CABLE_REACH),`${o.id} reached`);
-  const radio=gateways.filter(g=>g.lora);assert.equal(radio.length,1);
-  for(const b of map.objects.filter(o=>o.asset==='bin-sensor'))assert.ok(d(radio[0],b)<=LORA_REACH);
+  for(const b of map.objects.filter(o=>o.asset==='bin-sensor')){
+    const nearest=gateways.reduce((a,g)=>d(g,b)<d(a,b)?g:a);assert.equal(gatewayOf(map,b).id,nearest.id);assert.ok(d(nearest,b)<=LORA_REACH);
+  }
   // A camera goes to its controller's gateway when that is in reach, so no counts need relaying here.
   assert.equal(networkSummary(map).relays,0);
 });

@@ -51,11 +51,11 @@ const overlay=new THREE.Group();scene.add(overlay);
 const lineMaterial=color=>new THREE.LineBasicMaterial({color,depthTest:false,transparent:true});
 const preview=new THREE.Line(new THREE.BufferGeometry(),lineMaterial(0xe8742c));preview.renderOrder=20;overlay.add(preview);
 const selectedLine=new THREE.Line(new THREE.BufferGeometry(),lineMaterial(0xe8742c));selectedLine.renderOrder=20;overlay.add(selectedLine);
-// Reach of the selected gateway: cable (75 m) and, with a LoRaWAN module, radio (1 km).
+// Cable reach of the selected gateway.
 const reachRings=[0x1d5fa0,0xd99a1e].map(c=>{const l=new THREE.LineLoop(new THREE.BufferGeometry(),new THREE.LineDashedMaterial({color:c,dashSize:3,gapSize:2,depthTest:false}));l.renderOrder=20;overlay.add(l);return l;});
 function showReach(o){
   const ring=(line,r)=>{line.visible=r>0;if(r>0){line.geometry.dispose();line.geometry=new THREE.BufferGeometry().setFromPoints(Array.from({length:96},(_,i)=>new THREE.Vector3(o.x+r*Math.cos(i/96*Math.PI*2),0.7,o.z+r*Math.sin(i/96*Math.PI*2))));line.computeLineDistances();}};
-  const reach=reachOf(map);ring(reachRings[0],o?.asset==='gateway'?reach.cable:0);ring(reachRings[1],o?.asset==='gateway'&&o.lora?reach.lora:0);
+  const reach=reachOf(map);ring(reachRings[0],o?.asset==='gateway'?reach.cable:0);ring(reachRings[1],0);
 }
 const magnet=new THREE.Mesh(new THREE.RingGeometry(1,1.35,32),new THREE.MeshBasicMaterial({color:0x2e9e5b,depthTest:false,side:THREE.DoubleSide}));
 magnet.rotation.x=-Math.PI/2;magnet.renderOrder=21;magnet.visible=false;overlay.add(magnet);
@@ -383,7 +383,7 @@ function renderPanel(){
 <div class="field">Arah<div class="rotate"><button type="button" id="rot-l" title="Putar kiri (Q)">⟲ 15°</button><input type="number" id="sel-rot" value="${o.rotation||0}" step="15"> °<button type="button" id="rot-r" title="Putar kanan (E)">⟳ 15°</button></div></div>
 ${SENSOR_ASSETS.has(o.asset)?(gateways.length?`<label class="field">Gateway<select id="sel-gw"><option value="">Otomatis (dalam jangkauan${gw?.auto?`: ${esc(gw.id)}`:''})</option>${gateways.map(g=>`<option value="${g.id}" ${o.gateway===g.id?'selected':''}>${esc(g.id)} · ${fmt(Math.hypot(g.x-o.x,g.z-o.z),0)} m</option>`).join('')}</select></label>`:'<p class="hint bad">Belum ada gateway di peta. Pasang aset Gateway edge.</p>'):''}
 ${far?`<p class="hint bad">Di luar jangkauan gateway terdekat (${fmt(gw.distance,0)} m; ${o.asset==='bin-sensor'?`LoRaWAN ${fmt(reachOf(map).lora,0)} m`:`kabel ${fmt(reachOf(map).cable,0)} m`}). Pasang gateway lebih dekat atau ubah jangkauan.</p>`:''}
-${o.asset==='gateway'?`<label class="inline"><input type="checkbox" id="sel-lora" ${o.lora?'checked':''}> Modul LoRaWAN (sensor sampah)</label><p class="hint">Melayani ${served} perangkat. Lingkaran: jangkauan kabel ${fmt(reachOf(map).cable,0)} m${o.lora?` dan radio ${fmt(reachOf(map).lora,0)} m`:''}.</p>`:''}
+${o.asset==='gateway'?`<p class="hint">Melayani ${served} perangkat. Lingkaran: jangkauan kabel ${fmt(reachOf(map).cable,0)} m. Sensor sampah memakai radio LoRaWAN gateway terdekat (sampai ${fmt(reachOf(map).lora,0)} m).</p>`:''}
 ${o.asset==='cctv'?cameraPanel(o):''}
 ${networkRows(o.id)}
 <button type="button" class="danger" id="sel-delete">Hapus aset</button>`;
@@ -391,7 +391,6 @@ ${networkRows(o.id)}
     $('rot-r').onclick=()=>change(()=>edit.rotateObject(map,o.id,15),{tidy:false});
     $('sel-rot').onchange=e=>change(()=>{map.objects.find(x=>x.id===o.id).rotation=Math.round(Number(e.target.value)||0);},{tidy:false});
     $('sel-gw')?.addEventListener('change',e=>change(()=>edit.setGateway(map,o.id,e.target.value||null),{tidy:false}));
-    $('sel-lora')?.addEventListener('change',e=>change(()=>{const g=map.objects.find(x=>x.id===o.id);if(e.target.checked)g.lora=true;else delete g.lora;},{tidy:false}));
     $('sel-delete').onclick=()=>change(()=>{edit.deleteObject(map,o.id);selection=null;},{tidy:false});
   }else{
     const n=map.nodes.find(n=>n.id===selection.id);if(!n){box.hidden=true;return;}

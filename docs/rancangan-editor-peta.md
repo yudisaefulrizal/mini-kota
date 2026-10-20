@@ -534,16 +534,16 @@ menutupi. Kamera kubah tidak lagi dipasang otomatis (peta lama yang memakainya t
   sensor di dalam tutup tong). Di luar itu kabel menjadi fiber dan editor memberi peringatan.
 - **Gateway otomatis**: pengendali ke gateway terdekat; kamera ke gateway pengendali
   simpangnya bila terjangkau, selain itu terdekat dan hitungannya diteruskan antar-gateway
-  (sambungan *relay*); sensor sampah ke gateway bermodul LoRaWAN terdekat.
+  (sambungan *relay*); sensor sampah ke gateway terdekat (setiap gateway punya radio LoRaWAN;
+  konsep modul LoRaWAN per gateway sempat dicoba lalu dihapus agar sederhana).
 - **Isi aset otomatis** memilih gateway sesedikit mungkin dari sudut simpang (yang
-  menjangkau paling banyak kamera/pengendali dulu), lalu memasang modul LoRaWAN di gateway
-  sesedikit mungkin yang menjangkau semua sensor sampah. Mini Kota: **19 → 13 gateway**,
-  1 bermodul LoRaWAN; tidak ada sambungan antar-gateway yang diperlukan.
+  menjangkau paling banyak kamera/pengendali dulu). Mini Kota: **19 → 13 gateway**; sensor
+  sampah 35–79 m dari gateway terdekatnya; tidak ada sambungan antar-gateway yang diperlukan.
 - **Lampu lalu lintas** dikabel ke pengendali terdekat (kabel sinyal, digambar dan dihitung
   terpisah dari LAN/fiber/LoRaWAN): 50 lampu kendaraan + 51 lampu penyeberang. Saat fase
   berganti, paket berjalan dari gateway ke pengendali lalu ke lampunya.
-- **Editor**: gateway terpilih menampilkan lingkaran jangkauan (75 m, dan 1 km bila bermodul
-  LoRaWAN), kotak *Modul LoRaWAN*, dan jumlah perangkat yang dilayani. Kartu *Jangkauan
+- **Editor**: gateway terpilih menampilkan lingkaran jangkauan kabel (75 m) dan jumlah
+  perangkat yang dilayani. Kartu *Jangkauan
   gateway* mengubah kedua jarak untuk peta itu (kabel 10–100 m, LoRaWAN 100–5.000 m;
   disimpan sebagai `network.cableReach` / `network.loraReach`, nilai bawaan tidak disimpan).
 
