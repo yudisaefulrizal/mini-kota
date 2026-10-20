@@ -2,19 +2,29 @@
 
 Coba langsung: https://smart-city.nuscode.id/
 
-Rancangan digital twin untuk kota cerdas. Kamera detektor di tiap arah simpang
-menghitung antrean; data itu direkam sebagai histori, dipakai melatih model, dan hasilnya langsung
-mengatur lampu lalu lintas. Sensor tempat sampah memanggil truk yang rutenya diatur otomatis
-(Dijkstra, Clarke-Wright Savings, 2-opt), dan seluruh perangkat terhubung ke pusat data lewat
-jaringan LAN, fiber optik, dan LoRaWAN.
+Rancangan digital twin untuk kota cerdas: replika virtual kota yang terhubung dengan data sensor
+untuk dipantau, dipelajari, dan dioptimalkan.
 
-Aplikasi ini menampilkannya dalam 3D (three.js): kota konvensional, dengan lampu lalu lintas
-konvensional (waktu tetap) dan truk sampah terjadwal, berdampingan dengan kota cerdas pada peta
-yang sama. Keduanya dibandingkan dari waktu antre, BBM terbuang saat idle, perjalanan selesai,
-waktu tempuh, perjalanan truk sampah, dan lama tempat sampah penuh.
+## Fitur
 
-Peta bisa dibuat sendiri di **editor peta** (gambar jalan, rapikan otomatis, pasang aset,
-atur lampu) atau diimpor dari **OpenStreetMap**.
+Tersedia:
+
+- Kota konvensional dan kota cerdas berdampingan pada peta yang sama dalam 3D, dibandingkan dari
+  waktu antre, BBM terbuang saat idle, waktu tempuh, dan indikator lainnya.
+- Lampu lalu lintas adaptif yang membaca kamera detektor antrean.
+- Pembelajaran dari data histori: model lalu lintas dilatih dan langsung diterapkan.
+- Pengelolaan sampah: truk dipanggil sensor tempat sampah dengan rute otomatis.
+- Jaringan perangkat, pusat data, dan diagram 3D alur perangkat.
+- Editor peta, termasuk impor dari OpenStreetMap.
+- Jelajahi kota dengan mengemudi.
+
+Akan dikembangkan:
+
+- Peringatan banjir.
+- Informasi penutupan jalan.
+- Pengalihan lalu lintas otomatis.
+- Pengendalian polusi.
+- Penurunan angka kecelakaan.
 
 ## Menjalankan
 
