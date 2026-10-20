@@ -1,11 +1,11 @@
-# Mini Kota — Kota Biasa vs Kota Cerdas
+# Smart City Digital Twin — Kota Konvensional vs Kota Cerdas
 
 Coba langsung: https://smart-city.nuscode.id/
 
-Simulasi edukasi lalu lintas kota dalam 3D (three.js). Satu peta dijalankan dua kali,
+Digital twin kota cerdas berupa simulasi lalu lintas kota dalam 3D (three.js). Satu peta dijalankan dua kali,
 berdampingan dan pada waktu yang sama:
 
-- **Kota biasa**: lampu lalu lintas waktu tetap, truk sampah datang terjadwal.
+- **Kota konvensional**: lampu lalu lintas konvensional (waktu tetap), truk sampah datang terjadwal.
 - **Kota cerdas**: lampu adaptif yang membaca kamera detektor antrean di tiap arah simpang (zona deteksi 80 m
   ditandai di peta), truk sampah dipanggil sensor
   tempat sampah dan dirutekan (Dijkstra, Clarke-Wright Savings, 2-opt), dan jaringan perangkat (LAN, fiber optik, LoRaWAN) ke pusat data.
