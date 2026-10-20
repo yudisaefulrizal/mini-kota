@@ -18,13 +18,17 @@ try{
   // Both cities show the same 13 gates; vehicles come in only there and at the kawasan.
   assert.deepEqual(await page.evaluate(()=>Object.values(window.miniKota.cities).map(c=>c.engine.gates.length)),[13,13]);
   const kinds=await page.evaluate(()=>{const {baseline,smart}=window.miniKota.cities;return {b:[baseline.engine.adaptive,baseline.engine.binMode],s:[smart.engine.adaptive,smart.engine.binMode],sensed:smart.engine.summary().sensedSignals};});
-  // Theme button: follows the system, then light, then dark (remembered), then back.
+  // Theme button: light by default (even on a dark system), then dark (remembered), then
+  // following the system, then light again.
   const theme=()=>page.evaluate(()=>[document.documentElement.dataset.theme??'auto',getComputedStyle(document.documentElement).backgroundColor]);
-  const light=await theme();
-  await page.click('.theme-toggle');await page.click('.theme-toggle');
+  await page.emulateMedia({colorScheme:'dark'});
+  const light=await theme();assert.equal(light[0],'light');
+  await page.click('.theme-toggle');
   const dark=await theme();assert.equal(dark[0],'dark');assert.notEqual(dark[1],light[1]);
   assert.equal(await page.evaluate(()=>localStorage.getItem('miniKota.theme')),'dark');
+  await page.click('.theme-toggle');assert.equal((await theme())[0],'auto');
   await page.click('.theme-toggle');assert.deepEqual(await theme(),light);
+  await page.emulateMedia({colorScheme:'light'});
   assert.deepEqual(kinds.b,[false,'schedule']);assert.deepEqual(kinds.s,[true,'sensor']);assert.equal(kinds.sensed,15);
 
   // Running: both clocks advance together and the comparison fills in.
