@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#173b37"><script>try{const t=localStorage.getItem("miniKota.theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script><title>Editor Peta — Mini Kota</title>  <script type="module" crossorigin src="./assets/editorPeta-DKxIavIY.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/theme-uxIGglQX.js">
+  <link rel="modulepreload" crossorigin href="./assets/three.module-DDD3lHo1.js">
+  <link rel="modulepreload" crossorigin href="./assets/devices-D4rEPVG_.js">
+  <link rel="modulepreload" crossorigin href="./assets/default-map-Be57rDoD.js">
+  <link rel="modulepreload" crossorigin href="./assets/GLTFLoader-3EkZ1uMP.js">
+  <link rel="modulepreload" crossorigin href="./assets/view-DKtWyU6j.js">
+  <link rel="stylesheet" crossorigin href="./assets/theme-C9wjnnyn.css">
+  <link rel="stylesheet" crossorigin href="./assets/editorPeta-Clfc2w-n.css">
+</head><body>
+<header class="bar"><a href="./index.html">← Simulasi</a><h1>Editor peta <small>jalan, aset, lampu, simpan &amp; simulasi</small></h1><span class="theme-slot" data-theme-slot></span><span>mini kota.</span></header>
+<div class="layout">
+<div id="stage" class="stage" aria-label="Kanvas peta. Gunakan alat di toolbar untuk menggambar dan mengedit jalan."><p id="stage-error" class="stage-error" hidden></p>
+<div class="toolbar" role="toolbar" aria-label="Alat">
+<div class="group"><button type="button" data-tool="select" title="Pilih & edit (V)">↖ Pilih</button><button type="button" data-tool="road" title="Gambar jalan (R)">✎ Jalan</button><button type="button" data-tool="junction" title="Tambah simpang di badan jalan (J)">✚ Simpang</button><button type="button" data-tool="erase" title="Hapus jalan atau simpul (X)">⌫ Hapus</button></div>
+<div class="group"><button type="button" id="undo" title="Batalkan (Ctrl+Z)">↶</button><button type="button" id="redo" title="Ulangi (Ctrl+Y)">↷</button></div>
+<div class="group"><button type="button" id="sim-toggle" class="sim-toggle" title="Jalankan simulasi lalu lintas pada peta ini (Spasi: jeda)">▶ Simulasikan</button></div>
+<div class="group"><button type="button" id="view-top" title="Tampilan dari atas">⊞ Atas</button><button type="button" id="view-perspective" title="Tampilan perspektif">◈ Perspektif</button></div>
+</div>
+<p id="status" class="status" aria-live="polite"></p>
+<button type="button" id="compass" class="compass" title="Arah utara. Klik untuk meluruskan peta ke utara."><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 4 L27 22 L20 18 L13 22 Z" fill="#c4553b"/><path d="M20 36 L13 22 L20 26 L27 22 Z" fill="#9fb0a4"/></svg><span>U</span></button>
+<div class="map-help"><details class="tip left"><summary aria-label="Keterangan" title="Keterangan">!</summary><div class="tip-body"><p id="nav-hint"></p></div></details></div>
+<details id="net-legend" class="net-legend" open hidden><summary>Perangkat &amp; jaringan</summary><div></div></details>
+<aside id="device-card" class="device-card" hidden aria-live="polite"></aside>
+</div>
+<aside class="panel">
+<section class="card" id="draft-card" hidden></section>
+<section class="card" id="sim-card"><h2>Simulasi lalu lintas<details class="tip "><summary aria-label="Keterangan" title="Keterangan">!</summary><div class="tip-body"><p>Kendaraan masuk dan keluar di gerbang kota (bertanda) dan pintu kawasan; gang buntu tidak memunculkan kendaraan. Kendaraan memilih rute tercepat, berpindah lajur, dan mematuhi lampu.</p><p>Perangkat ikut bekerja: kamera detektor antrean untuk lampu adaptif, angkot singgah di halte, sensor tempat sampah memanggil truk, pejalan kaki menyeberang di zebra cross. Peta dikunci selama simulasi.</p><p><strong>Timer lampu:</strong> sisa detik sampai warna berganti; tanda ~ pada lampu adaptif berarti perkiraan dengan hijau maksimum.</p></div></details></h2>
+<button type="button" class="secondary" id="sim-start">▶ Mulai simulasi</button>
+<div class="row" id="sim-running" hidden><button type="button" class="secondary" id="sim-pause">Ⅱ Jeda</button><button type="button" class="danger" id="sim-stop">■ Hentikan</button></div>
+<label class="field">Kecepatan <select id="sim-speed"><option value="1">1× (waktu nyata)</option><option value="2">2×</option><option value="5" selected>5×</option><option value="10">10×</option><option value="20">20×</option></select></label>
+<label class="field">Kendaraan per jam <input type="number" id="sim-demand" value="900" min="0" max="6000" step="100"></label>
+<label class="field">Pejalan kaki <input type="number" id="sim-people" value="40" min="0" max="2000" step="10"></label>
+<label class="inline"><input type="checkbox" id="sim-adaptive"> Lampu adaptif (pakai kamera detektor)</label>
+<details class="advanced"><summary>Lanjutan</summary>
+<label class="field">Zona deteksi kamera (m) <input type="number" id="sim-zone" value="80" min="20" max="200" step="10"></label>
+<label class="field">Variasi kecepatan pengemudi (%) <input type="number" id="sim-spread" value="10" min="0" max="30" step="1"></label>
+<label class="inline"><input type="checkbox" id="sim-overtaking" checked> Kendaraan boleh menyalip</label>
+</details>
+<p class="hint" id="sim-adaptive-note" hidden></p>
+<div id="sim-stats" class="stats" hidden></div>
+
+</section>
+<section class="card" id="map-card"><h2>Peta<details class="tip "><summary aria-label="Keterangan" title="Keterangan">!</summary><div class="tip-body"><p>Peta nyata: ekspor area dari openstreetmap.org (tombol <em>Export</em>), lalu buka file <code>.osm</code>-nya lewat <em>Buka file…</em>. Jalan, simpang, dan lampu lalu lintas dibuat otomatis.</p><p>Suntingan tersimpan otomatis sebagai draf di browser ini; <em>Unduh .json</em> untuk menyimpannya sebagai file.</p></div></details></h2>
+<label class="field">Mulai dari <select id="map-select"><option value="minikota-lengkap" selected>Mini Kota lengkap (jalan + semua aset)</option><option value="minikota">Mini Kota (jalan saja)</option><option value="maps/peta-uji.json">Peta uji pembentuk jalan</option><option value="empty">Peta kosong (600 × 400 m)</option></select></label>
+<label class="field">Nama peta <input type="text" id="map-name" maxlength="80"></label>
+<div class="row"><button type="button" id="open-file" class="secondary">Buka file…</button><button type="button" id="download" class="secondary">Unduh .json</button></div>
+<input type="file" id="file-input" accept=".json,application/json,.osm" hidden>
+<p class="hint" id="save-state" aria-live="polite"></p>
+</section>
+
+<section class="card" id="reach-card"><h2>Jangkauan gateway<details class="tip "><summary aria-label="Keterangan" title="Keterangan">!</summary><div class="tip-body"><p>Jarak garis lurus dari gateway. Kabel Ethernet paling panjang 100 m dan mengikuti tepi jalan, jadi bawaannya 75 m. LoRaWAN di kota ±1–3 km, bawaannya 1 km.</p><p>Disimpan bersama peta; dipakai untuk sambungan otomatis, peringatan, lingkaran jangkauan, dan <em>Rapikan</em>.</p></div></details></h2>
+<label class="field">Kabel (m) <input type="number" id="reach-cable" min="10" max="100" step="5" value="75"></label>
+<label class="field">LoRaWAN (m) <input type="number" id="reach-lora" min="100" max="5000" step="50" value="1000"></label>
+</section>
+<section class="card" id="tidy-card"><h2>Rapikan<details class="tip "><summary aria-label="Keterangan" title="Keterangan">!</summary><div class="tip-body"><p><em>Rapikan seluruh peta</em> merapikan jalan (persilangan menjadi perempatan, simpul berdekatan digabung, ujung jalan ditempelkan, simpang terlalu dekat digabung, ruas sangat pendek dirapikan), lalu memasang ulang aset otomatis: lampu, kamera, pengendali, gateway, gedung, lampu jalan, pohon, halte, dan tempat sampah.</p><p>Aset yang Anda pasang, pindahkan, atau putar sendiri tetap ada. Satu langkah, bisa dibatalkan (Ctrl+Z).</p></div></details></h2>
+<label class="inline"><input type="checkbox" id="auto-tidy" checked> Rapikan otomatis setelah mengedit</label>
+<button type="button" id="tidy-all" class="secondary">Rapikan seluruh peta</button>
+</section>
+<section id="road-tool" class="card">
+<h2>Alat jalan</h2>
+<div class="field">Jenis jalan<div id="profile-buttons" class="chips" role="radiogroup" aria-label="Jenis jalan"></div></div>
+<div class="field">Cara menggambar<div class="chips" role="radiogroup" aria-label="Cara menggambar"><button type="button" data-mode="click" aria-pressed="true">Klik titik</button><button type="button" data-mode="drag" aria-pressed="false">Tarik</button></div></div>
+<label class="inline"><input type="checkbox" id="snap" checked> Tempel otomatis dalam <input type="number" id="snap-distance" value="10" min="1" max="50" step="1"> m</label>
+<p class="hint" id="road-hint"></p>
+</section>
+
+<section id="selection" class="card" hidden></section>
+
+<section class="card" id="toolbox"><h2>Aset<details class="tip "><summary aria-label="Keterangan" title="Keterangan">!</summary><div class="tip-body"><p>Seret aset ke peta, atau klik aset lalu klik di peta. Aset menempel otomatis ke tempat yang sesuai; tahan <kbd>Alt</kbd> untuk penempatan bebas.</p></div></details></h2>
+<div id="asset-groups"><p class="hint">Memuat daftar aset…</p></div>
+</section>
+
+<fieldset class="layers"><legend>Lapisan</legend>
+<label><input type="checkbox" id="layer-markings" checked> Marka</label>
+<label><input type="checkbox" id="layer-sidewalks" checked> Trotoar</label>
+<label><input type="checkbox" id="layer-lots" checked> Kawasan</label>
+<label><input type="checkbox" id="layer-graph"> Garis tengah &amp; simpul</label>
+<label><input type="checkbox" id="layer-objects" checked> Aset</label>
+<label><input type="checkbox" id="layer-links" checked> Jaringan perangkat (ikon, kabel, radio)</label>
+</fieldset>
+<section id="stats" class="stats" aria-live="polite"></section>
+<section id="warnings"></section>
+<details class="help"><summary>Pintasan</summary><ul>
+<li><kbd>V</kbd> pilih · <kbd>R</kbd> jalan · <kbd>J</kbd> simpang · <kbd>X</kbd> hapus</li>
+<li>Klik titik: klik untuk menambah titik, <kbd>Enter</kbd> atau klik ganda untuk selesai, <kbd>Backspace</kbd> hapus titik terakhir, <kbd>Esc</kbd> batal</li>
+<li>Tahan <kbd>Alt</kbd> agar tidak menempel</li>
+<li>Pilih jalan lalu tarik titiknya; klik ganda di jalan untuk menambah titik; <kbd>Delete</kbd> menghapus</li>
+<li>Aset terpilih: seret untuk memindah, <kbd>Q</kbd>/<kbd>E</kbd> putar 15°, <kbd>Delete</kbd> hapus</li>
+<li><kbd>Ctrl+Z</kbd> batal · <kbd>Ctrl+Y</kbd> ulangi</li>
+<li><strong>Cukup dengan mouse:</strong> klik kanan + seret = putar (kiri–kanan) dan miringkan (atas–bawah) mengelilingi titik di bawah kursor</li>
+<li>Klik kiri + seret di area kosong, atau klik tengah + seret: geser (titik yang dipegang ikut kursor)</li>
+<li>Roda: zoom ke arah kursor · dobel klik kanan: terbang ke titik itu · kompas: luruskan ke utara · tombol Atas / Perspektif: seluruh peta</li>
+<li>Opsional: <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / panah geser, <kbd>Q</kbd> <kbd>E</kbd> putar (memutar aset bila aset dipilih), <kbd>+</kbd> <kbd>−</kbd> zoom, <kbd>F</kbd> fokus, <kbd>Home</kbd> seluruh peta · touchpad: dua jari geser, cubit zoom</li>
+<li>Saat simulasi: klik kendaraan untuk mengikutinya, <kbd>Esc</kbd> untuk berhenti</li>
+</ul></details>
+</aside>
+</div></body></html>

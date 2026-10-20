@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#173b37"><script>try{const t=localStorage.getItem("miniKota.theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script><title>Diagram 3D — Mini Kota</title>  <script type="module" crossorigin src="./assets/diagram3d-DDd51fvo.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/theme-uxIGglQX.js">
+  <link rel="modulepreload" crossorigin href="./assets/three.module-DDD3lHo1.js">
+  <link rel="modulepreload" crossorigin href="./assets/OrbitControls-B_jJD3t2.js">
+  <link rel="modulepreload" crossorigin href="./assets/devices-D4rEPVG_.js">
+  <link rel="modulepreload" crossorigin href="./assets/default-map-Be57rDoD.js">
+  <link rel="modulepreload" crossorigin href="./assets/diagram-figures-BUrPzYvX.js">
+  <link rel="stylesheet" crossorigin href="./assets/theme-C9wjnnyn.css">
+  <link rel="stylesheet" crossorigin href="./assets/diagram3d-B19srOK-.css">
+</head><body>
+<header class="bar"><a href="./desain-teknis.html">← Desain Teknis</a><h1>Diagram 3D alur perangkat</h1><span class="theme-slot" data-theme-slot></span><span>mini kota.</span></header>
+<div class="layout">
+<div class="stage">
+<div id="scene" class="scene" aria-label="Diagram 3D perangkat. Gunakan daftar perangkat di panel untuk navigasi keyboard."></div>
+<p id="scene-fallback" class="fallback" hidden>WebGL tidak tersedia. Gunakan daftar perangkat di panel.</p>
+<div class="toolbar"><button type="button" id="toggle-flow" aria-pressed="false">Jeda aliran</button><button type="button" id="reset-view">Atur ulang kamera</button><button type="button" id="toggle-figures" aria-pressed="true">Angka</button><div class="color-mode" role="group" aria-label="Warna garis"><span>Warna:</span><button type="button" data-color="network" aria-pressed="true">Jaringan</button><button type="button" data-color="data" aria-pressed="false">Jenis data</button></div></div>
+<ul id="legend" class="legend" aria-label="Arti warna garis"></ul>
+<p id="figures-note" class="figures-note"></p>
+<p class="hint">Geser untuk memutar · scroll / cubit untuk zoom · klik perangkat untuk detail</p>
+</div>
+<aside class="panel">
+<section class="tour"><button type="button" id="tour-start" class="primary">▶ Ikuti alur data</button>
+<div id="tour-box" hidden><p id="tour-step" class="eyebrow"></p><h2 id="tour-title"></h2><p id="tour-text"></p><div id="tour-devices" class="chips"></div><div class="tour-nav"><button type="button" id="tour-prev">← Sebelumnya</button><button type="button" id="tour-next">Berikutnya →</button><button type="button" id="tour-close">Tutup</button></div></div></section>
+<section id="device-info" aria-live="polite"></section>
+<details class="device-list"><summary>Daftar perangkat</summary><div id="device-buttons" class="chips"></div></details>
+<p class="note">Spesifikasi dan jumlah gateway adalah usulan. Simulasi Mini Kota tidak menjalankan perangkat ini.</p>
+</aside>
+</div></body></html>
