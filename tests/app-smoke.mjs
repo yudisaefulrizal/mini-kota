@@ -34,6 +34,10 @@ try{
   assert.equal(await page.locator('#comparison-results tr').count(),8);
   assert.match(await page.textContent('#smart-clock'),/HARI 01 06:0/);
 
+  // In the comparison the smart city's half shows its devices, network and zones too.
+  assert.equal(await page.evaluate(()=>window.miniKota.mode),'compare');
+  assert.equal(await page.isVisible('#net-legend'),true);
+  await page.waitForFunction(()=>{const c=window.miniKota.cities.smart;return c.network.visible&&c.zones.visible;});
   // Tabs: one city, then the smart city with its device network.
   await page.click('[data-mode=baseline]');assert.equal(await page.isHidden('#smart-view'),true);
   await page.click('[data-mode=smart]');   // the smart city shows its devices

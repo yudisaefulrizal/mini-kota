@@ -1,6 +1,6 @@
 /* Device legend and card of the "Cerdas × perangkat" view (same look as in the editor). */
 .net-legend{position:absolute;left:12px;top:60px;z-index:3;background:var(--c-ffffffed);border-radius:8px;padding:8px 11px;font-size:11px;color:var(--c-36533f);box-shadow:0 4px 15px var(--c-3450300f);max-width:250px}
-.net-legend[hidden]{display:none}.net-legend summary{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;cursor:pointer}
+.net-legend[hidden]{display:none}.net-legend{pointer-events:auto}.net-legend summary{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;cursor:pointer}
 .net-legend>div{display:grid;gap:4px;margin-top:6px}.net-legend span{display:flex;align-items:center;gap:7px}
 .net-legend i,.device-card h3 i{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;color:var(--c-ffffff);font-style:normal;font-size:9px;font-weight:700;flex:none;border:1.5px solid var(--c-ffffff);box-shadow:0 0 0 1px var(--c-00000022)}
 .net-legend i.square,.device-card h3 i.square{border-radius:4px;width:20px}

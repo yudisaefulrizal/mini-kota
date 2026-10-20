@@ -121,14 +121,16 @@ function setMapMode(next){
   $('equipment-view').hidden=mode!=='equipment';$('editor-view').hidden=mode!=='editor';
   if(mode==='equipment')equipment.open();
   if(mode==='editor'&&!$('editor-frame').src)$('editor-frame').src='./editor-peta.html?embed=1';
-  if(mode!=='smart')hideDeviceCard();
+  if(!showsDevices())hideDeviceCard();
+  $('net-legend').open=mode==='smart';   // folded beside the ordinary city, open in its own tab
   renderLegend();layout();
 }
 document.querySelector('.map-tabs').addEventListener('click',e=>{const tab=e.target.closest('[data-mode]');if(tab)setMapMode(tab.dataset.mode);});
 
-// ---------------------------------------------------------------- devices (shown in the smart city tab)
+// ---------------------------------------------------------------- devices (shown with the smart city: its tab and the comparison)
+const showsDevices=()=>mode==='smart'||mode==='compare';
 function renderLegend(){
-  const box=$('net-legend'),html=mode==='smart'&&cities.smart.map?legendHtml(cities.smart.map,{live:true}):'';
+  const box=$('net-legend'),html=showsDevices()&&cities.smart.map?legendHtml(cities.smart.map,{live:true}):'';
   box.hidden=!html;if(html)box.querySelector('div').innerHTML=html;
 }
 let cardDevice=null;
@@ -157,7 +159,9 @@ renderer.domElement.addEventListener('pointermove',e=>{
 });
 renderer.domElement.addEventListener('pointerup',e=>{
   const click=leftPan;leftPan=null;
-  if(!click||e.button!==0||mode!=='smart'||!cities.smart.network)return;
+  if(!click||e.button!==0||!showsDevices()||!cities.smart.network)return;
+  // In the comparison only the smart city's half has devices.
+  const r=views.smart.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)return;
   controls.ray(e.clientX,e.clientY);const id=cities.smart.network.pick(controls.raycaster);
   if(id)showDeviceCard(id);else hideDeviceCard();
 });
@@ -210,7 +214,7 @@ function ui(){
   $('city-details-rows').innerHTML=detail.map(([k,x,y])=>`<tr><th scope="row">${k}</th><td>${x}</td><td>${y}</td></tr>`).join('');
   $('run-status').textContent=paused?'Simulasi dijeda':fastForward?'Mempercepat 1 jam…':'Simulasi aktif';
   if(mode==='equipment')equipment.refresh();
-  if(mode==='smart')renderDeviceCard();
+  if(showsDevices())renderDeviceCard();
   if($('data-center-details').open)renderDataCenterLoad();
 }
 
@@ -280,7 +284,7 @@ renderer.setAnimationLoop(now=>{
   for(const r of rects){
     const city=cities[r.kind];if(!city.view)continue;
     camera.aspect=r.width/r.height;camera.updateProjectionMatrix();
-    city.draw(camera,r.height,dt,{network:mode==='smart'&&r.kind==='smart'&&!driving.active,paused,labels:!driving.active});
+    city.draw(camera,r.height,dt,{network:showsDevices()&&r.kind==='smart'&&!driving.active,paused,labels:!driving.active});
     city.scene.add(controls.marker);   // the orbit anchor marker shows in whichever view is drawn
     renderer.setViewport(r.x,r.y,r.width,r.height);renderer.setScissor(r.x,r.y,r.width,r.height);
     renderer.render(city.scene,camera);
