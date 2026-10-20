@@ -3,7 +3,7 @@ import {recorder,chooseSetting,compose,MODELS,STEP,BASE_SETTING} from '../analys
 import {firstMorning,masehi,hijriah,clockText} from '../analysis/calendar.js';
 import * as store from '../analysis/store.js';
 
-// "Analisis" tab: the smart city learns from its own history (see tujuan-analisis.md).
+// "Analisis" tab: the smart city learns from its own history (see docs/tujuan-analisis.md).
 // While it runs, a record is taken every 5 s and kept in this browser (IndexedDB). Every
 // "periode latih" records (or on Latih sekarang) four models are trained on the history in a
 // worker (src/analysis/worker.js) and applied straight away to the running city; Bayesian

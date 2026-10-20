@@ -30,7 +30,8 @@ public/models/
 └── <kategori>/<id>.glb     HASIL — model yang dimuat aplikasi
 ```
 
-Folder berlabel HASIL jangan diedit manual; jalankan ulang skripnya.
+Folder berlabel HASIL jangan diedit manual; jalankan ulang skripnya. `sources/` dan `previews/` tidak
+disimpan di git (dibuat ulang oleh `npm run assets`); `public/models/` disimpan karena dipakai aplikasi.
 
 ## Membangun
 

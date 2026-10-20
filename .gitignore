@@ -4,5 +4,9 @@ test-results/
 __pycache__/
 *.blend1
 
+# Keluaran skrip aset (npm run assets); dibuat ulang dengan Blender
+assets/sources/
+assets/previews/
+
 # Materi kuliah dosen (bukan milik proyek; repositori publik)
 materi-dosen/

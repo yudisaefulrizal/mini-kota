@@ -1,7 +1,7 @@
 import {labels,context} from './calendar.js';
 import {gbtFit,gbtPredict,gpFit,gpPredict,lcb} from './ml.js';
 
-// The smart city learns from its own history (see tujuan-analisis.md). While it runs, a record
+// The smart city learns from its own history (see docs/tujuan-analisis.md). While it runs, a record
 // is taken every 5 s; each record holds one row per id (long format):
 //   arah           per camera: junction, camera, vehicles over the stop line, vehicles in zone
 //   simpang        per junction: phase on, its green so far, phase whose green ran out (-1)
