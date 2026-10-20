@@ -1,4 +1,4 @@
-# Smart City Digital Twin — Kota Konvensional vs Kota Cerdas
+# Smart City Digital Twin
 
 Coba langsung: https://smart-city.nuscode.id/
 
