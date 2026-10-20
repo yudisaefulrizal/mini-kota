@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {onThemeChange} from './theme.js';
+import {onThemeChange,tip} from './theme.js';
 import {validateMap,emptyMap,DEFAULT_PROFILES} from './map/format.js';
 import {buildGeometry,pointAt,polylineLength,CLUSTER_LINK} from './map/geometry.js';
 import {buildRoadMeshes,buildGraphOverlay,buildLots,buildGround,buildGateMarkers,ROAD_COLORS} from './map/mesh.js';
@@ -384,7 +384,7 @@ function renderPanel(){
 <div class="field">Arah<div class="rotate"><button type="button" id="rot-l" title="Putar kiri (Q)">⟲ 15°</button><input type="number" id="sel-rot" value="${o.rotation||0}" step="15"> °<button type="button" id="rot-r" title="Putar kanan (E)">⟳ 15°</button></div></div>
 ${SENSOR_ASSETS.has(o.asset)?(gateways.length?`<label class="field">Gateway<select id="sel-gw"><option value="">Otomatis (dalam jangkauan${gw?.auto?`: ${esc(gw.id)}`:''})</option>${gateways.map(g=>`<option value="${g.id}" ${o.gateway===g.id?'selected':''}>${esc(g.id)} · ${fmt(Math.hypot(g.x-o.x,g.z-o.z),0)} m</option>`).join('')}</select></label>`:'<p class="hint bad">Belum ada gateway di peta. Pasang aset Gateway edge.</p>'):''}
 ${far?`<p class="hint bad">Di luar jangkauan gateway terdekat (${fmt(gw.distance,0)} m; ${o.asset==='bin-sensor'?`LoRaWAN ${fmt(reachOf(map).lora,0)} m`:`kabel ${fmt(reachOf(map).cable,0)} m`}). Pasang gateway lebih dekat atau ubah jangkauan.</p>`:''}
-${o.asset==='gateway'?`<p class="hint">Melayani ${served} perangkat. Lingkaran: jangkauan kabel ${fmt(reachOf(map).cable,0)} m. Sensor sampah memakai radio LoRaWAN gateway terdekat (sampai ${fmt(reachOf(map).lora,0)} m).</p>`:''}
+${o.asset==='gateway'?`<div class="hint">Melayani ${served} perangkat.${tip(`<p>Lingkaran: jangkauan kabel ${fmt(reachOf(map).cable,0)} m. Sensor sampah memakai radio LoRaWAN gateway terdekat (sampai ${fmt(reachOf(map).lora,0)} m).</p>`)}</div>`:''}
 ${o.asset==='cctv'?cameraPanel(o):''}
 ${networkRows(o.id)}
 <button type="button" class="danger" id="sel-delete">Hapus aset</button>`;
@@ -455,8 +455,7 @@ function clusterPanel(n){
   const cycle=Math.max(...c.nodes.map(id=>planOf(map.nodes.find(x=>x.id===id))?.cycle||0));
   const lengths=c.roads.map(linkLength),first=c.nodes[0];
   const offset=n.signalPlan?.offset??0;
-  return `<div class="cluster"><strong>Simpang gabungan: ${c.nodes.map(esc).join(' + ')}</strong>
-<p class="hint">Ruas tengah ${lengths.map(l=>`${fmt(l)} m`).join(', ')}: satu pengendali dan satu siklus ${fmt(cycle,0)} detik untuk semuanya. Kendaraan yang sudah hijau tidak dihentikan lagi di simpang berikutnya; ruas tengah diberi kotak kuning (dilarang berhenti), tanpa garis henti dan zebra cross.</p>
+  return `<div class="cluster"><strong>Simpang gabungan: ${c.nodes.map(esc).join(' + ')}</strong>${tip(`<p>Ruas tengah ${lengths.map(l=>`${fmt(l)} m`).join(', ')}: satu pengendali dan satu siklus ${fmt(cycle,0)} detik untuk semuanya. Kendaraan yang sudah hijau tidak dihentikan lagi di simpang berikutnya; ruas tengah diberi kotak kuning (dilarang berhenti), tanpa garis henti dan zebra cross.</p>`)}
 ${n.id===first?'<p class="hint">Simpang ini memulai siklus.</p>':`<label class="inline">Mulai <input type="number" id="sel-offset" value="${offset}" min="0" max="${Math.round(cycle)}" step="1"> dtk setelah ${esc(first)}</label>`}
 <label class="inline"><input type="checkbox" id="sel-cluster" checked> Atur sebagai simpang gabungan</label>
 ${Math.min(...lengths)<MERGE_BELOW?`<button type="button" class="secondary" id="sel-merge">Gabung jadi satu simpang</button><p class="hint">Ruas tengah di bawah ${MERGE_BELOW} m: bisa juga dijadikan satu simpang besar (bentuk jalan berubah).</p>`:''}</div>`;

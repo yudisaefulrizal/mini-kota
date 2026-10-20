@@ -37,6 +37,7 @@ try{
   assert.match(await page.textContent('#sim-stats'),/Perjalanan selesai/);
   // Driver settings reach the running simulation.
   assert.match(await page.textContent('#sim-stats'),/Kendaraan menyalip\s*\d+/);
+  await page.click('#sim-card .advanced summary');
   await page.fill('#sim-spread','20');await page.dispatchEvent('#sim-spread','change');await page.uncheck('#sim-overtaking');
   assert.deepEqual(await page.evaluate(()=>{const e=window.mapEditor.sim.engine;return [e.speedSpread,e.overtaking];}),[0.2,false]);
 

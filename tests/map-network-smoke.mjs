@@ -38,6 +38,7 @@ try{
   assert.match(await page.textContent('#selection'),/Memantau arah datang dari/);
   assert.deepEqual(await page.evaluate(()=>{const z=window.mapEditor.zones;return [z.visible,z.zones.length,z.zones[0]?.id];}),[true,1,dome.id]);
   // One zone length for all cameras, in the simulation panel; the preview follows it.
+  await page.click('#sim-card .advanced summary');   // less used settings are folded
   await page.fill('#sim-zone','50');await page.dispatchEvent('#sim-zone','change');
   await page.waitForFunction(()=>window.mapEditor.zones.zones.length===1&&/50 m/.test(document.getElementById('selection').textContent));
   await page.fill('#sim-zone','80');await page.dispatchEvent('#sim-zone','change');

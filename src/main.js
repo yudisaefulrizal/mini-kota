@@ -233,7 +233,7 @@ function renderDataCenterLoad(){
   let e;try{e=estimateDataCenter(m,dataCenterConfig);$('data-center-error').textContent='';}catch(error){$('data-center-error').textContent=error.message;return;}
   $('data-center-summary').innerHTML=[['Sensor',fmt(e.totalSensors)],['Pesan/detik',fmt(e.eventsPerSecond,1)],['vCPU',e.vcpu],['RAM',`${e.ramGB} GB`],['Penyimpanan',`${fmt(e.storageGB,1)} GB`],['Jaringan',`${fmt(e.networkMbps,2)} Mbps`]]
     .map(([k,v])=>`<div><span>${k}</span><strong>${v}</strong></div>`).join('');
-  $('data-center-load').textContent=`Beban dari ${fmt(e.totalSensors)} sensor dan ${fmt(e.signalControllers)} pengendali simpang. Hanya data agregat (jumlah kendaraan per pendekat, isi tempat sampah); tidak ada identitas atau pelacakan kendaraan, sehingga jumlah kendaraan tidak menambah beban.`;
+  $('data-center-load').textContent=`Beban dari ${fmt(e.totalSensors)} sensor dan ${fmt(e.signalControllers)} pengendali simpang.`;
   $('data-center-compute').innerHTML=`<p>${fmt(e.eventsPerSecond,1)} pesan sensor/detik, ${fmt(e.signalEvaluationsPerSecond)} evaluasi lampu/detik ≈ ${fmt(e.cpuCores,3)} inti CPU → ${e.vcpu} vCPU (beban 60%).</p>
 <p>Data harian ${fmt(e.dailyGB,2)} GB; retensi ${e.config.retentionDays} hari dengan 2 salinan + 30% cadangan → ${fmt(e.storageGB,1)} GB.</p>
 <p>${e.activeNodes} node aktif (${e.nodeVcpu} vCPU, ${e.nodeRamGB} GB RAM per node) + 1 cadangan = ${e.totalNodes} node.</p>`;

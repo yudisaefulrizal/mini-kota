@@ -36,6 +36,11 @@ try{
   assert.equal(await page.locator('#comparison-results tr').count(),8);
   assert.match(await page.textContent('#smart-clock'),/HARI 01 06:0/);
 
+  // "!" buttons: one open at a time; a click elsewhere closes it.
+  const tips=page.locator('#scenario details.tip summary');
+  await tips.nth(0).click();assert.equal(await page.locator('details.tip[open]').count(),1);
+  await tips.nth(1).click();assert.equal(await page.locator('details.tip[open]').count(),1);
+  await page.click('#map-title');assert.equal(await page.locator('details.tip[open]').count(),0);
   // In the comparison the smart city's half shows its devices, network and zones too.
   assert.equal(await page.evaluate(()=>window.miniKota.mode),'compare');
   assert.equal(await page.isVisible('#net-legend'),true);
@@ -100,6 +105,7 @@ try{
   await page.fill('[name=demand]','600');await page.dispatchEvent('[name=demand]','input');
   await page.waitForFunction(()=>window.miniKota.cities.smart.engine?.demand===600&&document.getElementById('loading').hidden,null,{timeout:90000});
   // The cameras' detection zone is a traffic setting too.
+  await page.click('#scenario .advanced summary');   // less used settings are folded
   await page.fill('[name=zone]','50');await page.dispatchEvent('[name=zone]','input');
   await page.waitForFunction(()=>{const e=window.miniKota.cities.smart.engine;return e?.zone===50&&e.sensors.every(s=>s.zone===50)&&document.getElementById('loading').hidden;},null,{timeout:90000});
   await page.evaluate(async()=>{const map=await (await fetch('maps/peta-uji.json')).json();localStorage.setItem('minikota.editor.draft',JSON.stringify({savedAt:new Date().toISOString(),map}));});

@@ -79,11 +79,11 @@ summary:focus-visible,a:focus-visible{outline:2px solid var(--c-426e50);outline-
 #city-details>.panel,#city-details>.stats{margin:14px}
 #data-center-details .data-center-panel{border:0;margin:0}
 .result-details{margin-bottom:12px}
-.comparison-panel>.section-title>span{display:none}
+.comparison-panel>.section-title>span:not(.title-with-tip){display:none}
 .comparison-saving{font-size:14px;margin:14px 0}
 main>header{margin-bottom:12px}
 @media(max-width:650px){.sidebar{width:100%;padding:24px 18px}.disclosure>summary{padding:14px}}
-.explanation-link{display:block;margin:18px 0 28px;font-size:13px;color:var(--c-526d5b);text-underline-offset:4px}
+.side-links{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:16px 0 26px;font-size:13px}.side-links a{color:var(--c-526d5b);text-underline-offset:4px}
 .dc-table td:last-child{text-align:right}
 #apply-status:empty{display:none}
 /* Map menu */
@@ -91,8 +91,8 @@ main>header h2{margin-bottom:10px}
 .map-tabs{display:flex;flex-wrap:wrap;gap:6px}.map-tabs button{font:inherit;font-size:12.5px;padding:6px 12px;border-radius:999px;border:1px solid var(--c-cfdacb);background:var(--c-ffffff);color:var(--c-456047);cursor:pointer}.map-tabs button:hover{border-color:var(--c-7a9586)}.map-tabs button[aria-selected=true]{background:var(--c-2f5d45);border-color:var(--c-2f5d45);color:var(--c-ffffff);font-weight:600}.map-tabs button:focus-visible{outline:2px solid var(--c-426e50);outline-offset:2px}
 #viewport:not([data-mode=compare]){grid-template-columns:1fr;grid-template-rows:1fr}
 #viewport[data-mode=baseline] #smart-view,#viewport[data-mode=smart] #baseline-view{display:none}
-#viewport[data-mode=equipment],#viewport[data-mode=equipment]~.timer-hint{display:none}
-#viewport[data-mode=editor],#viewport[data-mode=editor]~.timer-hint{display:none}
+#viewport[data-mode=equipment]{display:none}
+#viewport[data-mode=editor]{display:none}
 body.driving #viewport[data-mode=editor]{display:block}
 body.driving #viewport[data-mode=equipment]{display:block}
 #viewport:not([data-mode=compare]) .map-view{border:0}
@@ -137,5 +137,11 @@ body.driving #viewport[data-mode=equipment]{display:block}
 .city-compass svg{width:26px;height:26px}.city-compass span{position:absolute;top:-1px;font-size:8px;font-weight:700;color:var(--c-173b37)}
 .city-compass:hover{border-color:var(--c-456047)}
 body.driving .city-compass{display:none}
-.nav-hint-main{margin:6px 0 0;font-size:10.5px;color:var(--c-6c806e)}.nav-hint-main strong{color:var(--c-456047);font-weight:600}
-#viewport[data-mode=equipment]~.nav-hint-main,#viewport[data-mode=editor]~.nav-hint-main{display:none}
+
+/* "!" with how to use the map, above the compass. */
+.map-help{position:absolute;z-index:4;right:24px;bottom:150px}.map-help .tip{margin:0}.map-help .tip>summary{width:23px;height:23px;font-size:13px}
+body.driving .map-help{display:none}
+.panel .section-title .title-with-tip{font-size:inherit;font-weight:inherit;letter-spacing:inherit;color:inherit;display:inline-flex;align-items:center}
+.sidebar .field{white-space:nowrap}.sidebar .field input{width:64px;min-width:64px}
+.sidebar .settings-disclosure{position:relative}.sidebar .settings-disclosure .tip{position:static}
+.sidebar .settings-disclosure .tip-body{left:12px;right:12px;width:auto;top:auto;margin-top:6px}

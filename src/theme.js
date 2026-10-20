@@ -30,4 +30,10 @@ function mount(){
   apply();
 }
 media.addEventListener('change',apply);
+// "!" buttons (details.tip): one open at a time; a click elsewhere or Esc closes it.
+document.addEventListener('click',e=>{for(const t of document.querySelectorAll('details.tip[open]'))if(!t.contains(e.target))t.open=false;});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')for(const t of document.querySelectorAll('details.tip[open]'))t.open=false;});
+document.addEventListener('toggle',e=>{if(e.target.matches?.('details.tip')&&e.target.open)for(const t of document.querySelectorAll('details.tip[open]'))if(t!==e.target)t.open=false;},true);
+// The same button from script: tip('<p>…</p>', 'left up').
+export const tip=(html,place='')=>`<details class="tip ${place}"><summary aria-label="Keterangan" title="Keterangan">!</summary><div class="tip-body">${html}</div></details>`;
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();

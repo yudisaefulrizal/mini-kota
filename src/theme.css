@@ -9,3 +9,16 @@
 .theme-toggle.floating{position:fixed;right:14px;bottom:14px;z-index:50}
 header>.theme-slot{margin-left:auto;margin-right:14px}
 .sidebar .theme-slot{display:block;margin:-14px 0 26px}
+/* "!" button: a long explanation behind a click (details.tip > summary + .tip-body). */
+details.tip{border:0;padding:0}
+.tip{position:relative;display:inline-block;vertical-align:middle;margin:0 6px;text-transform:none;letter-spacing:0;font-weight:400}
+.tip>summary{list-style:none;cursor:pointer;width:17px;height:17px;border-radius:50%;display:inline-grid;place-items:center;font:700 11px/1 sans-serif;color:var(--c-ffffff);background:var(--c-819084);user-select:none}
+.tip>summary::-webkit-details-marker{display:none}
+.tip>summary:hover,.tip[open]>summary{background:var(--c-173b37)}
+.tip>summary:focus-visible{outline:2px solid var(--c-729b53);outline-offset:2px}
+.tip-body{position:absolute;z-index:60;top:23px;left:-10px;width:min(290px,78vw);padding:10px 12px;border-radius:8px;background:var(--c-ffffff);border:1px solid var(--c-dce5da);box-shadow:0 6px 20px var(--c-173b371f);font-size:12px;line-height:1.55;color:var(--c-36533f);white-space:normal;text-align:left}
+.tip.left .tip-body{left:auto;right:-10px}
+.tip.up .tip-body{top:auto;bottom:23px}
+.tip-body p{margin:0 0 6px}.tip-body p:last-child{margin:0}
+.field .tip{margin-right:auto}
+.sidebar .side-links .theme-slot{margin:0}

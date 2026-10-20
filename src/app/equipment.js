@@ -2,6 +2,7 @@ import {DEVICE_ICONS} from '../map/network.js';
 import {gatewayOf} from '../map/placement.js';
 import {deviceReadings,deviceLinks} from '../map/device-info.js';
 import {DEVICES,PROCESSES} from '../devices.js';
+import {tip} from '../theme.js';
 
 // "Perangkat" tab: the 3D device-flow diagram plus a live list of every device placed in the
 // smart city. Readings come from the simulation, standing in for real devices.
@@ -28,11 +29,11 @@ export function createEquipmentView({root,getCity,getFigures,onShowOnMap}){
   let filter='all',selected=null,rows=[],opened=false;
   root.innerHTML=`<section class="equipment-block"><div class="equipment-head"><h3>Alur perangkat 3D</h3><a href="./diagram-3d.html" target="_blank" rel="noopener">Buka layar penuh ↗</a></div>
 <iframe id="equipment-diagram" title="Diagram 3D alur perangkat" loading="lazy"></iframe></section>
-<section class="equipment-block"><div class="equipment-head"><h3>Daftar perangkat</h3><span id="equipment-total"></span></div>
+<section class="equipment-block"><div class="equipment-head"><h3>Daftar perangkat${tip('<p>Perangkat yang terpasang di peta kota cerdas. Pembacaannya berasal dari simulasi sebagai pengganti data perangkat; perangkat belum terpasang di lapangan.</p>')}</h3><span id="equipment-total"></span></div>
 <div class="equipment-filters" role="group" aria-label="Saring jenis perangkat" id="equipment-filters"></div>
 <div class="equipment-body"><div class="equipment-table-wrap"><table class="equipment-table"><thead><tr><th scope="col">Perangkat</th><th scope="col">Lokasi</th><th scope="col">Gateway</th><th scope="col">Pembacaan</th><th scope="col">Status</th></tr></thead><tbody id="equipment-rows"></tbody></table></div>
 <aside id="equipment-detail" class="equipment-detail" aria-live="polite"></aside></div>
-<p class="hint">Daftar ini adalah perangkat yang terpasang di peta kota cerdas. Pembacaan berasal dari simulasi sebagai pengganti data perangkat; perangkat belum terpasang di lapangan.</p></section>`;
+</section>`;
   const $=id=>root.querySelector(`#${id}`);
   const devices=()=>{const c=getCity();return c?.map?c.map.objects.filter(o=>DEVICE_ICONS[o.asset]):[];};
   const reading=(o,c)=>deviceReadings(c.engine,c.network,o).slice(0,2).map(([k,v])=>`${k}: ${v}`).join(' · ');
