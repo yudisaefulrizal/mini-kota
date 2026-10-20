@@ -5,13 +5,14 @@ import * as store from '../analysis/store.js';
 
 // "Analisis" tab: the smart city learns from its own history (see tujuan-analisis.md).
 // While it runs, a record is taken every 5 s and kept in this browser (IndexedDB). Every
-// "periode latih" records (or on Latih sekarang) six models are trained on the history in a
+// "periode latih" records (or on Latih sekarang) four models are trained on the history in a
 // worker (src/analysis/worker.js) and applied straight away to the running city; Bayesian
-// optimization then picks the light and truck settings for the moment, every 15 minutes.
+// optimization then picks the light settings for the moment, every 15 minutes. Trucks are
+// called by the bin sensors (no model).
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmt=(n,d=0)=>Number(n).toLocaleString('id-ID',{maximumFractionDigits:d});
 const when=t=>`${masehi(t)} ${clockText(t)}`;
-const NAMES={arus:'Prediksi arus per arah',isi:'Prediksi isi tempat sampah',tempuh:'Prediksi waktu tempuh antar simpang',hijau:'Optimasi durasi hijau per fase',tahan:'Optimasi penahanan hijau',truk:'Optimasi waktu pemanggilan truk'};
+const NAMES={arus:'Prediksi arus per arah',tempuh:'Prediksi waktu tempuh antar simpang',hijau:'Optimasi durasi hijau per fase',tahan:'Optimasi penahanan hijau'};
 const POLICY_EVERY=180;   // records between setting choices (15 minutes)
 const SETTINGS_KEY='mini-kota-analisis-input';
 const DEFAULTS={auto:true,period:17280,range:0};
@@ -19,7 +20,7 @@ const DEFAULTS={auto:true,period:17280,range:0};
 function newRegistry(key){
   return {key,count:0,firstT:null,lastT:null,nextSeq:0,chunks:[],sinceTrain:0,
     versions:Object.fromEntries(MODELS.map(m=>[m,0])),params:{},setting:{...BASE_SETTING},
-    settingLog:{hijau:{0:{scale:1}},tahan:{0:{horizon:0}},truk:{0:{tau:null}}},trainings:[]};
+    settingLog:{hijau:{0:{scale:1}},tahan:{0:{horizon:0}}},trainings:[]};
 }
 
 export function createAnalysisView({root,onApplied=()=>{}}){
@@ -28,7 +29,7 @@ export function createAnalysisView({root,onApplied=()=>{}}){
   try{input={...DEFAULTS,...JSON.parse(localStorage.getItem(SETTINGS_KEY)||'{}')};}catch{}
   const saveInput=()=>{try{localStorage.setItem(SETTINGS_KEY,JSON.stringify(input));}catch{}};
 
-  root.innerHTML=`<section class="equipment-block"><div class="equipment-head"><h3>Siklus belajar${tip(`<p>Selama kota cerdas berjalan, setiap 5 detik dicatat satu data: satu baris per kamera (arah), per simpang, per tempat sampah, dan satu baris kota. Setiap baris diberi waktu, label jam, tanggal Masehi dan Hijriah, serta versi tiap model yang sedang dipakai. Histori disimpan di browser ini (IndexedDB), per peta, dan tetap ada setelah halaman dimuat ulang.</p><p>Setiap <em>periode latih</em> data baru (atau lewat Latih sekarang), enam model dilatih dari histori dalam <em>rentang data latih</em> lalu langsung dipakai kota cerdas yang sedang berjalan, tanpa uji dan tanpa memulai ulang. Setelan lampu dan truk dipilih Bayesian optimization setiap 15 menit sesuai jam dan tanggalnya.</p><p>Tidak ada data per kendaraan: hanya hitungan.</p>`)}</h3><span id="analysis-status" class="analysis-status"></span></div>
+  root.innerHTML=`<section class="equipment-block"><div class="equipment-head"><h3>Siklus belajar${tip(`<p>Selama kota cerdas berjalan, setiap 5 detik dicatat satu data: satu baris per kamera (arah), per simpang, per tempat sampah, dan satu baris kota. Setiap baris diberi waktu, label jam, tanggal Masehi dan Hijriah, serta versi tiap model yang sedang dipakai. Histori disimpan di browser ini (IndexedDB), per peta, dan tetap ada setelah halaman dimuat ulang.</p><p>Setiap <em>periode latih</em> data baru (atau lewat Latih sekarang), empat model dilatih dari histori dalam <em>rentang data latih</em> lalu langsung dipakai kota cerdas yang sedang berjalan, tanpa uji dan tanpa memulai ulang. Setelan lampu dipilih Bayesian optimization setiap 15 menit sesuai jam dan tanggalnya.</p><p>Truk sampah dipanggil sensor tempat sampah saat isinya mencapai 80%, tanpa model; data sampah tetap dicatat untuk pemantauan.</p><p>Tidak ada data per kendaraan: hanya hitungan.</p>`)}</h3><span id="analysis-status" class="analysis-status"></span></div>
 <p id="analysis-history-size" class="analysis-history-size"></p>
 <div class="analysis-controls">
 <label class="check"><input type="checkbox" id="analysis-auto"> Latih otomatis</label>
@@ -64,9 +65,8 @@ export function createAnalysisView({root,onApplied=()=>{}}){
     const bump=(m,log)=>{reg.versions[m]++;reg.settingLog[m][reg.versions[m]]=log;};
     if(next.scale!==reg.setting.scale)bump('hijau',{scale:next.scale});
     if(next.horizon!==reg.setting.horizon)bump('tahan',{horizon:next.horizon});
-    if(next.tau!==reg.setting.tau)bump('truk',{tau:next.tau});
     reg.setting=next;
-    const learned=compose(reg.params,next,t);
+    const learned=compose(reg.params,next);
     engine.setLearned(learned);onApplied(learned);
   }
 
@@ -89,9 +89,9 @@ export function createAnalysisView({root,onApplied=()=>{}}){
       if(data.type==='error'){$('analysis-status').textContent=`Gagal melatih: ${data.message}`;return;}
       if(!reg||reg.key!==key)return;   // the map changed meanwhile
       const {params,summary:s,records}=data.out,updated=[];
-      for(const m of ['arus','isi','tempuh','hijau','truk'])if(params[m]){
-        reg.params[m]=params[m];
-        if(m!=='truk'){reg.versions[m]++;if(m==='hijau')reg.settingLog.hijau[reg.versions.hijau]={scale:reg.setting.scale};}
+      for(const m of ['arus','tempuh','hijau'])if(params[m]){
+        reg.params[m]=params[m];reg.versions[m]++;
+        if(m==='hijau')reg.settingLog.hijau[reg.versions.hijau]={scale:reg.setting.scale};
         updated.push(m);
       }
       summary=s;reg.sinceTrain=0;
@@ -107,20 +107,16 @@ export function createAnalysisView({root,onApplied=()=>{}}){
   }
   function renderModels(){
     const box=$('analysis-models'),p=reg?.params||{},s=summary||{},set=reg?.setting||BASE_SETTING;
-    const arus=[...(s.arus||[])].sort((a,b)=>b.next-a.next).slice(0,5),bins=Object.keys(p.isi?.bins||{}).slice(0,6);
+    const arus=[...(s.arus||[])].sort((a,b)=>b.next-a.next).slice(0,5);
     box.innerHTML=[
       card('arus','<p><strong>Metode:</strong> Gradient Boosted Trees (regresi).</p><p><strong>Data:</strong> kendaraan lewat garis henti dan di zona kamera, per arah; label jam, Masehi, Hijriah.</p><p>Memperkirakan kendaraan yang datang per arah dalam 15 menit, dari label waktunya dan dua 15 menit sebelumnya.</p>',
         `<p class="analysis-key">${Object.keys(p.arus?.cams||{}).length} arah</p>${arus.length?`<table class="mini"><thead><tr><th>Kamera</th><th>Simpang</th><th>15 mnt sebelumnya</th><th>Prediksi 15 mnt ini</th></tr></thead><tbody>${arus.map(a=>`<tr><td>${esc(a.id)}</td><td>${esc(a.node)}</td><td>${fmt(a.last)}</td><td>${fmt(a.next)}</td></tr>`).join('')}</tbody></table>`:''}`),
-      card('isi','<p><strong>Metode:</strong> regresi linear.</p><p><strong>Data:</strong> isi tempat sampah; label jam, Masehi, Hijriah.</p><p>Memperkirakan laju pengisian tiap tempat sampah, dan lama truk tiba setelah dipanggil.</p>',
-        `<p class="analysis-key">Truk tiba ±${fmt((p.isi?.lead||0)/60,1)} menit setelah dipanggil</p><table class="mini"><thead><tr><th>Tempat sampah</th><th>Laju</th><th>Isi terakhir</th></tr></thead><tbody>${bins.map(id=>{const b=engine?.learned?.bins?.[id],f=s.isi?.fill?.[id];return `<tr><td>${esc(id)}</td><td>${b?`${fmt(b.rate*3600*100,1)}% /jam`:'—'}</td><td>${f!=null?`${fmt(f*100)}%`:'—'}</td></tr>`;}).join('')}</tbody></table>`),
       card('tempuh','<p><strong>Metode:</strong> korelasi silang.</p><p><strong>Data:</strong> kendaraan lewat garis henti di simpang hulu dan yang masuk zona kamera simpang hilir (paling banyak 2 hari data terakhir).</p><p>Jeda dengan korelasi tertinggi = waktu tempuh. Hanya pasangan dengan waktu tempuh 10 detik atau lebih.</p>',
         `<p class="analysis-key">${(p.tempuh?.links||[]).length} pasangan simpang</p><table class="mini"><thead><tr><th>Hulu → hilir</th><th>Jarak</th><th>Waktu tempuh</th><th>Bagian tiba</th></tr></thead><tbody>${(p.tempuh?.links||[]).slice(0,6).map(l=>`<tr><td>${esc(l.from)} → ${esc(l.node)}</td><td>${fmt(l.distance)} m</td><td>${l.travel} dtk</td><td>${fmt(l.share*100)}%</td></tr>`).join('')}</tbody></table>`),
       card('hijau','<p><strong>Metode:</strong> Bayesian optimization (Gaussian process, batas bawah keyakinan).</p><p><strong>Data:</strong> waktu antre total, fase lampu dan lama hijaunya, hijau yang habis, versi model; label jam, Masehi, Hijriah.</p><p>Bagian hijau tiap fase mengikuti seberapa sering hijaunya habis. Pengali hijau rencana (0,8–1,4) dipilih setiap 15 menit: yang diperkirakan memberi antre per kendaraan terkecil, atau yang hasilnya belum diketahui (supaya terus belajar).</p>',
         `<p class="analysis-key">Pengali hijau ${fmt(set.scale,1)}× · ${p.hijau?.points||0} pengamatan</p><table class="mini"><thead><tr><th>Simpang</th><th>Hijau habis</th><th>Bagian hijau</th></tr></thead><tbody>${(s.hijau?.changes||[]).slice(0,6).map(c=>`<tr><td>${esc(c.node)}</td><td>${c.maxouts.map(x=>x==null?'—':`${x}%`).join(' · ')}</td><td>${c.split.map(x=>fmt(x,2)).join(' · ')}</td></tr>`).join('')}</tbody></table>`),
       card('tahan','<p><strong>Metode:</strong> Bayesian optimization, bersama durasi hijau.</p><p><strong>Data:</strong> waktu antre total, versi model, hasil prediksi waktu tempuh.</p><p>Lampu hilir menahan hijau bila rombongan dari hulu diperkirakan tiba dalam beberapa detik ke depan (0–12 detik, 0 = tidak menahan).</p>',
         `<p class="analysis-key">${set.horizon?`Menahan hijau untuk rombongan dalam ${set.horizon} detik ke depan`:'Tidak menahan hijau'}</p>`),
-      card('truk','<p><strong>Metode:</strong> Bayesian optimization.</p><p><strong>Data:</strong> waktu truk dipanggil dan tiba, jumlah perjalanan truk, lama tempat sampah penuh, versi model, hasil prediksi isi.</p><p>Memilih isi tempat sampah saat truk tiba (60–100%). Truk dipanggil lebih awal sesuai prediksi laju isi dan waktu tiba. Dicari lama penuh terkecil tanpa perjalanan truk lebih banyak dari aturan dasar.</p>',
-        `<p class="analysis-key">${set.tau!=null?`Truk tiba saat isi ±${fmt(set.tau*100)}%`:'Aturan dasar'} · ${p.truk?.points||0} pengamatan</p>${p.truk?.baseTrips!=null?`<p class="analysis-status">Perjalanan truk aturan dasar: ${fmt(p.truk.baseTrips,1)} per jam</p>`:''}`),
     ].join('');
   }
   function renderTrainings(){

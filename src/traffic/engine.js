@@ -191,8 +191,6 @@ export class TrafficEngine{
   //   links         [{node,leg,from,exclude,travel,share}]: a platoon released upstream
   //                 reaches this approach `travel` seconds later, `share` of it
   //   horizon       seconds ahead a platoon holds the green (default 8; 0: no holding)
-  //   bins          {id:{rate,lead}}: fill per second and how long a called truck takes
-  //   binTarget     the fill a truck should find on arrival (default: call at BIN_CALL)
   // A simpang gabungan keeps its common cycle (its greens are not changed).
   setLearned(learned){
     this.learned=learned||null;
@@ -212,9 +210,7 @@ export class TrafficEngine{
     this.binTimer=5;
     const busy=this.bins.filter(b=>b.truck&&b.truck!=='unreachable').length;
     // With sensors the fullest bins get the free trucks; without, the bins due on the round.
-    // A learned model calls the truck early enough to arrive as the bin reaches the mark.
-    const lead=b=>{const m=this.learned?.bins?.[b.id];return m?m.rate*m.lead:0;},target=this.learned?.binTarget??BIN_CALL;
-    const due=b=>this.binMode==='schedule'?this.time>=b.nextVisit:b.fill+lead(b)>=target;
+    const due=b=>this.binMode==='schedule'?this.time>=b.nextVisit:b.fill>=BIN_CALL;
     const waiting=this.bins.filter(b=>!b.truck&&due(b)).sort((a,b)=>this.binMode==='schedule'?a.nextVisit-b.nextVisit:b.fill-a.fill);
     for(const bin of waiting.slice(0,Math.max(0,TRUCKS-busy))){
       let trip=null;

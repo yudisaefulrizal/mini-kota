@@ -85,7 +85,7 @@ try{
   assert.match(await page.textContent('#analysis-history-size'),/Histori: [\d.]+ data · \d+ \S+ \d{4} – .* H/);
   await page.click('#analysis-run');
   await page.waitForFunction(()=>document.querySelector('#analysis-trainings tr')&&document.getElementById('analysis-progress').hidden,null,{timeout:180000});
-  assert.equal(await page.locator('#analysis-models .analysis-model').count(),6);
+  assert.equal(await page.locator('#analysis-models .analysis-model').count(),4);
   assert.match(await page.textContent('#analysis-status'),/memakai model/);
   assert.equal(await page.textContent('#smart-view .map-chip strong'),'CERDAS + MODEL');
   assert.ok(await page.evaluate(t=>window.miniKota.cities.smart.engine.time>t,t0),'the city went on (no restart)');

@@ -1,5 +1,5 @@
 import {labels,context} from './calendar.js';
-import {gbtFit,gbtPredict,ridgeFit,ridgePredict,gpFit,gpPredict,lcb} from './ml.js';
+import {gbtFit,gbtPredict,gpFit,gpPredict,lcb} from './ml.js';
 
 // The smart city learns from its own history (see tujuan-analisis.md). While it runs, a record
 // is taken every 5 s; each record holds one row per id (long format):
@@ -7,30 +7,28 @@ import {gbtFit,gbtPredict,ridgeFit,ridgePredict,gpFit,gpPredict,lcb} from './ml.
 //   simpang        per junction: phase on, its green so far, phase whose green ran out (-1)
 //   tempat sampah  per bin: fill, truck called, truck arrived, seconds full
 //   kota           queue seconds (in the streets + waiting to get in), truck trips
-// and each row carries the time, its labels (hour, Masehi, Hijriah) and the version of every
+// (the bin and truck rows are kept for monitoring; no model uses them: trucks are called by
+// the bin sensors) and each row carries the time, its labels (hour, Masehi, Hijriah) and the version of every
 // model in use. Records are kept in chunks (columns per table) for storage (src/analysis/store.js).
 // Only counts: no vehicle is followed.
 //
-// Six models, trained on the history and applied straight away (no test):
+// Four models, trained on the history and applied straight away (no test):
 //   arus    flow per approach, next 15 min        Gradient Boosted Trees
-//   isi     bin fill rate                         linear regression
 //   tempuh  travel time between junctions         cross-correlation
 //   hijau   green per phase                       Bayesian optimization (with tahan)
 //   tahan   holding the green for a platoon       Bayesian optimization (with hijau)
-//   truk    when to call a truck                  Bayesian optimization
 
 export const STEP=5;               // seconds between records
 export const CHUNK=120;            // records per stored chunk (10 minutes: at most this is lost on leaving)
-export const MODELS=['arus','isi','tempuh','hijau','tahan','truk'];
+export const MODELS=['arus','tempuh','hijau','tahan'];
 const BUCKET=900;                  // flow forecast: 15 minutes
 const LAMPU_SEGMENT=180;           // records per (setting -> queue) observation: 15 minutes
-const TRUK_SEGMENT=720;            // records per (setting -> bins full, trips) observation: 1 hour
 const MAX_CORR=34560;              // travel times from the last 2 days at most
 const MAX_POINTS=200;              // Bayesian optimization: the latest observations
 // The settings Bayesian optimization chooses from.
-export const GRID={scale:[0.8,0.9,1,1.1,1.2,1.3,1.4],horizon:[0,4,8,12],tau:[0.6,0.65,0.7,0.75,0.8,0.85,0.9,0.95,1]};
-const norm={scale:s=>(s-0.8)/0.6,horizon:h=>h/12,tau:t=>(t-0.6)/0.4};
-export const BASE_SETTING={scale:1,horizon:0,tau:null};   // aturan dasar
+export const GRID={scale:[0.8,0.9,1,1.1,1.2,1.3,1.4],horizon:[0,4,8,12]};
+const norm={scale:s=>(s-0.8)/0.6,horizon:h=>h/12};
+export const BASE_SETTING={scale:1,horizon:0};   // aturan dasar
 
 const legsOf=sig=>sig.j.legs.filter(l=>!l.ring);
 const mean=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
@@ -44,7 +42,7 @@ export function recorder(engine,{origin,versions,onChunk=()=>{}}){
   const C=cams.length,S=nodes.length,B=bins.length;
   let next=engine.time,buf,k;
   const prev={count:engine.sensors.map(s=>s.count),maxouts:sigs.map(sig=>(sig.log||[]).map(l=>l.maxouts)),truck:engine.bins.map(b=>b.truck),emptied:engine.bins.map(b=>b.emptied),full:engine.bins.map(b=>b.fullSeconds),queue:engine.stats.queueSeconds+engine.stats.backlogSeconds,trips:engine.stats.truckTrips};
-  const fresh=()=>{k=0;buf={n:0,cams,camNode,nodes,bins,t:new Float64Array(CHUNK),lab:new Int16Array(CHUNK*7),ver:new Int32Array(CHUNK*MODELS.length),
+  const fresh=()=>{k=0;buf={n:0,models:MODELS,cams,camNode,nodes,bins,t:new Float64Array(CHUNK),lab:new Int16Array(CHUNK*7),ver:new Int32Array(CHUNK*MODELS.length),
     lewat:new Uint16Array(CHUNK*C),zona:new Uint16Array(CHUNK*C),fase:new Int8Array(CHUNK*S),hijau:new Uint8Array(CHUNK*S),habis:new Int8Array(CHUNK*S),
     isi:new Float32Array(CHUNK*B),panggil:new Uint8Array(CHUNK*B),tiba:new Uint8Array(CHUNK*B),penuh:new Float32Array(CHUNK*B),antre:new Float32Array(CHUNK),trips:new Uint16Array(CHUNK)};};
   fresh();
@@ -106,10 +104,6 @@ export async function train(chunks,{reg,engine,onProgress=()=>{}}){
     const q=Math.floor(acc.lastT/BUCKET);
     summary.arus=Object.entries(arus.cams).map(([id,m])=>{const b=acc.buckets.get(id),l1=b.get(q-1)??0,l2=b.get(q-2)??0;return {id,node:acc.camNode.get(id),next:Math.max(0,gbtPredict(m,features(q*BUCKET,l1,l2))),last:l1};});
   }
-  // isi: per bin, fill rate (per second) from labels; and how long a called truck takes.
-  const isi={bins:{},lead:acc.leads.length?mean(acc.leads):reg.params?.isi?.lead??300};
-  for(const [id,s] of acc.rates)if(s.y.length>=3)isi.bins[id]=ridgeFit(s.X,s.y);
-  if(Object.keys(isi.bins).length){params.isi=isi;summary.isi={fill:Object.fromEntries(acc.lastFill)};}
   // tempuh: cross-correlation of departures upstream with arrivals downstream.
   if(acc.corr.n>=720)params.tempuh={links:links(engine,acc.corr)};   // at least an hour
   // hijau: per phase, the share of greens that ran out sets its part of the plan.
@@ -128,24 +122,19 @@ export async function train(chunks,{reg,engine,onProgress=()=>{}}){
     params.hijau={split,gp:gpFit(X,y),points:lampu.length};
     summary.hijau={changes};
   }
-  // truk: bins full and trips (per hour) each target fill gave; trips of the rules alone.
-  const truk=acc.truk.filter(s=>s.n>=TRUK_SEGMENT/2),tried=truk.filter(s=>s.x!=null).slice(-MAX_POINTS),base=truk.filter(s=>s.x==null);
-  if(truk.length){
-    const X=tried.map(s=>[norm.tau(s.x),...s.ctx]),perHour=s=>3600/(s.n*STEP);
-    params.truk={full:gpFit(X,tried.map(s=>s.full*perHour(s))),trips:gpFit(X,tried.map(s=>s.trips*perHour(s))),
-      baseTrips:base.length?mean(base.map(s=>s.trips*perHour(s))):reg.params?.truk?.baseTrips??null,points:tried.length};
-  }
   return {records:n,params,summary};
 }
 function features(t,l1,l2){const l=labels(t);return [...context(t),l[1],l[4],l1,l2];}
 
 function accumulators(engine){
-  return {buckets:new Map(),camNode:new Map(),rates:new Map(),leads:[],called:new Map(),lastFill:new Map(),phases:new Map(),lampu:[],truk:[],lastT:0,
-    corr:{n:0,cams:engine.sensors.map(s=>s.id),dep:engine.sensors.map(()=>[]),arr:engine.sensors.map(()=>[])},prevZona:new Map(),prevT:null,prevFase:new Map(),prevIsi:new Map(),hour:new Map()};
+  return {buckets:new Map(),camNode:new Map(),phases:new Map(),lampu:[],lastT:0,
+    corr:{n:0,cams:engine.sensors.map(s=>s.id),dep:engine.sensors.map(()=>[]),arr:engine.sensors.map(()=>[])},prevZona:new Map(),prevT:null,prevFase:new Map()};
 }
-const vOf=(c,k,m)=>c.ver[k*MODELS.length+MODELS.indexOf(m)];
+// Chunks name the models whose versions they carry (the first ones had six).
+const OLD_MODELS=['arus','isi','tempuh','hijau','tahan','truk'];
+const vOf=(c,k,m)=>{const ms=c.models||OLD_MODELS;return c.ver[k*ms.length+ms.indexOf(m)];};
 function feed(acc,c,reg){
-  const C=c.cams.length,S=c.nodes.length,B=c.bins.length,log=reg.settingLog||{};
+  const C=c.cams.length,S=c.nodes.length,log=reg.settingLog||{};
   const camIndex=new Map(acc.corr.cams.map((id,i)=>[id,i]));
   c.cams.forEach((id,i)=>{acc.camNode.set(id,c.camNode[i]);if(!acc.buckets.has(id))acc.buckets.set(id,new Map());});
   for(let k=0;k<c.n;k++){
@@ -169,31 +158,14 @@ function feed(acc,c,reg){
       if(acc.prevFase.get(node)!==f)at(f).greens++;acc.prevFase.set(node,f);
       if(h>=0)at(h).maxouts++;
     }
-    // tempat sampah: fill rate per hour of filling, truck lead times.
-    for(let i=0;i<B;i++){
-      const id=c.bins[i],v=c.isi[k*B+i],pv=gap?null:acc.prevIsi.get(id);acc.prevIsi.set(id,v);acc.lastFill.set(id,v);
-      if(c.panggil[k*B+i])acc.called.set(id,t);
-      if(c.tiba[k*B+i]&&acc.called.has(id)){acc.leads.push(t-acc.called.get(id));acc.called.delete(id);}
-      if(pv!=null&&v>pv&&!c.tiba[k*B+i]){
-        const hk=`${id}:${Math.floor(t/3600)}`;let h=acc.hour.get(hk);
-        if(!h){h={sum:0,n:0,ctx};acc.hour.set(hk,h);(acc.rates.get(id)||acc.rates.set(id,{X:[],y:[],open:[]}).get(id)).open.push(h);}
-        h.sum+=(v-pv)/STEP;h.n++;
-      }
-    }
-    // kota: one observation per setting and quarter (lampu) or hour (truk).
-    const hv=vOf(c,k,'hijau'),tv=vOf(c,k,'tahan'),kv=vOf(c,k,'truk');
+    // kota: one observation per setting and quarter.
+    const hv=vOf(c,k,'hijau'),tv=vOf(c,k,'tahan');
     let seg=acc.lampu.at(-1);
     if(!seg||gap||seg.n>=LAMPU_SEGMENT||seg.hv!==hv||seg.tv!==tv){
       seg={hv,tv,n:0,queue:0,passed:0,ctx,x:{scale:log.hijau?.[hv]?.scale??1,horizon:log.tahan?.[tv]?.horizon??0}};acc.lampu.push(seg);
     }
     seg.n++;seg.queue+=c.antre[k];seg.passed+=passed;
-    let ts=acc.truk.at(-1);
-    if(!ts||gap||ts.n>=TRUK_SEGMENT||ts.kv!==kv){ts={kv,n:0,full:0,trips:0,ctx,x:log.truk?.[kv]?.tau??null};acc.truk.push(ts);}
-    ts.n++;ts.trips+=c.trips[k];for(let i=0;i<B;i++)ts.full+=c.penuh[k*B+i];
   }
-  // Hourly fill rates become regression samples.
-  for(const r of acc.rates.values()){for(const h of r.open){r.X.push(h.ctx);r.y.push(h.sum/h.n);}r.open=[];}
-  acc.hour.clear();
 }
 
 // tempuh: for each signal approach fed straight from another signal, the delay at which
@@ -242,33 +214,13 @@ export function chooseSetting(params,t){
     }
     out.scale=best.scale;out.horizon=best.horizon;
   }
-  const truk=params.truk;
-  if(truk&&params.isi){
-    if(!truk.points)out.tau=0.8;   // nothing tried yet: start where the rules call
-    else{
-      let best=null;
-      for(const tau of GRID.tau){
-        const x=[norm.tau(tau),...ctx],full=gpPredict(truk.full,x),trips=gpPredict(truk.trips,x);
-        // Fewer bins full, without more trips than the rules alone make.
-        const ok=truk.baseTrips==null||trips.mean-trips.sd<=truk.baseTrips;
-        const v=(ok?0:1e6)+lcb(full)+1e-3*trips.mean;
-        if(!best||v<best.v)best={v,tau};
-      }
-      out.tau=best.tau;
-    }
-  }
   return out;
 }
 // What the engine takes (TrafficEngine option `learned` / setLearned) from the params and the
 // chosen setting; null: the rules alone.
-export function compose(params,setting,t){
+export function compose(params,setting){
   const l={};
   if(params.hijau){l.greenSplit=params.hijau.split;l.greenScale=setting.scale;}
   if(params.tempuh&&setting.horizon>0){l.links=params.tempuh.links;l.horizon=setting.horizon;}
-  if(params.isi&&setting.tau!=null){
-    const ctx=context(t);
-    l.bins=Object.fromEntries(Object.entries(params.isi.bins).map(([id,m])=>[id,{rate:Math.max(0,ridgePredict(m,ctx)),lead:params.isi.lead}]));
-    l.binTarget=setting.tau;
-  }
   return Object.keys(l).length?l:null;
 }

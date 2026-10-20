@@ -1,6 +1,5 @@
 // The learning methods of the Analisis tab, written out (no library):
 //   gbt*     Gradient Boosted Trees, regression (squared error), histogram splits
-//   ridge*   linear regression (with a small ridge so constant features do no harm)
 //   gp*      Gaussian process regression, for Bayesian optimization
 //   lcb      the acquisition: the lower confidence bound (mean - kappa * sd)
 // Models are plain objects, so they can be stored (IndexedDB) and sent to a worker.
@@ -52,27 +51,6 @@ function leaf(node,binOf){while(node.l)node=binOf(node.j)<=node.b?node.l:node.r;
 export function gbtPredict(model,x){
   const binOf=j=>{const c=model.cuts[j];let b=0;while(b<c.length&&x[j]>=c[b])b++;return b;};
   return model.trees.reduce((s,t)=>s+model.rate*leaf(t,binOf),model.base);
-}
-
-// ---------------------------------------------------------------- linear regression
-// Ridge: (X'X + lambda I) w = X'y, with an intercept (not penalised).
-export function ridgeFit(X,y,lambda=1e-3){
-  const f=(X[0]?.length||0)+1,A=Array.from({length:f},()=>new Float64Array(f)),b=new Float64Array(f);
-  X.forEach((x,i)=>{const z=[1,...x];for(let p=0;p<f;p++){b[p]+=z[p]*y[i];for(let q=0;q<f;q++)A[p][q]+=z[p]*z[q];}});
-  for(let p=1;p<f;p++)A[p][p]+=lambda*Math.max(1,y.length);
-  A[0][0]+=1e-9;
-  return {w:[...solve(A,b)]};
-}
-export const ridgePredict=(m,x)=>m.w.reduce((s,w,i)=>s+w*(i?x[i-1]:1),0);
-function solve(A,b){   // Gauss-Jordan with pivoting (small systems)
-  const n=b.length,M=A.map((r,i)=>[...r,b[i]]);
-  for(let c=0;c<n;c++){
-    let p=c;for(let r=c+1;r<n;r++)if(Math.abs(M[r][c])>Math.abs(M[p][c]))p=r;
-    [M[c],M[p]]=[M[p],M[c]];const d=M[c][c]||1e-12;
-    for(let k=c;k<=n;k++)M[c][k]/=d;
-    for(let r=0;r<n;r++)if(r!==c){const m=M[r][c];if(m)for(let k=c;k<=n;k++)M[r][k]-=m*M[c][k];}
-  }
-  return M.map(r=>r[n]);
 }
 
 // ---------------------------------------------------------------- Gaussian process

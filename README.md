@@ -45,7 +45,7 @@ seret geser, roda zoom ke arah kursor, dobel klik kanan terbang ke titik.
 | Folder | Isi |
 |---|---|
 | `src/map/` | Format peta, geometri jalan, editor (sunting, rapikan, penempatan aset), isi aset otomatis, jaringan perangkat, impor OSM, kamera, peta Mini Kota (`mini-kota-data.js`, `default-map.js`) |
-| `src/analysis/` | Siklus belajar kota cerdas: histori per 5 detik (IndexedDB), label Masehi dan Hijriah, enam model (Gradient Boosted Trees, regresi linear, korelasi silang, Bayesian optimization), langsung diterapkan; pelatihan di worker |
+| `src/analysis/` | Siklus belajar kota cerdas: histori per 5 detik (IndexedDB), label Masehi dan Hijriah, empat model lalu lintas (Gradient Boosted Trees, korelasi silang, Bayesian optimization), langsung diterapkan; pelatihan di worker |
 | `src/traffic/` | Mesin lalu lintas: graf lajur, kendaraan (IDM, rute, pindah lajur), lampu tetap/adaptif, simpang gabungan, bundaran, angkot, truk sampah, pejalan kaki; tampilan 3D |
 | `src/app/` | Aplikasi utama: satu `City` per kota, data center, tab Perangkat, Jelajahi Kota |
 | `src/devices.js` | Katalog perangkat untuk desain teknis dan diagram |
