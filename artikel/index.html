@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lampu Lalu Lintas Cerdas — Mini Kota</title>
+<meta name="description" content="Simulasi kota cerdas berbasis big data analytics untuk optimasi lampu lalu lintas adaptif.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=IBM+Plex+Mono:wght@400;600&display=swap">
+  <script type="module" crossorigin src="../assets/artikel-oc-JorpW.js"></script>
+  <link rel="modulepreload" crossorigin href="../assets/modulepreload-polyfill-B5Qt9EMX.js">
+  <link rel="stylesheet" crossorigin href="../assets/artikel-K-KqXqhL.css">
+</head>
+<body>
+<header class="hero">
+<div class="wrap">
+<div class="eyebrow" aria-hidden="true"><i class="lamp red"></i><i class="lamp amber"></i><i class="lamp green"></i><span>ARTIKEL · MINI KOTA</span></div>
+<h1>Simulasi Kota Cerdas Berbasis Big Data Analytics untuk Optimasi Lampu Lalu Lintas Adaptif</h1>
+<p class="lead">Lampu lalu lintas dibuat untuk keselamatan. Tapi lampu yang tidak membaca kondisi jalan ikut menghentikan kendaraan yang sebenarnya bisa jalan, dan setiap detik idle itu membakar BBM.</p>
+<p class="byline">[NAMA PENULIS] · [TANGGAL TERBIT]</p>
+<a class="cta" href="../index.html">Buka simulasi Mini Kota <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg></a>
+</div>
+</header>
+
+<main class="wrap">
+
+<section aria-labelledby="latar">
+<p class="kicker">BAGIAN 1</p>
+<h2 id="latar">Latar belakang</h2>
+<div class="points">
+<article class="point"><div class="no">01</div><div class="body"><h3>Fungsi awal</h3><p>Lampu lalu lintas dibuat untuk mengatur pergerakan dan meningkatkan keselamatan. Kita tidak mempersoalkan tujuan tersebut.</p>
+<div class="fact"><b>−39%</b><span>kecelakaan di simpang empat Kopenhagen setelah dipasang lampu (korban luka −33%). <em>Jensen (2010)</em></span></div></div></article>
+<article class="point"><div class="no">02</div><div class="body"><h3>Fakta yang menarik</h3><p>Tidak semua persimpangan memerlukan lampu lalu lintas.</p>
+<div class="fact"><b>−24%</b><span>kecelakaan setelah lampu di sejumlah simpang jalan satu arah Philadelphia diganti rambu STOP. <em>Persaud dkk. (1997)</em></span></div></div></article>
+<article class="point"><div class="no">03</div><div class="body"><h3>Masalah operasional</h3><p>Lampu lalu lintas dapat menghentikan kendaraan meskipun kondisi jalan memungkinkan pergerakan, terutama ketika durasi sinyal tidak menyesuaikan volume dan distribusi kendaraan.</p>
+<div class="fact"><b>+38%</b><span>tabrakan belakang setelah lampu dipasang, meski tabrakan menyilang turun 67%. <em>McGee dkk. (2003)</em></span></div></div></article>
+<article class="point"><div class="no">04</div><div class="body"><h3>Konsekuensi energi</h3><p>Kendaraan yang berhenti dengan mesin menyala tetap mengonsumsi BBM. Semakin panjang waktu idle yang tidak diperlukan, semakin besar konsumsi BBM yang berpotensi dihindari.</p></div></article>
+<article class="point"><div class="no">05</div><div class="body"><h3>Konsekuensi ekonomi</h3><p>Konsumsi BBM tambahan menghasilkan biaya ekonomi. Bagi pengguna kendaraan, ini berarti pengeluaran tambahan. Pada BBM bersubsidi, sebagian biaya tersebut juga ditanggung pemerintah.</p>
+<div class="fact"><b>Rp2,01–2,62 M</b><span>per tahun, estimasi biaya BBM kendaraan idle di satu simpang (Simpang Tugu Yogyakarta), ditambah estimasi kerugian emisi Rp345,2 juta per tahun. <em>Jayapermana (2025)</em></span></div></div></article>
+<article class="point"><div class="no">06</div><div class="body"><h3>Bukti kemungkinan perbaikan</h3><p>Pengaturan sinyal yang lebih efisien terbukti dapat mengurangi konsumsi BBM.</p>
+<div class="fact"><b>−9,1%</b><span>konsumsi BBM lewat program sinkronisasi lampu di Texas (tundaan −24,6%, berhenti −14,2%); di California BBM −8%. <em>FHWA (2008)</em></span></div></div></article>
+<article class="point"><div class="no">07</div><div class="body"><h3>Arah pemikiran kita</h3><p>Efisiensi lampu lalu lintas berpotensi menjadi instrumen kebijakan energi dan ekonomi nasional: bukan hanya mengurangi kemacetan, tapi juga mengurangi pemborosan energi dan biaya yang dapat dicegah.</p></div></article>
+<article class="point dark"><div class="no">08</div><div class="body"><h3>Yang ditawarkan artikel ini</h3><p>Lampu yang membaca antrean dari kamera di setiap arah, lalu belajar dari histori datanya sendiri. Semuanya diuji dalam simulasi kota cerdas yang berjalan berdampingan dengan kota biasa.</p></div></article>
+</div>
+</section>
+
+<section aria-labelledby="lapangan">
+<p class="kicker">DOKUMENTASI</p>
+<h2 id="lapangan">Kondisi di lapangan</h2>
+<p class="intro">Lampu merah tetap menyala dan kendaraan tetap menunggu, padahal jalan di depannya lengang. Inilah waktu idle yang bisa dihindari bila lampu membaca kondisi jalan.</p>
+<div class="photos">
+<figure><img src="../assets/jalan-a1-D5FPUSMe.jpg" alt="Lampu merah menyala di simpang, penyeberangan dan jalan di depannya kosong" loading="lazy"><figcaption>Lampu merah menyala, penyeberangan dan jalan di depan kosong.</figcaption></figure>
+<figure><img src="../assets/jalan-a-D8tww6Hp.jpg" alt="Pengendara sepeda motor berhenti di garis henti saat lampu merah, jalan di depan lengang" loading="lazy" style="object-position:center 70%"><figcaption>Pengendara menunggu di garis henti dengan mesin menyala, sementara jalan di depan lengang.</figcaption></figure>
+<figure><img src="../assets/jalan-b-B43ePbpx.jpg" alt="Malam hari, sepeda motor menunggu lampu merah di simpang yang sepi" loading="lazy" style="object-position:30% center"><figcaption>Malam hari: simpang sepi, kendaraan tetap menunggu lampu.</figcaption></figure>
+</div>
+<p class="note">Foto: dokumentasi penulis. Pelat nomor disamarkan.</p>
+</section>
+
+<section aria-labelledby="coba">
+<p class="kicker">BAGIAN 2 · COBA SENDIRI</p>
+<h2 id="coba">Satu simpang, dua cara mengatur</h2>
+<p class="intro">Geser jumlah kendaraan dari dua arah. Lampu waktu tetap selalu memberi hijau 30 detik ke setiap arah. Lampu adaptif membagi hijau sesuai antrean yang dilihat kamera.</p>
+<div class="card stack">
+<div class="sliders">
+<label>Arah utara–selatan: <b class="mono" id="qa-out">800</b> kendaraan/jam<input id="qa" type="range" min="100" max="1400" step="50" value="800"></label>
+<label>Arah timur–barat: <b class="mono" id="qb-out">400</b> kendaraan/jam<input id="qb" type="range" min="100" max="1400" step="50" value="400"></label>
+</div>
+<div class="plans" id="plans"></div>
+<p class="note">Ilustrasi dengan rumus tundaan Webster (bagian seragam), 1 lajur per arah, arus jenuh 1.800 kendaraan/jam, waktu hilang 4 detik per fase. Hijau adaptif dibagi sebanding arus, 10–60 detik. Angka ini bukan hasil simulasi Mini Kota.</p>
+</div>
+</section>
+
+<section aria-labelledby="melihat">
+<p class="kicker">BAGIAN 3</p>
+<h2 id="melihat">Cara kota cerdas melihat</h2>
+<p class="intro">Setiap arah simpang punya kamera detektor antrean. Kamera tidak mengirim video dan tidak melacak kendaraan; yang dikirim hanya hitungan.</p>
+<div class="tiles">
+<div class="tile"><p class="mono small">DIHITUNG</p><p>Kendaraan yang lewat garis henti</p></div>
+<div class="tile"><p class="mono small">DIHITUNG</p><p>Kendaraan di zona kamera</p></div>
+<div class="tile"><p class="mono small">DIHITUNG</p><p>Panjang antrean per arah</p></div>
+<div class="tile dark"><p class="mono small">TIDAK DIKIRIM</p><p>Video, pelat nomor, rute kendaraan</p></div>
+</div>
+<p class="intro" style="margin-top:24px">Pengendali simpang memperpanjang hijau selama kendaraan masih datang, paling lama dua kali hijau rencana, dan memutusnya setelah 8 detik bila arahnya kosong sementara arah lain menunggu.</p>
+</section>
+
+<section aria-labelledby="alur">
+<p class="kicker">BAGIAN 4 · KLIK SETIAP TAHAP</p>
+<h2 id="alur">Alur big data</h2>
+<div class="pills" id="steps" role="group" aria-label="Tahap alur data"></div>
+<div class="card detail"><div class="detail-head"><p class="mono small" id="step-meta"></p><h3 id="step-name"></h3></div><p id="step-text"></p></div>
+</section>
+
+<section aria-labelledby="histori">
+<p class="kicker">BAGIAN 5</p>
+<h2 id="histori">Data histori</h2>
+<p class="intro">Setiap 5 detik dicatat satu data. Satu baris berisi satu id pada satu waktu, dan setiap baris diberi label jam, tanggal Masehi, tanggal Hijriah, serta versi model yang sedang dipakai. Label kalender membuat pola mingguan dan bulan seperti Ramadan bisa dipelajari.</p>
+<div class="pills" id="tables" role="group" aria-label="Jenis baris"></div>
+<div class="card scroll"><table id="table"></table></div>
+<p class="note">Contoh susunan baris; angkanya ilustrasi.</p>
+</section>
+
+<section aria-labelledby="belajar">
+<p class="kicker">BAGIAN 6</p>
+<h2 id="belajar">Belajar dari histori</h2>
+<p class="intro">Empat model dilatih dari histori, lalu langsung dipakai kota cerdas yang sedang berjalan. Targetnya satu: waktu antre total sekecil mungkin.</p>
+<div class="models">
+<article class="card"><p class="mono small accent">PREDIKSI</p><h3>Arus kendaraan per arah</h3><p class="method"><strong>Metode:</strong> Gradient Boosted Trees</p><p>Memperkirakan kendaraan yang datang per arah dalam 15 menit dari label waktu dan dua 15 menit sebelumnya.</p></article>
+<article class="card"><p class="mono small accent">PREDIKSI</p><h3>Waktu tempuh antar simpang</h3><p class="method"><strong>Metode:</strong> Korelasi silang</p><p>Mencari jeda waktu antara kendaraan yang keluar dari simpang hulu dan yang tiba di kamera simpang hilir.</p></article>
+<article class="card"><p class="mono small accent">OPTIMASI</p><h3>Durasi hijau per fase</h3><p class="method"><strong>Metode:</strong> Bayesian optimization</p><p>Memilih pengali hijau setiap 15 menit sesuai jam dan tanggal, dari setelan yang pernah dipakai dan hasil antreannya.</p></article>
+<article class="card"><p class="mono small accent">OPTIMASI</p><h3>Penahanan hijau</h3><p class="method"><strong>Metode:</strong> Bayesian optimization</p><p>Lampu hilir menahan hijau beberapa detik bila rombongan dari simpang hulu diperkirakan tiba.</p></article>
+</div>
+</section>
+
+<section aria-labelledby="penutup">
+<p class="kicker">BAGIAN 7</p>
+<h2 id="penutup">Penutup</h2>
+<p class="intro">Lampu lalu lintas yang membaca antrean dan belajar dari historinya sendiri bukan hanya soal mengurangi kemacetan. Setiap detik idle yang bisa dihindari adalah BBM dan biaya yang tidak perlu dikeluarkan.</p>
+<p class="intro"><strong>Keterbatasan:</strong> semua hasil berasal dari simulasi. Penerapan di lapangan tetap perlu kalibrasi dengan data sensor nyata dan uji coba di simpang sungguhan.</p>
+<div class="banner"><p>Lihat sendiri kota biasa dan kota cerdas berjalan berdampingan.</p><a class="cta" href="../index.html">Buka simulasi Mini Kota <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg></a></div>
+</section>
+
+<section aria-labelledby="sumber" class="sources">
+<h2 id="sumber">Sumber</h2>
+<ol>
+<li>Jensen, S. U. (2010). <em>Safety Effects of Intersection Signalization: A Before-After Study.</em> TRB Annual Meeting.</li>
+<li>Persaud, B., Hauer, E., Retting, R., Vallurupalli, R., &amp; Mucsi, K. (1997). Crash reductions related to traffic signal removal in Philadelphia. <em>Accident Analysis and Prevention</em>, 29(6), 803–810. Ringkasan: <a href="https://cmfclearinghouse.fhwa.dot.gov/study_detail.php?stid=48">CMF Clearinghouse</a>.</li>
+<li>McGee, H., Taori, S., &amp; Persaud, B. (2003). <em>NCHRP Report 491: Crash Experience Warrant for Traffic Signals.</em> Transportation Research Board.</li>
+<li>Agent, K., &amp; Green, E. (2008). <em>Crash History after Installation of Traffic Signals (Warranted vs. Unwarranted).</em> Kentucky Transportation Center, KTC-08-01.</li>
+<li>FHWA (2008). <em>Traffic Signal Timing Manual</em> (FHWA-HOP-08-024). <a href="https://ops.fhwa.dot.gov/publications/fhwahop08024/doc_page.htm">Office of Operations</a>.</li>
+<li>Jayapermana, M. N. (2025). <em>Analisis Pemborosan Bahan Bakar dan Peningkatan Emisi Kendaraan Idle di Simpang Tugu Yogyakarta.</em> Skripsi, Universitas Gadjah Mada. <a href="https://etd.repository.ugm.ac.id/penelitian/detail/252209">ETD UGM</a>.</li>
+</ol>
+</section>
+
+</main>
+</body>
+</html>
