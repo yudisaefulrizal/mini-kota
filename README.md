@@ -2,17 +2,16 @@
 
 Coba langsung: https://smart-city.nuscode.id/
 
-Rancangan digital twin kota cerdas yang diuji melalui simulasi lalu lintas kota dalam 3D (three.js).
-Simulasi ini menguji logika kendali lampu lalu lintas dan pembelajaran modelnya. Satu peta dijalankan dua kali,
-berdampingan dan pada waktu yang sama:
+Rancangan digital twin untuk kota cerdas. Kamera detektor di tiap arah simpang (zona deteksi 80 m)
+menghitung antrean; data itu direkam sebagai histori, dipakai melatih model, dan hasilnya langsung
+mengatur lampu lalu lintas. Sensor tempat sampah memanggil truk yang rutenya diatur otomatis
+(Dijkstra, Clarke-Wright Savings, 2-opt), dan seluruh perangkat terhubung ke pusat data lewat
+jaringan LAN, fiber optik, dan LoRaWAN.
 
-- **Kota konvensional**: lampu lalu lintas konvensional (waktu tetap), truk sampah datang terjadwal.
-- **Kota cerdas**: lampu adaptif yang membaca kamera detektor antrean di tiap arah simpang (zona deteksi 80 m
-  ditandai di peta), truk sampah dipanggil sensor
-  tempat sampah dan dirutekan (Dijkstra, Clarke-Wright Savings, 2-opt), dan jaringan perangkat (LAN, fiber optik, LoRaWAN) ke pusat data.
-
-Hasilnya dibandingkan: waktu antre di jalan dan di pintu masuk kota, BBM terbuang saat idle,
-perjalanan selesai, waktu tempuh, perjalanan truk sampah, dan lama tempat sampah penuh.
+Aplikasi ini menampilkannya dalam 3D (three.js): kota konvensional, dengan lampu lalu lintas
+konvensional (waktu tetap) dan truk sampah terjadwal, berdampingan dengan kota cerdas pada peta
+yang sama. Keduanya dibandingkan dari waktu antre, BBM terbuang saat idle, perjalanan selesai,
+waktu tempuh, perjalanan truk sampah, dan lama tempat sampah penuh.
 
 Peta bisa dibuat sendiri di **editor peta** (gambar jalan, rapikan otomatis, pasang aset,
 atur lampu) atau diimpor dari **OpenStreetMap**.
@@ -38,8 +37,8 @@ Buka alamat yang ditampilkan terminal (http://localhost:8071). Jangan membuka
 | `diagram-3d.html` | Diagram 3D alur perangkat |
 | `aset.html` | Pratinjau semua model 3D |
 
-Semua halaman punya **mode gelap**: mengikuti pengaturan sistem, atau pilih lewat tombol
-*Tema* (otomatis → terang → gelap; pilihan diingat browser).
+Semua halaman punya **mode gelap**: tampilan bawaan terang, ganti lewat tombol *Tema*
+(pilihan diingat browser).
 
 Navigasi peta cukup dengan mouse: klik kanan + seret putar dan miringkan, klik kiri/tengah +
 seret geser, roda zoom ke arah kursor, dobel klik kanan terbang ke titik.
