@@ -2,7 +2,7 @@
 
 Coba langsung: https://smart-city.nuscode.id/
 
-Rancangan digital twin untuk kota cerdas. Kamera detektor di tiap arah simpang (zona deteksi 80 m)
+Rancangan digital twin untuk kota cerdas. Kamera detektor di tiap arah simpang
 menghitung antrean; data itu direkam sebagai histori, dipakai melatih model, dan hasilnya langsung
 mengatur lampu lalu lintas. Sensor tempat sampah memanggil truk yang rutenya diatur otomatis
 (Dijkstra, Clarke-Wright Savings, 2-opt), dan seluruh perangkat terhubung ke pusat data lewat
