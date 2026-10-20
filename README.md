@@ -1,6 +1,6 @@
 # Mini Kota — Kota Biasa vs Kota Cerdas
 
-Coba langsung: https://yudisaefulrizal.github.io/mini-kota/
+Coba langsung: https://smart-city.nuscode.id/
 
 Simulasi edukasi lalu lintas kota dalam 3D (three.js). Satu peta dijalankan dua kali,
 berdampingan dan pada waktu yang sama:
@@ -23,14 +23,13 @@ npm install
 npm run dev
 ```
 
-Buka alamat yang ditampilkan terminal (biasanya http://localhost:5173). Jangan membuka
+Buka alamat yang ditampilkan terminal (http://localhost:8071). Jangan membuka
 `index.html` langsung dari filesystem. Build produksi: `npm run build`; pratinjau:
 `npm run preview`. Terbitkan ke GitHub Pages: `npm run deploy` (build lalu push `dist/` ke cabang
 `gh-pages`).
 
 | Halaman | Isi |
 |---|---|
-| `artikel/index.html` | Artikel interaktif: latar belakang, dokumentasi lapangan, simpang dua arah, alur big data, data histori, empat model |
 | `index.html` | Simulasi: tab Perbandingan, Kota biasa, Kota cerdas (dengan perangkat dan jaringannya), Perangkat (dengan data center), Analisis (siklus belajar), Editor peta; Jelajahi Kota (mengemudi) |
 | `editor-peta.html` | Editor peta lengkap dengan simulasi lalu lintas satu kota |
 | `penjelasan.html` | Panduan pengaturan, cara kerja, dan asumsi |
