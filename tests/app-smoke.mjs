@@ -93,6 +93,9 @@ try{
   // Settings restart both cities; a map from the editor (draft) and an OSM file can be used.
   await page.fill('[name=demand]','600');await page.dispatchEvent('[name=demand]','input');
   await page.waitForFunction(()=>window.miniKota.cities.smart.engine?.demand===600&&document.getElementById('loading').hidden,null,{timeout:90000});
+  // The cameras' detection zone is a traffic setting too.
+  await page.fill('[name=zone]','50');await page.dispatchEvent('[name=zone]','input');
+  await page.waitForFunction(()=>{const e=window.miniKota.cities.smart.engine;return e?.zone===50&&e.sensors.every(s=>s.zone===50)&&document.getElementById('loading').hidden;},null,{timeout:90000});
   await page.evaluate(async()=>{const map=await (await fetch('maps/peta-uji.json')).json();localStorage.setItem('minikota.editor.draft',JSON.stringify({savedAt:new Date().toISOString(),map}));});
   await page.selectOption('#map-source','draft');
   await page.waitForFunction(()=>/draf editor/.test(document.getElementById('map-status').textContent),null,{timeout:90000});

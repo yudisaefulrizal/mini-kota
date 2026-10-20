@@ -8,7 +8,7 @@ import {reachOf} from '../map/placement.js';
 const fmt=(n,d=0)=>Number(n).toLocaleString('id-ID',{maximumFractionDigits:d,minimumFractionDigits:0});
 const size=gb=>gb>=1000?`${fmt(gb/1000,1)} TB`:gb>=1?`${fmt(gb,1)} GB`:`${fmt(gb*1000,0)} MB`;
 
-export function diagramFigures(map,config=DATA_CENTER_DEFAULTS){
+export function diagramFigures(map,config=DATA_CENTER_DEFAULTS,{zone=80}={}){
   const e=estimateDataCenter(map,config),net=networkSummary(map),c=e.config;
   const count=id=>e.sensors.find(s=>s.id===id)?.count||0;
   const cams=count('queue')+count('dome'),bins=count('waste');
@@ -17,7 +17,7 @@ export function diagramFigures(map,config=DATA_CENTER_DEFAULTS){
   const per=(short,...lines)=>({short,lines});
   return {
     source:map.name||'peta',
-    cam:per(`${fmt(cams)} unit`,`${fmt(cams)} unit · 1 per pendekat`,`${fmt(camRate,1)} pesan/dtk`,'Hitung antrean di zona 80 m'),
+    cam:per(`${fmt(cams)} unit`,`${fmt(cams)} unit · 1 per arah datang`,`${fmt(camRate,1)} pesan/dtk`,`Hitung antrean di zona ${fmt(zone)} m`),
     ultra:per(`${fmt(bins)} unit`,`${fmt(bins)} unit`,`${fmt(binRate,2)} pesan/dtk (tiap 60 dtk)`,'Ukur isi tempat sampah'),
     ctrl:per(`${fmt(e.signalControllers)} unit · ${fmt(e.signalHeads+e.pedestrianHeads)} lampu`,`${fmt(e.signalControllers)} unit`,`${fmt(e.signalHeads)} lampu kendaraan + ${fmt(e.pedestrianHeads)} lampu penyeberang, dikabel ke pengendali`,'Jalankan fase, cadangan waktu tetap'),
     gw:per(`${fmt(e.gateways)} unit`,`${fmt(e.gateways)} unit · ${fmt(e.loraGateways)} dengan LoRaWAN`,`Jangkauan kabel ${fmt(reachOf(map).cable)} m, LoRaWAN ${fmt(reachOf(map).lora/1000,1)} km`,`±${fmt(perGateway,1)} pesan/dtk per gateway`,`${fmt(e.signalEvaluationsPerSecond)} evaluasi lampu/dtk (jalur cepat)`),

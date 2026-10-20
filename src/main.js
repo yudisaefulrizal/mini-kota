@@ -67,7 +67,7 @@ function readSettings(){
   const f=$('scenario'),n=name=>Number(f.elements.namedItem(name).value);
   for(const el of f.querySelectorAll('input[type=number]'))if(!el.checkValidity())throw Error(`${el.closest('label').firstChild.textContent.trim()}: ${el.validationMessage}`);
   const population=n('population'),waste=n('wastePerPerson');
-  return {demand:n('demand'),pedestrians:n('pedestrians'),speedSpread:n('speedSpread')/100,overtaking:n('overtaking')===1,green:n('green'),seed:n('seed'),idle:n('idleLitersPerHour'),population,wastePerPerson:waste,
+  return {demand:n('demand'),pedestrians:n('pedestrians'),speedSpread:n('speedSpread')/100,zone:n('zone'),overtaking:n('overtaking')===1,green:n('green'),seed:n('seed'),idle:n('idleLitersPerHour'),population,wastePerPerson:waste,
     truckRoundHours:n('truckRoundHours'),
     // Fill per second of each of the map's bins (about 120 kg each).
     binFill:null,dailyWasteKg:population*waste};
@@ -172,7 +172,7 @@ window.addEventListener('keydown',e=>{
 $('city-compass').onclick=()=>controls.northUp();
 
 const equipment=createEquipmentView({root:$('equipment-view'),getCity:()=>cities.smart,
-  getFigures:()=>{try{return cities.smart.map&&diagramFigures(cities.smart.map,dataCenterConfig);}catch{return null;}},
+  getFigures:()=>{try{return cities.smart.map&&diagramFigures(cities.smart.map,dataCenterConfig,{zone:settings?.zone});}catch{return null;}},
   onShowOnMap:o=>{setMapMode('smart');showDeviceCard(o.id);lookAt(o.x,o.z,50);viewport.scrollIntoView({behavior:'smooth',block:'center'});}});
 
 // ---------------------------------------------------------------- numbers

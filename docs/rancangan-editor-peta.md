@@ -482,8 +482,9 @@ menutupi. Kamera kubah tidak lagi dipasang otomatis (peta lama yang memakainya t
   pendekat yang titik tengah zonanya berada dalam ±30° dari arah hadapnya; bila ada beberapa,
   dipilih yang paling lurus di depan, lalu yang simpangnya paling dekat. Kamera yang diputar
   menjauh dari semua pendekat tidak memantau apa pun.
-- **Zona deteksi**: bawaan 80 m dari garis henti ke belakang, bisa diubah per kamera di editor
-  (20–200 m, kolom *Panjang zona deteksi*). Bila pendekat pendek, zona berlanjut melewati
+- **Zona deteksi**: bawaan 80 m dari garis henti ke belakang, satu angka untuk semua kamera
+  (20–200 m): *Zona deteksi kamera* di pengaturan Lalu lintas aplikasi dan di panel simulasi
+  editor. (Sempat bisa diatur per kamera; disederhanakan menjadi global.) Bila pendekat pendek, zona berlanjut melewati
   simpang sebelumnya; zona berhenti di tepi peta.
 - **Bacaan kamera** (kartu perangkat): kendaraan di zona, yang berhenti, panjang antrean dari
   garis henti, kendaraan yang melewati garis henti, dan apakah lampu arah itu adaptif. Hanya

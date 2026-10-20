@@ -40,7 +40,7 @@ const STOPPED=0.3,LOOKAHEAD=90,COMMIT=8;
 // Cars wait behind the stop line, which the editor draws 4.5 m before the junction mouth
 // (the zebra crossing lies in between).
 const STOP_BACK=5.5;
-// Camera detection zone: metres back from the stop line (per camera: object.zone).
+// Camera detection zone: metres back from the stop line, one value for all cameras (`zone`).
 export const ZONE=80;const ZONE_MAX=200;
 const BIN_CALL=0.8,BIN_DWELL=30,BUS_DWELL=8,TRUCKS=2;
 
@@ -65,12 +65,14 @@ export class TrafficEngine{
   // `binSchedule` seconds whatever its fill, as without sensors); `binFill` is the fill
   // fraction added per second (from population × waste per person), else a random rate.
   constructor(map,{seed=42,demand=900,adaptive=false,minibus=0.12,pedestrians=0,offsets=null,prepared=null,
-    green=null,speedSpread=0.1,overtaking=true,binMode='sensor',binFill=null,binSchedule=3600}={}){
+    green=null,speedSpread=0.1,overtaking=true,zone=ZONE,binMode='sensor',binFill=null,binSchedule=3600}={}){
     this.map=prepared?.map||validateMap(structuredClone(map));
     this.geometry=prepared?.geometry||buildGeometry(this.map);
     this.graph=prepared?.graph||buildLaneGraph(this.map,this.geometry);
     this.seed=seed;this.random=rng(seed);this.binRandom=rng(seed+1000);this.walkRandom=rng(seed+2000);
-    this.speedSpread=Math.min(0.3,Math.max(0,speedSpread));this.overtaking=overtaking;this.demand=demand;this.adaptive=adaptive;this.minibusShare=minibus;
+    this.speedSpread=Math.min(0.3,Math.max(0,speedSpread));this.overtaking=overtaking;
+    // Detection zone (m) of every camera.
+    this.zone=Math.min(ZONE_MAX,Math.max(20,Number(zone)||ZONE));this.demand=demand;this.adaptive=adaptive;this.minibusShare=minibus;
     this.time=0;this.vehicles=[];this.nextId=1;this.backlog=[];this.nextArrival=0;
     this.binMode=binMode;this.binFill=binFill;this.binSchedule=binSchedule;
     this.stats={completed:0,travelSeconds:0,queueSeconds:0,backlogSeconds:0,spawned:0,redViolations:0,busStops:0,truckTrips:0,overtakes:0};
@@ -124,7 +126,7 @@ export class TrafficEngine{
     this.sensors=[];
     for(const o of this.map.objects){
       if(o.asset!=='cctv-dome'&&o.asset!=='cctv')continue;
-      const zone=Math.min(200,Math.max(20,Number(o.zone)||ZONE));
+      const zone=this.zone;
       let best=null;
       for(const [id,sig] of this.signals){
         const legs=sig.j.legs.filter(l=>!l.ring);
@@ -224,7 +226,7 @@ export class TrafficEngine{
         const seg=this.graph.byId.get(v.route[k]);
         if(seg.kind==='connector'&&k>v.idx&&this.signals.has(seg.node)){
           const key=`${seg.node}:${seg.legFrom}`;
-          if(ahead<=(this.zoneOf.get(key)??ZONE)+STOP_BACK)counts.set(key,(counts.get(key)||0)+1);
+          if(ahead<=(this.zoneOf.get(key)??this.zone)+STOP_BACK)counts.set(key,(counts.get(key)||0)+1);
         }
         ahead+=seg.length;
       }

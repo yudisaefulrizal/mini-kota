@@ -185,7 +185,7 @@ function rebuild(){
 // without vehicles, so its placement and aim can be checked while editing.
 let zonePreview=null,zonesKey=null;
 function previewEngine(){
-  if(!zonePreview)try{zonePreview=new TrafficEngine(map,{demand:0});}catch{zonePreview=false;}
+  if(!zonePreview)try{zonePreview=new TrafficEngine(map,{demand:0,zone:zoneValue()});}catch{zonePreview=false;}
   return zonePreview||null;
 }
 function refreshZones(){
@@ -336,8 +336,7 @@ function hitHandle(p){
 // A pole camera: which approach it watches, and how far back its detection zone reaches.
 function cameraPanel(o){
   const st=previewEngine()?.sensorState(o.id),a=st?.approaches?.[0];
-  return `<label class="field">Panjang zona deteksi (m)<input type="number" id="sel-zone" min="20" max="200" step="10" value="${o.zone||ZONE}"></label>
-<p class="hint ${st?'':'bad'}">${st?(st.approaches.length===1?`Memantau arah datang dari ${esc(a.from.toLowerCase())} (${esc(a.road)}) di simpang ${esc(st.node)}.`:`Memantau ${st.approaches.length} arah simpang ${esc(st.node)}.`)+' Zona dihitung dari garis henti ke belakang.'
+  return `<p class="hint ${st?'':'bad'}">${st?(st.approaches.length===1?`Memantau arah datang dari ${esc(a.from.toLowerCase())} (${esc(a.road)}) di simpang ${esc(st.node)}.`:`Memantau ${st.approaches.length} arah simpang ${esc(st.node)}.`)+` Zona ${fmt(zoneValue(),0)} m dari garis henti ke belakang (atur di panel simulasi).`
     :'Belum menghadap arah datang di simpang berlampu. Putar kamera ke arah kendaraan yang datang, dari seberang simpang.'}</p>`;
 }
 
@@ -393,8 +392,6 @@ ${networkRows(o.id)}
     $('sel-rot').onchange=e=>change(()=>{map.objects.find(x=>x.id===o.id).rotation=Math.round(Number(e.target.value)||0);},{tidy:false});
     $('sel-gw')?.addEventListener('change',e=>change(()=>edit.setGateway(map,o.id,e.target.value||null),{tidy:false}));
     $('sel-lora')?.addEventListener('change',e=>change(()=>{const g=map.objects.find(x=>x.id===o.id);if(e.target.checked)g.lora=true;else delete g.lora;},{tidy:false}));
-    $('sel-zone')?.addEventListener('change',e=>change(()=>{const x=map.objects.find(c=>c.id===o.id),v=Math.round(Number(e.target.value)||ZONE);
-      if(v===ZONE)delete x.zone;else x.zone=Math.min(200,Math.max(20,v));},{tidy:false}));
     $('sel-delete').onclick=()=>change(()=>{edit.deleteObject(map,o.id);selection=null;},{tidy:false});
   }else{
     const n=map.nodes.find(n=>n.id===selection.id);if(!n){box.hidden=true;return;}
@@ -810,14 +807,14 @@ async function startSim(){
   if(sim)return;
   let engine;
   try{engine=new TrafficEngine(map,{demand:Number($('sim-demand').value)||0,adaptive:$('sim-adaptive').checked,pedestrians:Math.max(0,Number($('sim-people').value)||0),
-    speedSpread:spreadValue(),overtaking:$('sim-overtaking').checked});}
+    speedSpread:spreadValue(),overtaking:$('sim-overtaking').checked,zone:zoneValue()});}
   catch(error){status(`Simulasi tidak bisa dimulai: ${error.message}`,true);return;}
   if(!engine.origins.length){status('Peta belum punya ujung jalan yang tersambung untuk kendaraan masuk dan keluar.',true);return;}
   cancelDrawing();selection=null;activeHandle=null;renderSelection();setTool('select');
   const view=new TrafficView(scene,objects);
   sim={engine,view,paused:false,accumulator:0,statsTimer:0};
   renderSelection();
-  document.body.classList.add('simulating');$('sim-people').disabled=true;$('sim-start').hidden=true;$('sim-running').hidden=false;$('sim-stats').hidden=false;
+  document.body.classList.add('simulating');$('sim-people').disabled=true;$('sim-zone').disabled=true;$('sim-start').hidden=true;$('sim-running').hidden=false;$('sim-stats').hidden=false;
   $('sim-toggle').textContent='■ Hentikan simulasi';$('sim-toggle').setAttribute('aria-pressed','true');
   await view.init(engine);
   const s=engine.summary();
@@ -830,7 +827,7 @@ function stopSim(){
   sim.view.dispose();sim=null;network.reset();hideDeviceCard();renderLegend();refreshZones();
   // Rebuild the placed assets so their lamp materials return to normal.
   for(const [,holder] of objects.meshes)objects.group.remove(holder);objects.meshes.clear();objects.sync(map);
-  document.body.classList.remove('simulating');$('sim-people').disabled=false;$('sim-start').hidden=false;$('sim-running').hidden=true;$('sim-stats').hidden=true;$('sim-pause').textContent='Ⅱ Jeda';
+  document.body.classList.remove('simulating');$('sim-people').disabled=false;$('sim-zone').disabled=false;$('sim-start').hidden=false;$('sim-running').hidden=true;$('sim-stats').hidden=true;$('sim-pause').textContent='Ⅱ Jeda';
   $('sim-toggle').textContent='▶ Simulasikan';$('sim-toggle').setAttribute('aria-pressed','false');
   status('Simulasi dihentikan. Peta bisa diedit lagi.');
 }
@@ -876,6 +873,9 @@ $('sim-demand').onchange=e=>{if(sim)sim.engine.demand=Math.max(0,Number(e.target
 // Both apply at once: the spread to drivers arriving from now on, overtaking to everyone.
 function spreadValue(){return Math.min(30,Math.max(0,Number($('sim-spread').value)||0))/100;}
 $('sim-spread').onchange=()=>{if(sim)sim.engine.speedSpread=spreadValue();};
+// One detection zone for all cameras; the selected camera's zone preview follows it.
+function zoneValue(){return Math.min(200,Math.max(20,Number($('sim-zone').value)||ZONE));}
+$('sim-zone').onchange=()=>{zonePreview=null;zonesKey=null;if(map)renderSelection();};
 $('sim-overtaking').onchange=e=>{if(sim)sim.engine.overtaking=e.target.checked;};
 $('sim-adaptive').onchange=e=>{if(sim)sim.engine.adaptive=e.target.checked;showAdaptiveNote();};
 // Adaptive lights only work where a camera watches the junction; say so when some lack one.

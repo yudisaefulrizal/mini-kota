@@ -35,13 +35,12 @@ try{
   assert.deepEqual(await page.evaluate(()=>window.mapEditor.selection),{type:'object',id:dome.id});
   assert.match(await page.textContent('#selection'),/Jaringan\s*Ke Gateway edge o\d+ · LAN/);
   // A selected camera shows its detection zone and which approach it watches; the zone length can be set.
-  assert.match(await page.textContent('#selection'),/Panjang zona deteksi[\s\S]*Memantau arah datang dari/);
+  assert.match(await page.textContent('#selection'),/Memantau arah datang dari/);
   assert.deepEqual(await page.evaluate(()=>{const z=window.mapEditor.zones;return [z.visible,z.zones.length,z.zones[0]?.id];}),[true,1,dome.id]);
-  await page.fill('#sel-zone','50');await page.dispatchEvent('#sel-zone','change');
-  assert.equal(await page.evaluate(id=>window.mapEditor.map.objects.find(o=>o.id===id).zone,dome.id),50);
-  await page.waitForFunction(()=>window.mapEditor.zones.zones.length===1);
-  await page.fill('#sel-zone','80');await page.dispatchEvent('#sel-zone','change');
-  assert.equal(await page.evaluate(id=>window.mapEditor.map.objects.find(o=>o.id===id).zone,dome.id),undefined);
+  // One zone length for all cameras, in the simulation panel; the preview follows it.
+  await page.fill('#sim-zone','50');await page.dispatchEvent('#sim-zone','change');
+  await page.waitForFunction(()=>window.mapEditor.zones.zones.length===1&&/50 m/.test(document.getElementById('selection').textContent));
+  await page.fill('#sim-zone','80');await page.dispatchEvent('#sim-zone','change');
 
   // While the simulation runs, packets follow the cameras' counts and the card is live.
   await page.check('#sim-adaptive');await page.click('#sim-start');

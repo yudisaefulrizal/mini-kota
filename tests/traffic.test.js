@@ -144,16 +144,16 @@ test('light timers: a fixed light changes colour exactly when its countdown runs
   assert.ok(adaptive.signalCountdown(node).every(c=>c.estimated));
 });
 
-test('a camera watches the approach it faces; its zone length is set per camera and drawn from the stop line',async()=>{
+test('a camera watches the approach it faces; the zone length (one for all cameras) is drawn from the stop line',async()=>{
   const map=await miniKotaLengkap(),cam=map.objects.find(o=>o.asset==='cctv');
   const length=e=>e.zonePaths(cam.id).reduce((m,p)=>Math.max(m,p.points.slice(1).reduce((s,q,i)=>s+Math.hypot(q.x-p.points[i].x,q.z-p.points[i].z),0)),0);
   const a=new TrafficEngine(map,{demand:0}),st=a.sensorState(cam.id);
   assert.equal(st.zone,80);assert.equal(st.approaches.length,1);
   assert.ok(Math.abs(length(a)-80)<6,`zone ${length(a)} m`);
-  cam.zone=40;const b=new TrafficEngine(map,{demand:0});
+  const b=new TrafficEngine(map,{demand:0,zone:40});
   assert.equal(b.sensorState(cam.id).zone,40);assert.ok(Math.abs(length(b)-40)<6,`zone ${length(b)} m`);
   // Turned round, it no longer watches that approach.
-  cam.zone=80;cam.rotation=(cam.rotation||0)+180;
+  cam.rotation=(cam.rotation||0)+180;
   const c=new TrafficEngine(map,{demand:0}).sensorState(cam.id);
   assert.ok(!c||c.node!==st.node||c.legs[0]!==st.legs[0]);
 });
@@ -187,4 +187,11 @@ test('drivers keep their own preferred speed; faster ones overtake on a long roa
   assert.ok(back>e.stats.overtakes*0.5,`${back} of ${e.stats.overtakes} moved back after passing`);
   assert.ok(e.summary().averageTravel<off.summary().averageTravel,'passing saves time on a long road');
   assert.equal(e.summary().redViolations,0);assert.ok(e.stats.completed>200);
+});
+
+test('the detection zone is one setting for every camera',async()=>{
+  const map=await miniKotaLengkap();map.objects.find(o=>o.asset==='cctv').zone=120;   // an old per-camera value is ignored
+  const e=new TrafficEngine(map,{demand:0,zone:50});
+  assert.ok(e.sensors.every(s=>e.sensorState(s.id).zone===50));
+  assert.equal(new TrafficEngine(map,{demand:0}).sensors[0].zone,80);
 });
