@@ -12,6 +12,7 @@ import {deviceReadings,deviceLinks,legendHtml} from './map/device-info.js';
 import {City,CITY_NAMES} from './app/city.js';
 import {createDriving} from './app/driving.js';
 import {createEquipmentView} from './app/equipment.js';
+import {diagramFigures} from './app/diagram-figures.js';
 import {DATA_CENTER_DEFAULTS,dataCenterInventory,estimateDataCenter,validateDataCenter} from './app/data-center.js';
 
 // Mini Kota: the same map run twice, side by side. The ordinary city (kota biasa) has
@@ -171,6 +172,7 @@ window.addEventListener('keydown',e=>{
 $('city-compass').onclick=()=>controls.northUp();
 
 const equipment=createEquipmentView({root:$('equipment-view'),getCity:()=>cities.smart,
+  getFigures:()=>{try{return cities.smart.map&&diagramFigures(cities.smart.map,dataCenterConfig);}catch{return null;}},
   onShowOnMap:o=>{setMapMode('smart');showDeviceCard(o.id);lookAt(o.x,o.z,50);viewport.scrollIntoView({behavior:'smooth',block:'center'});}});
 
 // ---------------------------------------------------------------- numbers

@@ -53,6 +53,10 @@ try{
   await page.click('[data-mode=equipment]');
   await page.waitForSelector('#equipment-rows tr');
   const count=await page.locator('#equipment-rows tr').count();assert.ok(count>=50,`${count} devices`);
+  // The 3D diagram labels carry the current map's counts and estimates.
+  const diagram=page.frameLocator('#equipment-diagram');
+  await diagram.locator('.label[data-id=cam] .figure',{hasText:'51 unit'}).waitFor({timeout:20000});
+  assert.match(await diagram.locator('#figures-note').textContent(),/Mini Kota lengkap: 57 sensor/);
   await page.click('[data-filter=bin-sensor]');assert.equal(await page.locator('#equipment-rows tr').count(),6);
   await page.click('#equipment-rows tr:first-child button');
   assert.match(await page.textContent('#equipment-detail'),/Sensor ultrasonik tempat sampah/);

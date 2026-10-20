@@ -24,7 +24,7 @@ function locationOf(o,city){
   return best?.label||`x ${Math.round(o.x)}, z ${Math.round(o.z)}`;
 }
 
-export function createEquipmentView({root,getCity,onShowOnMap}){
+export function createEquipmentView({root,getCity,getFigures,onShowOnMap}){
   let filter='all',selected=null,rows=[],opened=false;
   root.innerHTML=`<section class="equipment-block"><div class="equipment-head"><h3>Alur perangkat 3D</h3><a href="./diagram-3d.html" target="_blank" rel="noopener">Buka layar penuh ↗</a></div>
 <iframe id="equipment-diagram" title="Diagram 3D alur perangkat" loading="lazy"></iframe></section>
@@ -72,7 +72,9 @@ ${spec?`<h4>Isi perangkat</h4><dl class="device-card-spec"><dt>Perangkat</dt><dd
   });
   return {
     open(){
-      if(!opened){opened=true;$('equipment-diagram').src='./diagram-3d.html?embed=1';}
+      // The diagram shows counts and estimates for the smart city's current map.
+      const frame=$('equipment-diagram'),send=()=>{const f=getFigures?.();if(f)frame.contentWindow?.postMessage({type:'mini-kota:figures',figures:f},location.origin);};
+      if(!opened){opened=true;frame.addEventListener('load',send);frame.src='./diagram-3d.html?embed=1';}else send();
       buildFilters();buildRows();renderDetail();
     },
     // Live values change in place so focus, scroll and open sections survive.

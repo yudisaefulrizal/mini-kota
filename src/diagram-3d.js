@@ -3,6 +3,8 @@ import {onThemeChange} from './theme.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {CSS2DRenderer,CSS2DObject} from 'three/addons/renderers/CSS2DRenderer.js';
 import {DEVICES,ZONES,SHORT_NAMES,PROCESSES,FLOW_TYPES,FLOWS,TOUR,NETWORKS} from './devices.js';
+import {diagramFigures} from './app/diagram-figures.js';
+import {miniKotaLengkap} from './map/default-map.js';
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -16,12 +18,16 @@ const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // Layout in scene units: zones run left to right in data-flow order.
 const ZONE_LAYOUT={field:{x:-47,w:22,color:0xdbe8d6},edge:{x:-20,w:14,color:0xe3ead9},network:{x:2,w:14,color:0xdde6e8},dc:{x:44,w:48,color:0xe2e0ea}};
-const POS={cam:[-49,-11],ctrl:[-49,0],ultra:[-49,11],gw:[-20,0],net:[2,0],kafka:[27,0],spark:[41,0],db:[54,-9],lake:[54,9],dash:[64,-9]};
+const POS={cam:[-49,-14],ctrl:[-49,0],ultra:[-49,14],gw:[-20,0],net:[2,0],kafka:[24,0],spark:[40,0],db:[52,-13],lake:[53,12],dash:[64,-1]};
 // Home view frames the whole layout (x −58…68) for the current aspect ratio.
 const HOME_TARGET=new THREE.Vector3(5,0,2),HOME_DIR=new THREE.Vector3(0,.62,.78).normalize();
 
 // ---------- Panel (works without WebGL) ----------
 let scene3d=null,selected=null,tourIndex=-1;
+// Counts and estimates beside each device: from the default map, or from the simulation's
+// current map when embedded in its "Perangkat" tab (sent with postMessage).
+let figures=null;
+function setFigures(next){figures=next;$('figures-note').textContent=next.note;scene3d?.showFigures(next);if(selected)renderDevice(selected);}
 
 function flowItem(f,dir){
   const other=dir==='in'?f.from:f.to;
@@ -31,7 +37,7 @@ function renderDevice(id){
   const info=$('device-info');
   if(!id){info.innerHTML=`<p class="eyebrow">Mulai</p><h2>Klik perangkat</h2><p>Pilih perangkat di diagram atau di daftar untuk melihat isinya, proses yang dijalankan, dan dari mana ke mana datanya mengalir. Tekan <strong>Ikuti alur data</strong> untuk menelusuri satu event dari kamera sampai dashboard.</p>`;return;}
   const d=byId[id],incoming=FLOWS.filter(f=>f.to===id),outgoing=FLOWS.filter(f=>f.from===id);
-  info.innerHTML=`<p class="eyebrow">${esc(zoneName[d.zone])}</p><h2><i aria-hidden="true">${d.icon}</i>${esc(d.name)}</h2><p class="count">${esc(d.count)}</p><p>${esc(d.role)}</p>
+  info.innerHTML=`<p class="eyebrow">${esc(zoneName[d.zone])}</p><h2><i aria-hidden="true">${d.icon}</i>${esc(d.name)}</h2><p class="count">${esc(d.count)}</p>${figures?.[id]?`<ul class="estimate">${figures[id].lines.map(l=>`<li>${esc(l)}</li>`).join('')}</ul>`:''}<p>${esc(d.role)}</p>
 <h3>Isi perangkat</h3><dl><dt>Perangkat keras</dt><dd>${esc(d.hardware)}</dd><dt>Sistem operasi</dt><dd>${esc(d.os)}</dd><dt>Perangkat lunak</dt><dd>${esc(d.software)}</dd><dt>Koneksi &amp; protokol</dt><dd>${esc(d.protocol)}</dd></dl>
 <h3>Proses yang dijalankan</h3><ol>${PROCESSES[id].map(p=>`<li>${esc(p)}</li>`).join('')}</ol>
 <h3>Alur data</h3>${incoming.length?`<ul class="flows">${incoming.map(f=>flowItem(f,'in')).join('')}</ul>`:'<p>Tidak ada data masuk; perangkat ini sumber data.</p>'}
@@ -138,7 +144,9 @@ function buildScene(){
     g.traverse(o=>{if(o.isMesh){o.userData.id=d.id;o.material=o.material.clone();o.material.transparent=true;o.userData.baseOpacity=1;pickables.push(o);}});
     const box=new THREE.Box3().setFromObject(g),size=box.getSize(new THREE.Vector3());
     const el=tag(SHORT_NAMES[d.id],'label',size.y+1.6,g);el.dataset.id=d.id;el.setAttribute('aria-label',`${d.name}, lihat detail`);
-    scene.add(g);devices[d.id]={group:g,label:el,radius:Math.max(size.x,size.z)/2,height:size.y};
+    // The name tag carries the device's main figure on a second line.
+    el.textContent='';const name=document.createElement('span');name.textContent=SHORT_NAMES[d.id];const info=document.createElement('small');info.className='figure';el.append(name,info);
+    scene.add(g);devices[d.id]={group:g,label:el,info,radius:Math.max(size.x,size.z)/2,height:size.y};
   }
   const ring=new THREE.Mesh(new THREE.RingGeometry(1,1.18,48),new THREE.MeshBasicMaterial({color:0x326149,side:THREE.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.visible=false;scene.add(ring);
 
@@ -212,7 +220,13 @@ function buildScene(){
     if(flight){flight.t=Math.min(1,flight.t+dt/.8);const k=1-Math.pow(1-flight.t,3);controls.target.lerpVectors(flight.fromT,flight.toT,k);camera.position.lerpVectors(flight.fromP,flight.toP,k);if(flight.t===1)flight=null;}
     controls.update();renderer.render(scene,camera);labels.render(scene,camera);
   });
+  let showInfo=true;
+  function showFigures(f){for(const [id,d] of Object.entries(devices)){d.info.textContent=f[id]?.short||'';d.label.setAttribute('aria-label',`${byId[id].name}${f[id]?`, ${f[id].short}`:''}, lihat detail`);}}
+  $('toggle-figures').onclick=()=>{showInfo=!showInfo;view.classList.toggle('no-figures',!showInfo);$('toggle-figures').setAttribute('aria-pressed',String(showInfo));};
   function recolor(){for(const e of edges){const c=colorOf(e.flow);e.tube.material.color.set(c);e.cone.material.color.set(c);e.dots.forEach(s=>s.material.color.set(c));}}
-  return {highlight,flyTo,home,recolor};
+  return {highlight,flyTo,home,recolor,showFigures};
 }
 try{scene3d=buildScene();}catch(error){$('scene-fallback').hidden=false;console.error(error);}
+let fromApp=false;
+addEventListener('message',e=>{if(e.origin===location.origin&&e.data?.type==='mini-kota:figures'){fromApp=true;setFigures(e.data.figures);}});
+if(!fromApp)setFigures(diagramFigures(miniKotaLengkap()));
