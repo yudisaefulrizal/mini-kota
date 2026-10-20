@@ -32,7 +32,6 @@ try{
   await page.waitForFunction(()=>window.miniKota.cities.smart.engine.time>90,null,{timeout:120000});
   const times=await page.evaluate(()=>[window.miniKota.cities.baseline.engine.time,window.miniKota.cities.smart.engine.time]);
   assert.equal(times[0],times[1]);
-  assert.match(await page.textContent('#comparison-saving'),/Cerdas dibanding biasa: waktu antre/);
   assert.equal(await page.locator('#comparison-results .metric').count(),12);assert.equal(await page.locator('#city-details').count(),0);
   assert.match(await page.textContent('#smart-clock'),/HARI 01 06:0/);
 
@@ -75,14 +74,15 @@ try{
   assert.equal(await page.evaluate(()=>window.miniKota.mode),'smart');
   assert.equal(await page.isVisible('#device-card'),true);
 
-  // Data center: sized from the devices on the map; assumptions can be changed.
-  await page.click('[data-mode=compare]');
-  await page.click('#data-center-details summary');
+  // Data center (in the Perangkat tab): sized from the devices on the map; assumptions can be changed.
+  await page.click('[data-mode=equipment]');
+  assert.equal(await page.isVisible('.comparison-panel'),false);
   assert.match(await page.textContent('#data-center-sensors'),/Kamera detektor antrean.*51/s);
   const before=await page.textContent('#data-center-summary');
   await page.click('#data-center-form >> xpath=..');   // open "Ubah asumsi perencanaan"
   await page.fill('[name=sampleSeconds]','0.25');await page.dispatchEvent('[name=sampleSeconds]','input');
   assert.notEqual(await page.textContent('#data-center-summary'),before);
+  await page.click('[data-mode=compare]');assert.equal(await page.isVisible('#data-center-panel'),false);
 
   // Driving: the car moves, the view fills the screen, Esc returns.
   await page.click('#explore');

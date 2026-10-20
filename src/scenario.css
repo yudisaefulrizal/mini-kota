@@ -17,7 +17,7 @@ details{border-top:1px solid var(--c-e3e9df);padding:14px 0 2px}summary{font-siz
 .comparison-table th:first-child{text-align:left;font-weight:500}
 .comparison-table thead th{color:var(--c-638057);font-weight:700}
 .comparison-table td:last-child{background:var(--c-f1f7eb)}
-.comparison-saving{font-size:12px;line-height:1.7;color:var(--c-294e40)}
+
 @media(min-width:1500px){#viewport{height:560px}}
 @media(max-width:900px){#viewport{grid-template-columns:1fr;grid-template-rows:1fr 1fr;height:760px}.map-view{border-right:0;border-bottom:1px solid var(--c-afbeaa)}#smart-view{border-bottom:0}.comparison-table{font-size:10px}.comparison-table th,.comparison-table td{padding:10px 5px}}
 .data-center-panel{margin-top:20px;scroll-margin-top:16px}
@@ -75,10 +75,10 @@ summary:focus-visible,a:focus-visible{outline:2px solid var(--c-426e50);outline-
 #apply-status{background:transparent;border:0;padding:0;font-size:11px}
 .sidebar .view-title{margin-top:20px}
 .sidebar .reset{margin-bottom:14px}
-#data-center-details .data-center-panel{border:0;margin:0}
+
 .result-details{margin-bottom:12px}
 .comparison-panel>.section-title>span:not(.title-with-tip){display:none}
-.comparison-saving{font-size:14px;margin:14px 0}
+
 main>header{margin-bottom:12px}
 @media(max-width:650px){.sidebar{width:100%;padding:24px 18px}.disclosure>summary{padding:14px}}
 .side-links{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:16px 0 26px;font-size:13px}.side-links a{color:var(--c-526d5b);text-underline-offset:4px}
@@ -165,3 +165,7 @@ body.driving .map-help{display:none}
 .metric small{display:block;margin-top:6px;font-size:10px;color:var(--c-8a998c)}
 .delta{white-space:nowrap;font-size:10px;font-weight:700;padding:1px 5px;border-radius:5px;background:var(--c-eef4ea);color:var(--c-5e7168)}
 .delta.good{background:var(--c-e4f1daf5);color:var(--c-315c28)}.delta.bad{background:var(--c-fbe9e4);color:var(--c-a33b25)}
+main[data-mode=equipment] .comparison-panel,main[data-mode=editor] .comparison-panel{display:none}
+.data-center-panel[hidden]{display:none}
+.comparison-panel .compare-grid{margin-top:14px}
+.dc-table td:nth-child(2),.dc-table th:nth-child(2){text-align:left}

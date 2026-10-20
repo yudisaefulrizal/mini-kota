@@ -95,7 +95,7 @@ async function restart(){
   $('map-status').textContent=`${chosen.label}: ${map.roads.length} jalan, ${cities.smart.engine.signals.size} simpang berlampu, ${map.objects.length} aset.`;
   if(!cities.smart.engine.origins.length)$('map-status').textContent+=' Peta belum punya ujung jalan untuk kendaraan masuk.';
   if(first)view(false);
-  driving.reload();equipment.reset();if(mode==='equipment')equipment.open();
+  driving.reload();equipment.reset();if(mode==='equipment'){equipment.open();renderDataCenter();}
   hideDeviceCard();renderLegend();renderDataCenter();ui();
 }
 let inputTimer;
@@ -119,7 +119,10 @@ function setMapMode(next){
   mode=next;viewport.dataset.mode=mode;$('map-title').textContent=MAP_MODES[mode];
   for(const b of document.querySelectorAll('.map-tabs [data-mode]'))b.setAttribute('aria-selected',String(b.dataset.mode===mode));
   $('equipment-view').hidden=mode!=='equipment';$('editor-view').hidden=mode!=='editor';
-  if(mode==='equipment')equipment.open();
+  // The Perangkat tab also shows the data center sized for these devices; the comparison
+  // belongs to the city views.
+  $('data-center-panel').hidden=mode!=='equipment';document.querySelector('main').dataset.mode=mode;
+  if(mode==='equipment'){equipment.open();renderDataCenter();}
   if(mode==='editor'&&!$('editor-frame').src)$('editor-frame').src='./editor-peta.html?embed=1';
   if(!showsDevices())hideDeviceCard();
   $('net-legend').open=mode==='smart';   // folded beside the ordinary city, open in its own tab
@@ -220,14 +223,10 @@ function ui(){
   };
   $('comparison-results').innerHTML=groups.map(([,rows])=>rows.map(([k,x,y,f,better,note])=>
     `<div class="metric"><span class="metric-name">${k}${change(x,y,better)}</span><dl><dt>Biasa</dt><dd>${f(x)}</dd><dt>Cerdas</dt><dd>${f(y)}</dd></dl>${note?`<small>${note}</small>`:''}</div>`).join('')).join('');
-  const pct=(x,y)=>x>0?Math.round((1-y/x)*100):0;
-  const q=pct(b.queueSeconds+b.backlogSeconds,s.queueSeconds+s.backlogSeconds),f=fuel(b)-fuel(s),t=b.truckTrips-s.truckTrips;
-  $('comparison-saving').textContent=b.time<60?'Kedua kota baru dimulai…':
-    `Cerdas dibanding biasa: waktu antre ${q>=0?`${q}% lebih rendah`:`${-q}% lebih tinggi`}; BBM idle ${fmt(Math.abs(f),2)} L ${f>=0?'lebih hemat':'lebih boros'}; truk sampah ${t>=0?`${t} perjalanan lebih sedikit`:`${-t} perjalanan lebih banyak`}.`;
   $('run-status').textContent=paused?'Simulasi dijeda':fastForward?'Mempercepat 1 jam…':'Simulasi aktif';
   if(mode==='equipment')equipment.refresh();
   if(showsDevices())renderDeviceCard();
-  if($('data-center-details').open)renderDataCenterLoad();
+  if(mode==='equipment')renderDataCenterLoad();
 }
 
 // ---------------------------------------------------------------- data center
@@ -254,7 +253,6 @@ $('data-center-form').addEventListener('input',()=>{
   const f=$('data-center-form'),next={};for(const el of f.elements)if(el.name)next[el.name]=Number(el.value);
   try{dataCenterConfig=validateDataCenter(next);renderDataCenterLoad();}catch(error){$('data-center-error').textContent=error.message;}
 });
-$('data-center-details').addEventListener('toggle',()=>{if($('data-center-details').open)renderDataCenter();});
 $('focus-data-center').onclick=()=>{
   const dc=cities.smart.map?.objects.find(o=>o.asset==='data-center');if(!dc)return;
   setMapMode('smart');lookAt(dc.x,dc.z,90);viewport.scrollIntoView({behavior:'smooth',block:'center'});
