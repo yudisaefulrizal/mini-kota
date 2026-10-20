@@ -1,20 +1,19 @@
-// Light or dark theme, shared by every page. Light unless chosen otherwise; "Otomatis" follows
-// the system; a choice made with the theme button is remembered in this browser. Colours live in theme.css; 3D views listen
+// Light or dark theme, shared by every page. Light unless chosen otherwise; a choice made with
+// the theme button is remembered in this browser. Colours live in theme.css; 3D views listen
 // with onThemeChange to recolour their background.
-const KEY='miniKota.theme',ORDER=['light','dark','auto'];
-const NAMES={auto:'Tema: otomatis',light:'Tema: terang',dark:'Tema: gelap'};
-const media=matchMedia('(prefers-color-scheme: dark)');
+const KEY='miniKota.theme',ORDER=['light','dark'];
+const NAMES={light:'Tema: terang',dark:'Tema: gelap'};
 
 export function themePreference(){
   try{const t=localStorage.getItem(KEY);return ORDER.includes(t)?t:'light';}catch{return 'light';}
 }
-export function isDark(){const p=themePreference();return p==='dark'||(p==='auto'&&media.matches);}
+export function isDark(){return themePreference()==='dark';}
 
 function apply(){
   const p=themePreference(),root=document.documentElement;
-  if(p==='auto')delete root.dataset.theme;else root.dataset.theme=p;
+  root.dataset.theme=p;
   document.querySelector('meta[name=theme-color]')?.setAttribute('content',isDark()?'#101815':'#173b37');
-  for(const b of document.querySelectorAll('.theme-toggle')){b.textContent=NAMES[p];b.title='Klik untuk mengganti: terang, gelap, otomatis (ikut sistem)';}
+  for(const b of document.querySelectorAll('.theme-toggle')){b.textContent=NAMES[p];b.title='Klik untuk mengganti: terang atau gelap';}
   dispatchEvent(new CustomEvent('themechange',{detail:{dark:isDark()}}));
 }
 export function setTheme(p){try{localStorage.setItem(KEY,p);}catch{}apply();}
@@ -29,7 +28,6 @@ function mount(){
   if(slot)slot.append(b);else{b.classList.add('floating');document.body.append(b);}
   apply();
 }
-media.addEventListener('change',apply);
 // "!" buttons (details.tip): one open at a time; a click elsewhere or Esc closes it.
 document.addEventListener('click',e=>{for(const t of document.querySelectorAll('details.tip[open]'))if(!t.contains(e.target))t.open=false;});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')for(const t of document.querySelectorAll('details.tip[open]'))t.open=false;});
