@@ -33,7 +33,7 @@ try{
   const times=await page.evaluate(()=>[window.miniKota.cities.baseline.engine.time,window.miniKota.cities.smart.engine.time]);
   assert.equal(times[0],times[1]);
   assert.match(await page.textContent('#comparison-saving'),/Cerdas dibanding biasa: waktu antre/);
-  assert.equal(await page.locator('#comparison-results tr').count(),8);
+  assert.equal(await page.locator('#comparison-results tr:not(.group)').count(),12);assert.equal(await page.locator('#city-details').count(),0);
   assert.match(await page.textContent('#smart-clock'),/HARI 01 06:0/);
 
   // "!" buttons: one open at a time; a click elsewhere closes it.

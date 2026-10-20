@@ -189,29 +189,34 @@ function ui(){
     $(`${kind}-map-queue`).textContent=`${sum.waiting} dalam · ${sum.backlog} luar`;
     $(`${kind}-map-fuel`).textContent=`${fmt(fuel(sum),2)} L`;
   }
-  const rows=[
-    ['Waktu antre di jalan',duration(b.queueSeconds),duration(s.queueSeconds)],
-    ['Waktu antre masuk kota',duration(b.backlogSeconds),duration(s.backlogSeconds)],
-    ['BBM terbuang saat idle',`${fmt(fuel(b),2)} L`,`${fmt(fuel(s),2)} L`],
-    ['Perjalanan selesai',fmt(b.completed),fmt(s.completed)],
-    ['Rata-rata waktu tempuh',b.completed?`${fmt(b.averageTravel)} dtk`:'—',s.completed?`${fmt(s.averageTravel)} dtk`:'—'],
-    ['Perjalanan truk sampah',fmt(b.truckTrips),fmt(s.truckTrips)],
-    ['Tempat sampah penuh (akumulasi)',duration(b.binFullSeconds),duration(s.binFullSeconds)],
-    ['Simpang adaptif (punya kamera detektor)','—',`${s.sensedSignals} dari ${s.signals}`],
+  // One table, by subject; live counts already on the map (stopped, waiting outside) are not
+  // repeated here.
+  const groups=[
+    ['Lalu lintas',[
+      ['Waktu antre di jalan',duration(b.queueSeconds),duration(s.queueSeconds)],
+      ['Waktu antre masuk kota',duration(b.backlogSeconds),duration(s.backlogSeconds)],
+      ['BBM terbuang saat idle',`${fmt(fuel(b),2)} L`,`${fmt(fuel(s),2)} L`],
+      ['Perjalanan selesai',fmt(b.completed),fmt(s.completed)],
+      ['Rata-rata waktu tempuh',b.completed?`${fmt(b.averageTravel)} dtk`:'—',s.completed?`${fmt(s.averageTravel)} dtk`:'—'],
+    ]],
+    ['Sampah',[
+      ['Perjalanan truk sampah',`${fmt(b.truckTrips)} · ${b.binsEmptied} dikosongkan`,`${fmt(s.truckTrips)} · ${s.binsEmptied} dikosongkan`],
+      ['Tempat sampah penuh',`${duration(b.binFullSeconds)} · kini ${b.binsFull}/${b.bins}`,`${duration(s.binFullSeconds)} · kini ${s.binsFull}/${s.bins}`],
+    ]],
+    ['Lainnya',[
+      ['Simpang adaptif','—',`${s.sensedSignals} dari ${s.signals}`],
+      ['Angkot singgah di halte',b.busStops,s.busStops],
+      ['Pejalan kaki menyeberang',b.pedestrians?.crossings??0,s.pedestrians?.crossings??0],
+      ['Kendaraan menyalip',b.overtakes,s.overtakes],
+      ['Pelanggaran lampu merah',b.redViolations,s.redViolations],
+    ]],
   ];
-  $('comparison-results').innerHTML=rows.map(([k,x,y])=>`<tr><th scope="row">${k}</th><td>${x}</td><td>${y}</td></tr>`).join('');
+  $('comparison-results').innerHTML=groups.map(([name,rows])=>`<tr class="group"><th scope="rowgroup" colspan="3">${name}</th></tr>`
+    +rows.map(([k,x,y])=>`<tr><th scope="row">${k}</th><td>${x}</td><td>${y}</td></tr>`).join('')).join('');
   const pct=(x,y)=>x>0?Math.round((1-y/x)*100):0;
   const q=pct(b.queueSeconds+b.backlogSeconds,s.queueSeconds+s.backlogSeconds),f=fuel(b)-fuel(s),t=b.truckTrips-s.truckTrips;
   $('comparison-saving').textContent=b.time<60?'Kedua kota baru dimulai…':
     `Cerdas dibanding biasa: waktu antre ${q>=0?`${q}% lebih rendah`:`${-q}% lebih tinggi`}; BBM idle ${fmt(Math.abs(f),2)} L ${f>=0?'lebih hemat':'lebih boros'}; truk sampah ${t>=0?`${t} perjalanan lebih sedikit`:`${-t} perjalanan lebih banyak`}.`;
-  const detail=[
-    ['Kendaraan di peta',b.active,s.active],['Sedang berhenti',b.waiting,s.waiting],['Antre di luar peta',b.backlog,s.backlog],
-    ['Angkot · truk sampah di jalan',`${b.vehicleTypes.minibus} · ${b.vehicleTypes.truck}`,`${s.vehicleTypes.minibus} · ${s.vehicleTypes.truck}`],
-    ['Arus keluar',`${fmt(b.throughput)} /jam`,`${fmt(s.throughput)} /jam`],['Angkot singgah di halte',b.busStops,s.busStops],
-    ['Tempat sampah dikosongkan',b.binsEmptied,s.binsEmptied],['Tempat sampah penuh sekarang',`${b.binsFull} dari ${b.bins}`,`${s.binsFull} dari ${s.bins}`],
-    ['Pejalan kaki menyeberang',b.pedestrians?.crossings??0,s.pedestrians?.crossings??0],['Pelanggaran lampu merah',b.redViolations,s.redViolations],['Kendaraan menyalip',b.overtakes,s.overtakes],
-  ];
-  $('city-details-rows').innerHTML=detail.map(([k,x,y])=>`<tr><th scope="row">${k}</th><td>${x}</td><td>${y}</td></tr>`).join('');
   $('run-status').textContent=paused?'Simulasi dijeda':fastForward?'Mempercepat 1 jam…':'Simulasi aktif';
   if(mode==='equipment')equipment.refresh();
   if(showsDevices())renderDeviceCard();

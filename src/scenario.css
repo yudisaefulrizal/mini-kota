@@ -75,8 +75,6 @@ summary:focus-visible,a:focus-visible{outline:2px solid var(--c-426e50);outline-
 #apply-status{background:transparent;border:0;padding:0;font-size:11px}
 .sidebar .view-title{margin-top:20px}
 .sidebar .reset{margin-bottom:14px}
-#city-details>.section-title{margin:18px}
-#city-details>.panel,#city-details>.stats{margin:14px}
 #data-center-details .data-center-panel{border:0;margin:0}
 .result-details{margin-bottom:12px}
 .comparison-panel>.section-title>span:not(.title-with-tip){display:none}
@@ -155,3 +153,4 @@ body.driving .map-help{display:none}
 .sidebar .form-grid .field input{min-height:30px;border-radius:6px}
 #open-map{padding:6px 10px;margin:6px 0 0;font-size:11px;width:100%}
 #map-status{margin:6px 0 0;font-size:10px}
+.comparison-table tr.group th{padding-top:16px;font-size:9.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--c-789086);background:none}
