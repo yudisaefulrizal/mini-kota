@@ -1,16 +1,18 @@
 import * as THREE from 'three';
-import {networkLinks,DEVICE_ICONS,NETWORKS} from './network.js';
+import {networkLinks,DEVICE_ICONS,NETWORKS,LINK_TYPES} from './network.js';
 
 // Draws the device network of a map, in the style of the device map of the old city view:
 // lettered icons above the devices, cables as arcs coloured by medium (LAN, fiber optic),
 // LoRaWAN radio as dashed arcs with radio rings, high fiber arcs from the gateways to the
 // data centre, and data packets running along them. Without a simulation the packets
 // flow at a calm idle rate; with one they follow what happens: every vehicle a camera
-// counts, every bin report, every phase change sent to a junction controller.
+// counts, every bin report, every phase change sent to a junction controller and from it,
+// along the lamp cables, to its traffic lights.
 
 // Height (m) where cables attach on each model, and the icon above it.
-const TOP={'cctv-dome':5.4,cctv:6,'bin-sensor':1.6,controller:1.9,gateway:3.9,'data-center':12};
-const ICON_PX=22,PACKET_SPEED={lan:45,fiber:90,lora:22},MAX_PACKETS=700,MAX_RINGS=60;
+const TOP={'cctv-dome':5.4,cctv:6,'bin-sensor':1.6,controller:1.9,gateway:3.9,'data-center':12,
+  'traffic-light':4.2,'traffic-light-arm':5.6,'traffic-light-arrow-right':4.2,'pedestrian-light':2.6};
+const ICON_PX=22,PACKET_SPEED={lan:45,fiber:90,lora:22,lamp:30},MAX_PACKETS=700,MAX_RINGS=60;
 
 function iconTexture({glyph,color,square}){
   const c=document.createElement('canvas');c.width=c.height=128;
@@ -62,20 +64,20 @@ export class NetworkLayer{
     }
     this.links=networkLinks(map).map((l,i)=>{
       const a=at(byId.get(l.from)),b=at(byId.get(l.to)),span=a.distanceTo(b);
-      const mid=a.clone().lerp(b,0.5);mid.y=Math.max(a.y,b.y)+(l.kind==='uplink'?18+span*0.22:2+span*0.18);
+      const mid=a.clone().lerp(b,0.5);mid.y=Math.max(a.y,b.y)+(l.kind==='uplink'?18+span*0.22:l.kind==='lamp'?0.5+span*0.08:2+span*0.18);
       const curve=new THREE.QuadraticBezierCurve3(a,mid,b);
       const link={...l,curve,length:curve.getLength(),timer:(i*0.37)%3};
       for(const id of [l.from,l.to])(this.byObject.get(id)||this.byObject.set(id,[]).get(id)).push(link);
       return link;
     });
-    for(const network of ['lan','fiber','lora']){
+    for(const network of ['lan','fiber','lora','lamp']){
       const list=this.links.filter(l=>l.network===network);if(!list.length)continue;
       const pts=[];
       for(const l of list){const p=l.curve.getPoints(l.kind==='uplink'?36:18);for(let i=1;i<p.length;i++)pts.push(p[i-1],p[i]);}
       const geometry=new THREE.BufferGeometry().setFromPoints(pts);
       const material=network==='lora'
         ?new THREE.LineDashedMaterial({color:NETWORKS.lora.color,dashSize:2.2,gapSize:1.6,transparent:true,opacity:0.95,depthTest:false})
-        :new THREE.LineBasicMaterial({color:NETWORKS[network].color,transparent:true,opacity:network==='lan'?0.75:0.85,depthTest:false});
+        :new THREE.LineBasicMaterial({color:LINK_TYPES[network].color,transparent:true,opacity:network==='lamp'?0.7:network==='lan'?0.75:0.85,depthTest:false});
       const lines=new THREE.LineSegments(geometry,material);if(network==='lora')lines.computeLineDistances();
       lines.renderOrder=10;lines.userData.network=network;this.group.add(lines);this.lines.push(lines);
     }
@@ -84,7 +86,7 @@ export class NetworkLayer{
   // ------------------------------------------------------------ packets
   send(link,{reverse=false,forward=true,big=false}={}){
     if(this.packets.length>=MAX_PACKETS)return;
-    this.packets.push({link,t:0,reverse,forward,big,color:new THREE.Color(NETWORKS[link.network].color)});
+    this.packets.push({link,t:0,reverse,forward,big,color:new THREE.Color(LINK_TYPES[link.network].color)});
     const from=reverse?link.to:link.from;
     this.count(from,'sent');
     if(link.network==='lora')this.ring(reverse?link.curve.v2:link.curve.v0);
@@ -101,9 +103,14 @@ export class NetworkLayer{
   }
   arrive(p){
     const to=p.reverse?p.link.from:p.link.to;this.count(to,'received');
-    if(!p.forward||p.link.kind!=='sensor')return;
+    if(!p.forward)return;
+    // A controller passes a new phase on to its lamps.
+    if(p.link.kind==='control'){for(const l of this.linksOf(to))if(l.kind==='lamp')this.send(l);return;}
+    if(p.link.kind!=='sensor')return;
     const up=(this.byObject.get(to)||[]).find(l=>l.kind==='uplink'&&l.from===to);
     if(up)this.send(up,{big:p.big});
+    // Counts for a controller under another gateway go on to that gateway.
+    if(p.link.relay){const r=this.linksOf(to).find(l=>l.kind==='relay'&&`${l.from}>${l.to}`===p.link.relay);if(r)this.send(r);}
   }
 
   // Idle traffic, or the simulation's events; then move packets and rings, size icons.
@@ -114,7 +121,7 @@ export class NetworkLayer{
     else for(const l of this.links){
       l.timer-=dt;if(l.timer>0)continue;
       l.timer=(l.network==='lora'?7:l.kind==='uplink'?4:2.2)*(0.6+Math.random()*0.8);
-      if(l.kind==='uplink')continue;   // uplinks carry what the sensors send
+      if(l.kind==='uplink'||l.kind==='relay'||l.kind==='lamp')continue;   // these carry what arrives before them
       this.send(l);
     }
     const m=new THREE.Matrix4(),q=new THREE.Quaternion(),s=new THREE.Vector3(),pos=new THREE.Vector3();

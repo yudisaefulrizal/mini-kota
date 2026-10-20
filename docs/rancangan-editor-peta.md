@@ -526,6 +526,24 @@ menutupi. Kamera kubah tidak lagi dipasang otomatis (peta lama yang memakainya t
   melewati kendaraan yang 1–3 m/s lebih lambat butuh 120–300 m. Selisih kota cerdas
   dibanding kota biasa tetap: waktu antre 73–84% lebih rendah (600 dan 1.200 kendaraan/jam).
 
+## Jangkauan gateway dan kabel lampu (tahap 21)
+
+- **Jangkauan** (`src/map/placement.js`): kabel 75 m garis lurus (Ethernet paling panjang
+  100 m, kabel mengikuti tepi jalan ±1,3× jarak lurus), LoRaWAN 1 km (konservatif untuk kota;
+  sensor di dalam tutup tong). Di luar itu kabel menjadi fiber dan editor memberi peringatan.
+- **Gateway otomatis**: pengendali ke gateway terdekat; kamera ke gateway pengendali
+  simpangnya bila terjangkau, selain itu terdekat dan hitungannya diteruskan antar-gateway
+  (sambungan *relay*); sensor sampah ke gateway bermodul LoRaWAN terdekat.
+- **Isi aset otomatis** memilih gateway sesedikit mungkin dari sudut simpang (yang
+  menjangkau paling banyak kamera/pengendali dulu), lalu memasang modul LoRaWAN di gateway
+  sesedikit mungkin yang menjangkau semua sensor sampah. Mini Kota: **19 → 13 gateway**,
+  1 bermodul LoRaWAN; tidak ada sambungan antar-gateway yang diperlukan.
+- **Lampu lalu lintas** dikabel ke pengendali terdekat (kabel sinyal, digambar dan dihitung
+  terpisah dari LAN/fiber/LoRaWAN): 50 lampu kendaraan + 51 lampu penyeberang. Saat fase
+  berganti, paket berjalan dari gateway ke pengendali lalu ke lampunya.
+- **Editor**: gateway terpilih menampilkan lingkaran jangkauan (75 m, dan 1 km bila bermodul
+  LoRaWAN), kotak *Modul LoRaWAN*, dan jumlah perangkat yang dilayani.
+
 ## Tahapan dan cara uji
 
 | Tahap | Isi | Uji | Status |
@@ -550,6 +568,7 @@ menutupi. Kamera kubah tidak lagi dipasang otomatis (peta lama yang memakainya t
 | 18 | Migrasi aplikasi utama ke peta & mesin baru; simulasi lama dihapus (tersimpan di branch `v.0`) | `tests/app-smoke.mjs`; semua tes lain | **Selesai** |
 | 19 | CCTV per pendekat di seberang simpang; zona deteksi 80 m (bisa diubah) ditandai di peta dan editor | `tests/map-furnish.test.js`; `tests/traffic.test.js`; `tests/app-smoke.mjs`; `tests/map-network-smoke.mjs` | **Selesai** |
 | 20 | Pengemudi berbeda (kecepatan pilihan), menyalip di jalan 2 lajur, aliran acak terpisah agar kedua kota mendapat perjalanan identik | `tests/traffic.test.js` | **Selesai** |
+| 21 | Jangkauan gateway (kabel 75 m, LoRaWAN 1 km), gateway sesedikit mungkin (19 → 13), sambungan antar-gateway, kabel lampu ke pengendali | `tests/map-network.test.js` | **Selesai** |
 
 ## Batasan yang diketahui
 

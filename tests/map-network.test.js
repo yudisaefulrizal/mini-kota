@@ -5,22 +5,48 @@ import {validateMap} from '../src/map/format.js';
 import {miniKotaRoads as convertMiniKota} from '../src/map/default-map.js';
 import {furnish} from '../src/map/furnish.js';
 import {addObject} from '../src/map/edit.js';
-import {networkLinks,networkSummary,LAN_REACH} from '../src/map/network.js';
+import {networkLinks,networkSummary,LAN_REACH,CABLE_REACH,LORA_REACH} from '../src/map/network.js';
 
 const full=miniKotaLengkap;
 
 test('every device of the full map is on the network, with the right medium',()=>{
   const map=full(),s=networkSummary(map),byId=new Map(map.objects.map(o=>[o.id,o]));
-  assert.equal(s.orphans,0);assert.ok(s.dataCentre);
+  assert.equal(s.orphans,0);assert.ok(s.dataCentre);assert.equal(s.outOfReach,0);
   for(const l of s.links){
     const a=byId.get(l.from),b=byId.get(l.to);
     if(l.kind==='uplink'){assert.equal(a.asset,'gateway');assert.equal(b.asset,'data-center');assert.equal(l.network,'fiber');}
     else if(l.kind==='control'){assert.equal(b.asset,'controller');assert.equal(l.network,'lan');}
+    else if(l.kind==='lamp'){assert.equal(a.asset,'controller');assert.ok(/^traffic-light|pedestrian-light/.test(b.asset));assert.equal(l.network,'lamp');}
     else if(a.asset==='bin-sensor')assert.equal(l.network,'lora');
     else assert.equal(l.network,Math.hypot(a.x-b.x,a.z-b.z)<=LAN_REACH?'lan':'fiber');
   }
   assert.equal(s.links.filter(l=>l.kind==='uplink').length,s.devices.gateway,'every gateway has an uplink');
   assert.equal(s.media.lora,s.devices['bin-sensor']);
+  // Every traffic light is cabled to a controller: 50 for vehicles, 51 for pedestrians.
+  assert.deepEqual(s.lamps,{vehicle:50,pedestrian:51,wired:101});
+});
+
+test('as few gateways as reach every device: cables 75 m, LoRaWAN 1 km on one gateway',()=>{
+  const map=full(),gateways=map.objects.filter(o=>o.asset==='gateway'),d=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
+  assert.ok(gateways.length<=13,`${gateways.length} gateways`);
+  for(const o of map.objects.filter(o=>/^cctv|controller/.test(o.asset)))assert.ok(gateways.some(g=>d(g,o)<=CABLE_REACH),`${o.id} reached`);
+  const radio=gateways.filter(g=>g.lora);assert.equal(radio.length,1);
+  for(const b of map.objects.filter(o=>o.asset==='bin-sensor'))assert.ok(d(radio[0],b)<=LORA_REACH);
+  // A camera goes to its controller's gateway when that is in reach, so no counts need relaying here.
+  assert.equal(networkSummary(map).relays,0);
+});
+
+test('a camera served by another gateway than its controller has its counts relayed',()=>{
+  const map=validateMap({...convertMiniKota(),objects:[]});
+  const ctrl=addObject(map,'controller',{x:100,z:100}),gA=addObject(map,'gateway',{x:102,z:100}),gB=addObject(map,'gateway',{x:150,z:100});
+  const cam=addObject(map,'cctv',{x:130,z:100});cam.gateway=gB.id;
+  addObject(map,'traffic-light',{x:95,z:105});
+  const links=networkLinks(map),up=links.find(l=>l.from===cam.id);
+  assert.equal(up.to,gB.id);assert.equal(up.relay,`${gB.id}>${gA.id}`);
+  assert.deepEqual(links.filter(l=>l.kind==='relay').map(l=>[l.from,l.to,l.network]),[[gB.id,gA.id,'lan']]);
+  assert.equal(links.filter(l=>l.kind==='lamp'&&l.from===ctrl.id).length,1);
+  // Out of reach of every gateway: reported.
+  addObject(map,'cctv',{x:400,z:300});assert.equal(networkSummary(map).outOfReach,1);
 });
 
 test('a far camera is cabled with fiber; without a data centre the gateways have no uplink',()=>{

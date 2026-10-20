@@ -29,7 +29,7 @@ try{
   const [gateway,cctv]=[list.find(o=>o.asset==='gateway'),list.find(o=>o.asset==='cctv')];
   assert.ok(gateway&&cctv);
   assert.equal(await page.evaluate(id=>{const m=window.mapEditor.map;return m.objects.find(o=>o.id===id).gateway??null;},cctv.id),null,'automatic, not stored');
-  assert.match(await page.textContent('#selection'),new RegExp(`Otomatis \\(terdekat: ${gateway.id}\\)`));
+  assert.match(await page.textContent('#selection'),new RegExp(`Otomatis \\(dalam jangkauan: ${gateway.id}\\)`));
 
   // Rotate with E, drag it along to another road, delete it, undo the delete.
   await page.keyboard.press('Escape');await page.keyboard.press('v');

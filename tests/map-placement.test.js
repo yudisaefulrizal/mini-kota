@@ -61,7 +61,7 @@ test('sensors use the nearest gateway unless one is chosen; deleting a gateway c
   const map=testMap();
   const near=addObject(map,'gateway',P(100,100)),far=addObject(map,'gateway',P(250,100));
   const cam=addObject(map,'cctv',P(110,95)),tree=addObject(map,'tree-shade',P(110,95));
-  assert.deepEqual(gatewayOf(map,cam),{id:near.id,auto:true,distance:Math.hypot(10,5)});
+  assert.deepEqual(gatewayOf(map,cam),{id:near.id,auto:true,distance:Math.hypot(10,5),inReach:true});
   assert.equal(gatewayOf(map,tree),null);
   setGateway(map,cam.id,far.id);assert.deepEqual(gatewayOf(map,cam),{id:far.id,auto:false});
   validateMap(map);

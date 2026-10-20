@@ -17,11 +17,12 @@ try{
   let s=await net();
   // Expected counts come from the map itself (the same rules, src/map/network.js).
   const want=networkSummary(miniKotaLengkap()),devices=Object.values(want.devices).reduce((a,b)=>a+b,0);
-  assert.equal(s.icons,devices);assert.equal(s.links,want.links.length);assert.deepEqual(s.lines,['lan','fiber','lora']);
+  assert.equal(s.icons,devices);assert.equal(s.links,want.links.length);assert.deepEqual(s.lines,['lan','fiber','lora','lamp']);
   // A camera for every outer approach of the 15 signalised junctions.
   assert.equal(want.devices.cctv,51);assert.equal(want.devices['cctv-dome'],undefined);
   const legend=await page.textContent('#net-legend');
   assert.match(legend,/CCTV pendekat \(antrean\) · 51/);
+  assert.match(legend,/Lampu lalu lintas · 101\s*50 kendaraan, 51 penyeberang/);
   assert.match(legend,new RegExp(`LoRaWAN · ${want.media.lora} sambungan`));assert.match(legend,new RegExp(`Fiber optik · ${want.media.fiber} sambungan`));
   await page.waitForFunction(()=>window.mapEditor.network.packets.length>5,null,{timeout:10000});
 

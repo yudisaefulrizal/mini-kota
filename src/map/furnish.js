@@ -1,11 +1,11 @@
 import {crossSection} from './format.js';
 import {buildGeometry,pointAt,polylineLength} from './geometry.js';
 import {projectOnLine} from './edit.js';
-import {facing,cameraSpots} from './placement.js';
+import {facing,cameraSpots,CABLE_REACH,LORA_REACH} from './placement.js';
 
 // Fills a map with assets automatically: traffic lights, CCTV and controllers at signalised
 // junctions, buildings in the lots, street lights and trees along the roads, bus stops,
-// bin sensors with their gateways, and a few people. Existing objects are kept and nothing
+// bin sensors, as few gateways as reach all of them, and a few people. Existing objects are kept and nothing
 // is placed on top of them. Deterministic for a given seed.
 
 const left=d=>({x:d.z,z:-d.x}),right=d=>({x:-d.z,z:d.x});
@@ -55,6 +55,7 @@ export function furnish(input,{seed=7,signals=true,buildings=true,street=true}={
   };
 
   // ---------------------------------------------------------------- junctions
+  const gatewaySpots=[];   // a corner of each equipped junction, where a gateway may go
   if(signals)for(const j of geometry.junctions){
     const node=nodes.get(j.id);if(node?.signal!==true||j.legs.some(l=>l.ring))continue;
     // Already equipped by hand: a light stands at one of its approaches.
@@ -83,7 +84,7 @@ export function furnish(input,{seed=7,signals=true,buildings=true,street=true}={
     }
     const corners=cornersOf(j);
     const at=(i,asset)=>{const c=corners[i%corners.length];if(c)put(asset,c.at,facing({x:-c.bis.x,z:-c.bis.z}),{force:true});};
-    if(!member){at(0,'controller');at(1,'gateway');}
+    if(!member){at(0,'controller');const c=corners[1%corners.length];if(c)gatewaySpots.push({at:c.at,rotation:facing({x:-c.bis.x,z:-c.bis.z})});}
   }
 
   // ---------------------------------------------------------------- lots
@@ -122,8 +123,6 @@ export function furnish(input,{seed=7,signals=true,buildings=true,street=true}={
       const n=BIN_KINDS[kind],step=Math.min(18,Math.max(lot.w,lot.d)/(n+1));
       let bins=0;
       for(let i=0;i<n;i++){const spot=vergeSpot(center,{shift:(i-(n-1)/2)*step+7});if(spot&&put('bin-sensor',spot.at,facing(spot.toRoad)))bins++;}
-      const gw=vergeSpot(center,{shift:-step*(n+1)/2-4,behind:true});
-      if(bins&&gw&&!map.objects.some(o=>o.asset==='gateway'&&dist(o,center)<60))put('gateway',gw.at,facing(gw.toRoad));
     }
     if(!buildings)continue;
     const plan=LOT_PLAN[kind];
@@ -187,6 +186,33 @@ export function furnish(input,{seed=7,signals=true,buildings=true,street=true}={
     }
     for(let i=0;i<3;i++){const p={x:lot.x+lot.w*(0.25+0.25*i),z:c.z+(i-1)*3};if(clearOfRoads(p,1))put(i===1?'person':'person-walking',p,Math.floor(random()*360));}
     for(let i=0;i<8;i++){const p={x:lot.x+3+random()*(lot.w-6),z:lot.z+3+random()*(lot.d-6)};if(clearOfRoads(p,1))put('shrub',p,Math.floor(random()*360));}
+  }
+
+  // ---------------------------------------------------------------- gateways
+  // As few as possible: junction corners are tried, the one reaching the most cameras and
+  // controllers not yet reached first, until every one is within cable reach. Then LoRaWAN
+  // modules go on the fewest gateways that hear every bin sensor.
+  const gateways=()=>map.objects.filter(o=>o.asset==='gateway');
+  let open=map.objects.filter(o=>/^cctv/.test(o.asset)||o.asset==='controller').filter(o=>!o.gateway&&!gateways().some(g=>dist(g,o)<=CABLE_REACH));
+  while(open.length){
+    let best=null;
+    for(const s of gatewaySpots){const k=open.filter(o=>dist(o,s.at)<=CABLE_REACH).length;if(k&&(!best||k>best.k))best={s,k};}
+    if(!best)break;
+    put('gateway',best.s.at,best.s.rotation,{force:true});gatewaySpots.splice(gatewaySpots.indexOf(best.s),1);
+    open=open.filter(o=>dist(o,best.s.at)>CABLE_REACH);
+  }
+  const bins=map.objects.filter(o=>o.asset==='bin-sensor');
+  if(bins.length){
+    const middle={x:bins.reduce((a,b)=>a+b.x,0)/bins.length,z:bins.reduce((a,b)=>a+b.z,0)/bins.length};
+    if(!gateways().length){const spot=vergeSpot(middle,{behind:true});if(spot)put('gateway',spot.at,facing(spot.toRoad));}
+    let deaf=bins.filter(b=>!gateways().some(g=>g.lora&&dist(g,b)<=LORA_REACH));
+    while(deaf.length){
+      let best=null;
+      for(const g of gateways())if(!g.lora){const k=deaf.filter(b=>dist(g,b)<=LORA_REACH).length,d=dist(g,middle);if(k&&(!best||k>best.k||(k===best.k&&d<best.d)))best={g,k,d};}
+      if(!best)break;
+      best.g.lora=true;added['lora']=(added['lora']||0)+1;
+      deaf=deaf.filter(b=>dist(best.g,b)>LORA_REACH);
+    }
   }
 
   // ---------------------------------------------------------------- along roads

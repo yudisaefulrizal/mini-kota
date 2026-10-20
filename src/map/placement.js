@@ -175,12 +175,33 @@ function place(map,geometry,asset,p,rule){
   return result(p,0,'Bebas');
 }
 
-// Sensors report to a gateway: the one chosen by hand, otherwise the nearest one.
+// A gateway serves the devices within its reach: cabled devices (cameras, junction
+// controllers) up to CABLE_REACH in a straight line, which is about the 100 m an Ethernet
+// cable may run once it follows the kerbs; bin sensors by LoRaWAN radio up to LORA_REACH,
+// and only gateways with a LoRaWAN module (`lora`) hear them when any has one.
+export const CABLE_REACH=75,LORA_REACH=1000;
 export const SENSOR_ASSETS=new Set(['cctv','cctv-dome','bin-sensor','controller']);
+const nearestOf=(list,p)=>list.reduce((a,b)=>dist(a,p)<=dist(b,p)?a:b);
+// The junction controller next to a camera or traffic light (within `reach`), or null.
+export function controllerOf(map,object,reach=60){
+  const list=map.objects.filter(o=>o.asset==='controller');if(!list.length)return null;
+  const c=nearestOf(list,object);return dist(c,object)<=reach?c:null;
+}
+// The gateway a device reports to: chosen by hand, otherwise automatic. A camera goes to the
+// gateway of its junction's controller when that is within reach (its counts drive that
+// controller); anything else to the nearest gateway that can serve it.
 export function gatewayOf(map,object){
   if(!SENSOR_ASSETS.has(object.asset))return null;
   if(object.gateway)return {id:object.gateway,auto:false};
-  let best=null;
-  for(const g of map.objects)if(g.asset==='gateway'){const d=dist(g,object);if(!best||d<best.d)best={id:g.id,d};}
-  return best?{id:best.id,auto:true,distance:best.d}:null;
+  const gateways=map.objects.filter(g=>g.asset==='gateway');if(!gateways.length)return null;
+  const reach=object.asset==='bin-sensor'?LORA_REACH:CABLE_REACH;
+  let g=null;
+  if(object.asset==='bin-sensor'){const radio=gateways.filter(x=>x.lora);g=nearestOf(radio.length?radio:gateways,object);}
+  else if(object.asset!=='controller'){
+    const own=controllerOf(map,object),via=own&&gatewayOf(map,own),viaGateway=via&&gateways.find(x=>x.id===via.id);
+    if(viaGateway&&dist(viaGateway,object)<=reach)g=viaGateway;
+  }
+  g??=nearestOf(gateways,object);
+  const distance=dist(g,object);
+  return {id:g.id,auto:true,distance,inReach:distance<=reach};
 }
