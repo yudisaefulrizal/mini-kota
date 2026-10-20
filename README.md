@@ -3,8 +3,7 @@
 Coba langsung: https://smart-city.nuscode.id/
 
 Rancangan digital twin kota cerdas yang diuji melalui simulasi lalu lintas kota dalam 3D (three.js).
-Perangkat dan arsitektur big data pada rancangan belum dijalankan di kota nyata; simulasi ini menguji
-logika kendali lampu lalu lintas dan pembelajaran modelnya. Satu peta dijalankan dua kali,
+Simulasi ini menguji logika kendali lampu lalu lintas dan pembelajaran modelnya. Satu peta dijalankan dua kali,
 berdampingan dan pada waktu yang sama:
 
 - **Kota konvensional**: lampu lalu lintas konvensional (waktu tetap), truk sampah datang terjadwal.
