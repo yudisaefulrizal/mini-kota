@@ -2,6 +2,8 @@ import {defineConfig} from 'vite';
 import {fileURLToPath} from 'node:url';
 
 export default defineConfig({
+  // Relative paths, so the build works from any folder (GitHub Pages serves it under /mini-kota/).
+  base: './',
   build: {
     rollupOptions: {
       input: {
