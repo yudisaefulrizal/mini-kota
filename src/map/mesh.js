@@ -74,3 +74,24 @@ export function buildLots(map){
   for(const l of map.lots){const m=new THREE.Mesh(new THREE.BoxGeometry(l.w,0.05,l.d),material);m.position.set(l.x+l.w/2,0.01,l.z+l.d/2);m.receiveShadow=true;m.name=`lot:${l.id}`;group.add(m);}
   return group;
 }
+
+// The city's ground: the polygon of its area (src/map/region.js).
+export function buildGround(region,color){
+  const shape=new THREE.Shape(region.hull.map(p=>new THREE.Vector2(p.x,-p.z)));
+  const ground=new THREE.Mesh(new THREE.ShapeGeometry(shape),new THREE.MeshStandardMaterial({color,roughness:1}));
+  ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;ground.name='ground';return ground;
+}
+// A sign at each city gate: "Gerbang N" on a post beside the road end.
+export function buildGateMarkers(gates){
+  const group=new THREE.Group();group.name='gates';
+  for(const g of gates){
+    const c=document.createElement('canvas');c.width=256;c.height=72;const x=c.getContext('2d');
+    x.fillStyle='#173b37';x.beginPath();x.roundRect(4,4,248,64,14);x.fill();
+    x.fillStyle='#ffffff';x.font='700 34px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(g.name,128,38);
+    const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;
+    // A constant size on screen, readable at any zoom.
+    const sign=new THREE.Sprite(new THREE.SpriteMaterial({map:t,depthTest:false,transparent:true,sizeAttenuation:false}));
+    sign.scale.set(0.085,0.024,1);sign.center.set(0.5,0);sign.position.set(g.x,3,g.z);sign.renderOrder=14;sign.userData.gate=g.id;group.add(sign);
+  }
+  return group;
+}

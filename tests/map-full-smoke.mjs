@@ -14,6 +14,9 @@ try{
   assert.equal(await page.evaluate(()=>window.mapEditor.map.name),'Mini Kota lengkap');
   // Every placed asset gets its model, even though the map loads before the asset list.
   await page.waitForFunction(()=>{const m=window.mapEditor.objects.meshes;let k=0;for(const [,h] of m)if(h.children.length)k++;return m.size>350&&k===m.size;},null,{timeout:60000});
+  // The city's gates are found from the roads and signed on the map.
+  assert.match(await page.textContent('#stats'),/Gerbang kota\s*13[\s\S]*Pintu kawasan\s*11[\s\S]*Gang buntu\s*0/);
+  assert.equal(await page.evaluate(()=>{let n=0;window.mapEditor.camera.pickables()[0].traverse(o=>{if(o.userData.gate)n++;});return n;}),13);
   if(process.env.SHOT_MAP){await page.evaluate(()=>window.mapEditor.frame(false));await page.waitForTimeout(1500);await page.screenshot({path:process.env.SHOT_MAP});}
 
   await page.check('#sim-adaptive');await page.fill('#sim-people','40');

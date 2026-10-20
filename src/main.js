@@ -45,7 +45,7 @@ function cityAt(x,y){
   return cities[shown()[0]];
 }
 const controls=new MapCamera(camera,renderer.domElement,{
-  pickables:()=>shown().flatMap(k=>cities[k].pickables()),bounds:()=>map?.bounds||{width:600,depth:400},keysOnHover:true,
+  pickables:()=>shown().flatMap(k=>cities[k].pickables()),bounds:()=>cities.smart.region?.box||{width:600,depth:400},keysOnHover:true,
   viewRect:(x,y)=>{const rects=shown().map(k=>views[k].getBoundingClientRect()).filter(r=>r.width>0);return rects.find(r=>x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom)||rects[0];},
   onChange:()=>{const c=$('city-compass');if(c)c.firstElementChild.style.transform=`rotate(${controls.compassAngle()}rad)`;},
   onLeaveTop:()=>setViewButtons(false)});
@@ -53,9 +53,9 @@ let topView=false;
 function setViewButtons(top){topView=top;$('top').classList.toggle('active',top);$('perspective').classList.toggle('active',!top);}
 function view(top=topView){
   if(!map)return;
-  setViewButtons(top);const {width,depth}=map.bounds,r=views[shown()[0]].getBoundingClientRect(),aspect=r.width/Math.max(1,r.height)||1.5;
+  setViewButtons(top);const {width,depth,x0,z0}=cities.smart.region.box,r=views[shown()[0]].getBoundingClientRect(),aspect=r.width/Math.max(1,r.height)||1.5;
   const fit=Math.max(depth,width/aspect)*1.05,distance=fit/(2*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)));
-  const center=new THREE.Vector3(width/2,0,depth/2);
+  const center=new THREE.Vector3(x0+width/2,0,z0+depth/2);
   controls.anim=null;controls.topView=top;
   controls.set(top?center.clone().add(new THREE.Vector3(0,distance,0.001)):center.clone().add(new THREE.Vector3(0,distance*0.72,distance*0.72)),center);
 }

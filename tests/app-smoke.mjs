@@ -15,6 +15,8 @@ try{
   await ready();
   assert.match(await page.textContent('#map-status'),/Mini Kota lengkap: 65 jalan, 15 simpang berlampu/);
   // Same map, different strategies.
+  // Both cities show the same 13 gates; vehicles come in only there and at the kawasan.
+  assert.deepEqual(await page.evaluate(()=>Object.values(window.miniKota.cities).map(c=>c.engine.gates.length)),[13,13]);
   const kinds=await page.evaluate(()=>{const {baseline,smart}=window.miniKota.cities;return {b:[baseline.engine.adaptive,baseline.engine.binMode],s:[smart.engine.adaptive,smart.engine.binMode],sensed:smart.engine.summary().sensedSignals};});
   // Theme button: follows the system, then light, then dark (remembered), then back.
   const theme=()=>page.evaluate(()=>[document.documentElement.dataset.theme??'auto',getComputedStyle(document.documentElement).backgroundColor]);

@@ -4,6 +4,7 @@ import {buildPlan,TIMING,compass} from '../map/signals.js';
 import {buildLaneGraph,routesFrom,along} from './lanes.js';
 import {Pedestrians} from './pedestrians.js';
 import {zoneCentre} from '../map/placement.js';
+import {roadEnds} from '../map/region.js';
 
 // Traffic model for any map file: vehicles follow lanes with the Intelligent Driver Model,
 // change lanes for their route, obey the junction phase plans (fixed or adaptive) and give
@@ -77,13 +78,19 @@ export class TrafficEngine{
     this.binMode=binMode;this.binFill=binFill;this.binSchedule=binSchedule;
     this.stats={completed:0,travelSeconds:0,queueSeconds:0,backlogSeconds:0,spawned:0,redViolations:0,busStops:0,truckTrips:0,overtakes:0};
     this.routes=prepared?.routes||new Map();
-    // Each source keeps the destinations it can actually reach (no U-turns at dead ends).
+    // Vehicles appear and leave only at the city's gates and at the ends of access roads
+    // (kawasan); a cul-de-sac is a road like any other. Each source keeps the destinations it
+    // can actually reach (no U-turns at dead ends).
+    const ends=roadEnds(this.map);
+    this.gates=ends.gates;this.gateNodes=new Set(ends.gates.map(g=>g.node));
+    const open=node=>this.gateNodes.has(node)||ends.kawasan.has(node);
+    this.exits=this.graph.sinks.filter(t=>open(this.graph.byId.get(t).end));
     this.targets=new Map();
-    for(const src of this.graph.sources){
+    for(const src of this.graph.sources.filter(s=>open(this.graph.byId.get(s).start))){
       const to=this.routeFrom(src);
-      this.targets.set(src,this.graph.sinks.filter(t=>to(t)&&this.graph.byId.get(t).end!==this.graph.byId.get(src).start));
+      this.targets.set(src,this.exits.filter(t=>to(t)&&this.graph.byId.get(t).end!==this.graph.byId.get(src).start));
     }
-    this.origins=this.graph.sources.filter(s=>this.targets.get(s).length);
+    this.origins=[...this.targets.keys()].filter(s=>this.targets.get(s).length);
     this.signals=new Map();
     for(const j of this.geometry.junctions){
       const node=this.map.nodes.find(n=>n.id===j.id);
@@ -166,7 +173,7 @@ export class TrafficEngine{
     const depot=this.map.objects.find(o=>o.asset==='tps3r');
     const end=(id,first)=>{const pts=this.graph.byId.get(id).points;return first?pts[0]:pts.at(-1);};
     const byDepot=(list,first)=>depot?[...list].sort((a,b)=>dist(end(a,first),depot)-dist(end(b,first),depot)):list;
-    this.depot={sources:byDepot(this.origins,true),sinks:byDepot(this.graph.sinks,false)};
+    this.depot={sources:byDepot(this.origins,true),sinks:byDepot(this.exits,false)};
     this.binTimer=0;
   }
   // Route through a given lane: start → via → end, with the index of via in it; or null.
@@ -539,7 +546,9 @@ export class TrafficEngine{
     this.updateSignals(dt);
     this.updateBins(dt);
     this.spawn(dt);
-    this.stats.backlogSeconds+=this.backlog.length*dt;   // waiting outside the map to get in
+    // Waiting to get in: at a gate that is outside the city; at a kawasan it is inside.
+    const outside=this.backlog.filter(b=>this.gateNodes.has(this.graph.byId.get(b.src).start)).length;
+    this.stats.backlogSeconds+=outside*dt;this.stats.queueSeconds+=(this.backlog.length-outside)*dt;
     this.pedestrians?.step(dt);
     // Vehicles in a bus bay are out of the lane: others drive past.
     const byLane=new Map(),fill=()=>{byLane.clear();for(const o of this.vehicles){if(o.bay)continue;const id=o.route[o.idx];(byLane.get(id)||byLane.set(id,[]).get(id)).push(o);}};
@@ -683,7 +692,7 @@ export class TrafficEngine{
   }
   summary(){
     const s=this.stats,bins=this.bins;
-    return {time:this.time,active:this.vehicles.length,waiting:this.vehicles.filter(v=>v.v<STOPPED&&!v.dwelling).length,backlog:this.backlog.length,
+    return {time:this.time,active:this.vehicles.length,waiting:this.vehicles.filter(v=>v.v<STOPPED&&!v.dwelling).length+this.backlog.filter(b=>!this.gateNodes.has(this.graph.byId.get(b.src).start)).length,backlog:this.backlog.filter(b=>this.gateNodes.has(this.graph.byId.get(b.src).start)).length,
       completed:s.completed,averageTravel:s.completed?s.travelSeconds/s.completed:0,queueSeconds:s.queueSeconds,
       throughput:this.time?s.completed*3600/this.time:0,signals:this.signals.size,redViolations:s.redViolations,overtakes:s.overtakes,
       sensors:this.sensors.length,sensedSignals:[...this.signals.values()].filter(x=>x.sensed.size).length,

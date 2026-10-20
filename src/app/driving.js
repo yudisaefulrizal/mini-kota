@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {FOOTPRINT} from '../map/furnish.js';
 import '../driving.css';
+import {insideRegion} from '../map/region.js';
 
 // "Jelajahi Kota": drive a car yourself through either city, chased by the camera. The car
 // stops at buildings, the map edge and the simulated vehicles; it is not part of the traffic
@@ -25,8 +26,7 @@ export function obstaclesOf(city){
     const [w,d]=FOOTPRINT[o.asset],q=Math.round(((o.rotation||0)%360+360)%360/90)%2===1;
     return {x:o.x,z:o.z,hw:(q?d:w)/2+1.2,hd:(q?w:d)/2+1.2};
   });
-  const {width,depth}=city.map.bounds;
-  return (x,z)=>x<2||z<2||x>width-2||z>depth-2||rects.some(r=>Math.abs(x-r.x)<r.hw&&Math.abs(z-r.z)<r.hd)
+  return (x,z)=>!insideRegion(city.region,{x,z})||rects.some(r=>Math.abs(x-r.x)<r.hw&&Math.abs(z-r.z)<r.hd)
     ||city.engine.vehicles.some(v=>{const p=city.engine.position(v,v.len/2);return Math.hypot(p.x-x,p.z-z)<v.len/2+1.6;});
 }
 

@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import {onThemeChange} from './theme.js';
 import {validateMap,emptyMap,DEFAULT_PROFILES} from './map/format.js';
 import {buildGeometry,pointAt,polylineLength,CLUSTER_LINK} from './map/geometry.js';
-import {buildRoadMeshes,buildGraphOverlay,buildLots,ROAD_COLORS} from './map/mesh.js';
+import {buildRoadMeshes,buildGraphOverlay,buildLots,buildGround,buildGateMarkers,ROAD_COLORS} from './map/mesh.js';
+import {cityRegion,roadEnds} from './map/region.js';
 import {miniKotaRoads,miniKotaLengkap} from './map/default-map.js';
 import {furnish} from './map/furnish.js';
 import {MapCamera} from './map/camera-controls.js';
@@ -41,7 +42,7 @@ onThemeChange(dark=>scene.background.setHex(dark?0x1a2420:0xe4eae0));
 const camera=new THREE.PerspectiveCamera(40,1,0.5,5000);
 // Navigation: right drag pans, middle drag orbits round the point under the cursor, the
 // wheel zooms towards the cursor (src/map/camera-controls.js). The left button edits.
-const controls=new MapCamera(camera,canvas,{pickables:()=>[layers,objects.group].filter(Boolean),bounds:()=>map?.bounds||{width:600,depth:400},onChange:updateCompass,onLeaveTop:()=>setTopView(false)});
+const controls=new MapCamera(camera,canvas,{pickables:()=>[layers,objects.group].filter(Boolean),bounds:()=>region?.box||{width:600,depth:400},onChange:updateCompass,onLeaveTop:()=>setTopView(false)});
 scene.add(controls.marker);
 scene.add(new THREE.HemisphereLight(0xffffff,0x8a9a80,1.7));
 const sun=new THREE.DirectionalLight(0xfff4e0,1.6);sun.position.set(-200,400,-150);scene.add(sun);
@@ -65,7 +66,7 @@ const handleMaterials={node:new THREE.MeshBasicMaterial({color:0xffffff,depthTes
   ring:new THREE.MeshBasicMaterial({color:0x173b37,depthTest:false}),active:new THREE.MeshBasicMaterial({color:0xe8742c,depthTest:false})};
 
 // ---------------------------------------------------------------- state
-let map=null,geometry=null,layers=null;
+let map=null,geometry=null,layers=null,region=null,ends=null;
 let tool='select',profile='jalan-2x2',drawMode='click';
 let drawing=null;             // {points, startTarget, endTarget, dragging}
 let selection=null;           // {type:'road'|'node'|'object', id}
@@ -157,16 +158,16 @@ function rebuild(){
   try{geometry=buildGeometry(validateMap(map));}catch(error){$('warnings').innerHTML=`<p class="bad">${esc(error.message)}</p>`;return;}
   if(layers)scene.remove(layers);
   layers=new THREE.Group();scene.add(layers);
-  const {width,depth}=map.bounds;
-  const ground=new THREE.Mesh(new THREE.PlaneGeometry(width,depth),new THREE.MeshStandardMaterial({color:ROAD_COLORS.ground,roughness:1}));
-  ground.rotation.x=-Math.PI/2;ground.position.set(width/2,0,depth/2);layers.add(ground);
+  // The city's area grows with what is drawn; road ends on its edge are the gates.
+  region=cityRegion(map);ends=roadEnds(map);
+  layers.add(buildGround(region,ROAD_COLORS.ground),buildGateMarkers(ends.gates));
   layers.add(buildRoadMeshes(geometry,{markings:$('layer-markings').checked,sidewalks:$('layer-sidewalks').checked}));
   if($('layer-lots').checked)layers.add(buildLots(map));
   if($('layer-graph').checked)layers.add(buildGraphOverlay(map));
   objects.group.visible=$('layer-objects').checked;objects.sync(map);objects.updateLinks(false);
   network.visible=$('layer-links').checked;network.sync(map);renderLegend();
   const s=geometry.stats;
-  $('stats').innerHTML=[['Simpul',s.nodes],['Jalan',s.roads],['Simpang',s.junctions],['Berlampu',geometry.junctions.filter(j=>j.signal).length],['Panjang jalan',`${fmt(s.km,2)} km`],['Aset',map.objects.length],['Sensor',map.objects.filter(o=>SENSOR_ASSETS.has(o.asset)).length],['Ukuran',`${fmt(map.bounds.width)} × ${fmt(map.bounds.depth)} m`]]
+  $('stats').innerHTML=[['Simpul',s.nodes],['Jalan',s.roads],['Simpang',s.junctions],['Berlampu',geometry.junctions.filter(j=>j.signal).length],['Panjang jalan',`${fmt(s.km,2)} km`],['Aset',map.objects.length],['Sensor',map.objects.filter(o=>SENSOR_ASSETS.has(o.asset)).length],['Gerbang kota',ends.gates.length],['Pintu kawasan',ends.kawasan.size],['Gang buntu',ends.deadEnds.size],['Wilayah',`${fmt(region.box.width)} × ${fmt(region.box.depth)} m`]]
     .map(([k,v])=>`<div><span>${k}</span><strong>${v}</strong></div>`).join('');
   const orphans=map.objects.filter(o=>SENSOR_ASSETS.has(o.asset)&&!gatewayOf(map,o)).length;
   const far=map.objects.filter(o=>{const g=gatewayOf(map,o);return g?.auto&&!g.inReach;}).length;
@@ -234,7 +235,7 @@ function setTopView(top){
 // Whole map in view; animated when asked from a button.
 function frame(top=topView,animate=false){
   setTopView(top);
-  const {width,depth}=map.bounds,center=new THREE.Vector3(width/2,0,depth/2);
+  const {width,depth,x0,z0}=region.box,center=new THREE.Vector3(x0+width/2,0,z0+depth/2);
   const fit=Math.max(depth,width/camera.aspect)*1.08;
   const distance=fit/(2*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)));
   const position=top?center.clone().add(new THREE.Vector3(0,distance,0.001)):center.clone().add(new THREE.Vector3(0,distance*0.75,distance*0.75));
@@ -911,7 +912,7 @@ renderer.setAnimationLoop(now=>{
   renderer.render(scene,camera);
 });
 offerDraft();load();
-window.mapEditor={get map(){return map;},get geometry(){return geometry;},get selection(){return selection;},load,frame,focus,setTool,undo,redo,objects,
+window.mapEditor={get map(){return map;},get geometry(){return geometry;},get region(){return region;},get ends(){return ends;},get selection(){return selection;},load,frame,focus,setTool,undo,redo,objects,
   select(sel){selection=sel;renderSelection();},phaseArrows,startSim,stopSim,get sim(){return sim;},
   // For browser tests: screen position of a map point.
   camera:controls,network,zones,

@@ -562,6 +562,21 @@ tombol **Rapikan seluruh peta**: jalan dirapikan (`normalize`), aset yang dipasa
 Aset yang dipasang, dipindah, atau diputar pengguna tidak bertanda `auto` sehingga tetap ada.
 Satu langkah undo. Menekannya lagi pada peta yang sudah rapi memberi aset yang sama.
 
+## Wilayah kota dan gerbang otomatis (tahap 24)
+
+- **Wilayah** (`src/map/region.js`): poligon cembung yang membungkus semua jalan, kawasan, dan
+  aset, dilebarkan 30 m. Tanah digambar mengikuti poligon itu; kamera, pembingkaian, dan mode
+  mengemudi memakai poligon/kotak pembungkusnya. `bounds` di file peta tidak dipakai lagi.
+  Menarik jalan keluar memperluas wilayah (koordinat boleh negatif).
+- **Ujung jalan**: *gerbang kota* bila garis lurus dari ujungnya ke luar tidak menabrak jalan
+  atau kawasan lain (juga untuk OSM, yang jalannya terpotong sedikit di dalam batas unduhan);
+  *pintu kawasan* bila jalannya berprofil akses; selain itu *gang buntu*. Gerbang dinamai
+  searah jarum jam dari utara dan diberi tanda di peta. Mini Kota: 13 gerbang (sama dengan
+  daftar lama), 11 pintu kawasan, 0 gang buntu.
+- **Lalu lintas**: kendaraan hanya muncul dan pergi di gerbang dan pintu kawasan. Antrean di
+  gerbang = *antre masuk kota*; antrean keluar kawasan dihitung antre di dalam kota.
+- Editor menampilkan jumlah gerbang, pintu kawasan, gang buntu, dan ukuran wilayah.
+
 ## Tahapan dan cara uji
 
 | Tahap | Isi | Uji | Status |
@@ -589,6 +604,7 @@ Satu langkah undo. Menekannya lagi pada peta yang sudah rapi memberi aset yang s
 | 21 | Jangkauan gateway (kabel 75 m, LoRaWAN 1 km), gateway sesedikit mungkin (19 → 13), sambungan antar-gateway, kabel lampu ke pengendali | `tests/map-network.test.js` | **Selesai** |
 | 22 | Nama: Kamera detektor antrean | tes yang memeriksa teks | **Selesai** |
 | 23 | Satu tombol Rapikan: rapikan jalan + perbarui aset otomatis | `tests/map-furnish.test.js`; `tests/map-full-smoke.mjs` | **Selesai** |
+| 24 | Wilayah kota mengikuti isi peta (poligon), gerbang otomatis, gang buntu tanpa kendaraan muncul | `tests/map-region.test.js`; `tests/map-full-smoke.mjs`; `tests/app-smoke.mjs` | **Selesai** |
 
 ## Batasan yang diketahui
 

@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import {validateMap} from '../map/format.js';
 import {buildGeometry} from '../map/geometry.js';
-import {buildRoadMeshes,buildLots,ROAD_COLORS} from '../map/mesh.js';
+import {buildRoadMeshes,buildLots,buildGround,buildGateMarkers,ROAD_COLORS} from '../map/mesh.js';
+import {cityRegion} from '../map/region.js';
 import {ObjectLayer} from '../map/object-layer.js';
 import {NetworkLayer} from '../map/network-layer.js';
 import {TrafficEngine} from '../traffic/engine.js';
@@ -44,16 +45,16 @@ export class City{
     this.dispose();
     this.map=validateMap(structuredClone(map));
     this.geometry=buildGeometry(this.map);
-    const {width,depth}=this.map.bounds;
+    // The city's area follows what is on the map (src/map/region.js).
+    this.region=cityRegion(this.map);
     this.base=new THREE.Group();
-    const ground=new THREE.Mesh(new THREE.PlaneGeometry(width,depth),new THREE.MeshStandardMaterial({color:ROAD_COLORS.ground,roughness:1}));
-    ground.rotation.x=-Math.PI/2;ground.position.set(width/2,0,depth/2);ground.name='ground';
-    this.base.add(ground,buildRoadMeshes(this.geometry),buildLots(this.map));
+    this.base.add(buildGround(this.region,ROAD_COLORS.ground),buildRoadMeshes(this.geometry),buildLots(this.map));
     this.scene.add(this.base);
     this.objects.sync(this.map);this.objects.updateLinks(false);
     this.engine=new TrafficEngine(this.map,engineOptions(this.kind,settings));
     if(this.network){this.network.sync(this.map);this.network.reset();}
     this.zones?.build(this.engine);
+    this.base.add(buildGateMarkers(this.engine.gates));
     this.view=new TrafficView(this.scene,this.objects);
     await this.view.init(this.engine);
     return this;

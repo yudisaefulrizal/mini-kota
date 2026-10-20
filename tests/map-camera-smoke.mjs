@@ -52,7 +52,8 @@ try{
   for(let i=0;i<40;i++)await page.mouse.wheel(0,-400);
   let c=await cam();assert.ok(c.d>=5.9&&c.p[1]>=1.5,`closest ${c.d}`);
   for(let i=0;i<60;i++)await page.mouse.wheel(0,600);
-  c=await cam();assert.ok(c.d<=1.6*614+101,`farthest ${c.d}`);
+  const box=await page.evaluate(()=>window.mapEditor.region.box);
+  c=await cam();assert.ok(c.d<=1.6*Math.max(box.width,box.depth)+101,`farthest ${c.d}`);
   await page.mouse.move(700,450);await page.mouse.down({button:'right'});await page.mouse.move(700,-400,{steps:10});await page.mouse.up({button:'right'});
   c=await cam();assert.ok(c.p[1]>=1.5);
 
