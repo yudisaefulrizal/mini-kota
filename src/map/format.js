@@ -31,6 +31,13 @@ export function validateMap(input){
     if(!Array.isArray(p.lanes)||p.lanes.length!==2||p.lanes.some(n=>!Number.isInteger(n)||n<0)||p.lanes[0]+p.lanes[1]<1)throw Error(`Profil ${id}: jumlah lajur tidak valid.`);
     for(const k of ['laneWidth','median','curb','sidewalk'])finite(p[k],`Profil ${id}: ${k}`);
   }
+  // Gateway reach (m), optional: cables and LoRaWAN radio.
+  if(map.network!==undefined){
+    for(const [k,[min,max],label] of [['cableReach',[10,100],'Jangkauan kabel'],['loraReach',[100,5000],'Jangkauan LoRaWAN']]){
+      const v=map.network?.[k];if(v===undefined)continue;
+      if(!Number.isFinite(v)||v<min||v>max)throw Error(`${label} harus ${min}–${max} m.`);
+    }
+  }
   const nodes=new Map();
   for(const n of map.nodes){
     if(!n.id||nodes.has(n.id))throw Error(`Simpul ${n.id||'(tanpa id)'} kosong atau ganda.`);

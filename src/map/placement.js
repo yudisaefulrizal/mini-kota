@@ -176,10 +176,13 @@ function place(map,geometry,asset,p,rule){
 }
 
 // A gateway serves the devices within its reach: cabled devices (cameras, junction
-// controllers) up to CABLE_REACH in a straight line, which is about the 100 m an Ethernet
-// cable may run once it follows the kerbs; bin sensors by LoRaWAN radio up to LORA_REACH,
-// and only gateways with a LoRaWAN module (`lora`) hear them when any has one.
+// controllers) up to CABLE_REACH in a straight line by default, which is about the 100 m an
+// Ethernet cable may run once it follows the kerbs; bin sensors by LoRaWAN radio up to
+// LORA_REACH, and only gateways with a LoRaWAN module (`lora`) hear them when any has one.
+// A map may set its own reach (`map.network`, set in the editor).
 export const CABLE_REACH=75,LORA_REACH=1000;
+export const REACH_LIMITS={cableReach:[10,100],loraReach:[100,5000]};
+export function reachOf(map){return {cable:map?.network?.cableReach??CABLE_REACH,lora:map?.network?.loraReach??LORA_REACH};}
 export const SENSOR_ASSETS=new Set(['cctv','cctv-dome','bin-sensor','controller']);
 const nearestOf=(list,p)=>list.reduce((a,b)=>dist(a,p)<=dist(b,p)?a:b);
 // The junction controller next to a camera or traffic light (within `reach`), or null.
@@ -194,7 +197,7 @@ export function gatewayOf(map,object){
   if(!SENSOR_ASSETS.has(object.asset))return null;
   if(object.gateway)return {id:object.gateway,auto:false};
   const gateways=map.objects.filter(g=>g.asset==='gateway');if(!gateways.length)return null;
-  const reach=object.asset==='bin-sensor'?LORA_REACH:CABLE_REACH;
+  const {cable,lora}=reachOf(map),reach=object.asset==='bin-sensor'?lora:cable;
   let g=null;
   if(object.asset==='bin-sensor'){const radio=gateways.filter(x=>x.lora);g=nearestOf(radio.length?radio:gateways,object);}
   else if(object.asset!=='controller'){

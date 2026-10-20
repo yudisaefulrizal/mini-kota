@@ -1,5 +1,6 @@
 import {DEVICE_ICONS,LINK_TYPES,LAMP_CABLE,networkSummary} from './network.js';
-import {gatewayOf} from './placement.js';
+import {gatewayOf,reachOf} from './placement.js';
+const km=m=>m>=1000?`${fmt(m/1000,1)} km`:`${fmt(m)} m`;
 
 // What a device on the map reports while a simulation runs, as label/value rows, and the
 // network links it has. Shared by the editor's device card and the app's device views; the
@@ -50,7 +51,7 @@ export function deviceReadings(engine,network,o){
   }else if(o.asset==='gateway'){
     const links=network?.linksOf(o.id)||[],served=(network?.map?.objects||[]).filter(x=>gatewayOf(network.map,x)?.id===o.id);
     const n=asset=>served.filter(x=>x.asset===asset).length,relays=links.filter(l=>l.kind==='relay');
-    rows.push(['Melayani',`${n('cctv')+n('cctv-dome')} kamera · ${n('controller')} pengendali · ${n('bin-sensor')} sensor sampah`],['Modul LoRaWAN',o.lora?'Ada (jangkauan ±1 km)':'Tidak'],
+    rows.push(['Melayani',`${n('cctv')+n('cctv-dome')} kamera · ${n('controller')} pengendali · ${n('bin-sensor')} sensor sampah`],['Jangkauan',`kabel ${km(reachOf(network?.map).cable)}${o.lora?` · LoRaWAN ${km(reachOf(network?.map).lora)}`:''}`],['Modul LoRaWAN',o.lora?'Ada':'Tidak'],
       ...(relays.length?[['Antar-gateway',relays.map(l=>l.from===o.id?`ke ${l.to}`:`dari ${l.from}`).join(', ')]]:[]),['Data diterima',fmt(stats.received)],['Data dikirim',fmt(stats.sent)],['Jalur ke pusat data',links.some(l=>l.kind==='uplink')?'Fiber optik':'Belum ada']);
   }else if(o.asset==='data-center'){
     const ups=(network?.linksOf(o.id)||[]).filter(l=>l.kind==='uplink');
@@ -78,7 +79,7 @@ export function legendHtml(map,{live=false}={}){
     +(s.lamps.vehicle+s.lamps.pedestrian?`<span><b class="net-swatch lamp" style="--c:${hex(LAMP_CABLE.color)}"></b>Lampu lalu lintas · ${s.lamps.vehicle+s.lamps.pedestrian} <small>${s.lamps.vehicle} kendaraan, ${s.lamps.pedestrian} penyeberang; kabel ke pengendali</small></span>`:'')
     +`<strong class="legend-sub">Jaringan</strong>`+['lan','fiber','lora'].map(k=>`<span><b class="net-swatch ${k}" style="--c:${hex(LINK_TYPES[k].color)}"></b>${LINK_TYPES[k].label} · ${s.media[k]} sambungan <small>${LINK_TYPES[k].latency}</small></span>`).join('')
     +(s.relays?`<small>${s.relays} sambungan antar-gateway (kamera yang dilayani gateway lain dari pengendalinya).</small>`:'')
-    +(s.outOfReach?`<small class="bad">${s.outOfReach} perangkat di luar jangkauan gateway (kabel 75 m, LoRaWAN 1 km).</small>`:'')
+    +(s.outOfReach?`<small class="bad">${s.outOfReach} perangkat di luar jangkauan gateway (kabel ${km(s.reach.cable)}, LoRaWAN ${km(s.reach.lora)}).</small>`:'')
     +(s.dataCentre?'':`<small class="bad">Belum ada Pusat data: gateway belum punya jalur fiber ke atas.</small>`)
     +(s.orphans?`<small class="bad">${s.orphans} perangkat belum punya gateway.</small>`:'')
     +`<small>Klik ikon untuk detail${live?' dan angka langsung':''}.</small>`;

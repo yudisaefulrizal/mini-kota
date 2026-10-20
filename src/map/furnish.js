@@ -1,7 +1,7 @@
 import {crossSection} from './format.js';
 import {buildGeometry,pointAt,polylineLength} from './geometry.js';
 import {projectOnLine} from './edit.js';
-import {facing,cameraSpots,CABLE_REACH,LORA_REACH} from './placement.js';
+import {facing,cameraSpots,reachOf} from './placement.js';
 
 // Fills a map with assets automatically: traffic lights, CCTV and controllers at signalised
 // junctions, buildings in the lots, street lights and trees along the roads, bus stops,
@@ -192,7 +192,7 @@ export function furnish(input,{seed=7,signals=true,buildings=true,street=true}={
   // As few as possible: junction corners are tried, the one reaching the most cameras and
   // controllers not yet reached first, until every one is within cable reach. Then LoRaWAN
   // modules go on the fewest gateways that hear every bin sensor.
-  const gateways=()=>map.objects.filter(o=>o.asset==='gateway');
+  const gateways=()=>map.objects.filter(o=>o.asset==='gateway'),{cable:CABLE_REACH,lora:LORA_REACH}=reachOf(map);
   let open=map.objects.filter(o=>/^cctv/.test(o.asset)||o.asset==='controller').filter(o=>!o.gateway&&!gateways().some(g=>dist(g,o)<=CABLE_REACH));
   while(open.length){
     let best=null;

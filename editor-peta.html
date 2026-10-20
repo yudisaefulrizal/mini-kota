@@ -40,6 +40,10 @@
 <p class="hint">Peta nyata: ekspor area dari openstreetmap.org (tombol <em>Export</em>), lalu buka file <code>.osm</code>-nya di sini. Jalan, simpang, dan lampu lalu lintas dibuat otomatis.</p>
 </section>
 
+<section class="card" id="reach-card"><h2>Jangkauan gateway</h2>
+<label class="field">Kabel: kamera &amp; pengendali (m) <input type="number" id="reach-cable" min="10" max="100" step="5" value="75"></label>
+<label class="field">LoRaWAN: sensor sampah (m) <input type="number" id="reach-lora" min="100" max="5000" step="50" value="1000"></label>
+<p class="hint">Jarak garis lurus dari gateway. Kabel Ethernet paling panjang 100 m dan mengikuti tepi jalan, jadi bawaannya 75 m; LoRaWAN di kota ±1–3 km, bawaannya 1 km. Angka ini disimpan bersama peta, dipakai untuk sambungan otomatis, peringatan, lingkaran jangkauan, dan <em>Isi aset otomatis</em>.</p></section>
 <section class="card" id="tidy-card"><h2>Rapikan</h2>
 <label class="inline"><input type="checkbox" id="auto-tidy" checked> Rapikan otomatis setelah mengedit</label>
 <button type="button" id="tidy-all" class="secondary">Rapikan seluruh peta</button>

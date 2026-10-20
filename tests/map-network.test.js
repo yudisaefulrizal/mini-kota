@@ -60,3 +60,13 @@ test('a far camera is cabled with fiber; without a data centre the gateways have
   addObject(map,'data-center',{x:300,z:200});
   assert.equal(networkLinks(map).filter(l=>l.kind==='uplink').length,1);
 });
+
+test('a map can set its own gateway reach; it is checked and changes links and warnings',()=>{
+  const map=full();
+  assert.deepEqual(networkSummary(map).reach,{cable:CABLE_REACH,lora:LORA_REACH});
+  map.network={cableReach:20};validateMap(map);
+  const s=networkSummary(map);assert.equal(s.reach.cable,20);assert.ok(s.outOfReach>0);
+  assert.ok(s.links.some(l=>l.kind==='sensor'&&l.network==='fiber'),'beyond 20 m the cable is fiber');
+  map.network={loraReach:50};assert.throws(()=>validateMap(map),/Jangkauan LoRaWAN harus 100–5000 m/);
+  map.network={cableReach:150};assert.throws(()=>validateMap(map),/Jangkauan kabel harus 10–100 m/);
+});

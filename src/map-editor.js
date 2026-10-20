@@ -12,7 +12,7 @@ import {deviceReadings,deviceLinks,legendHtml} from './map/device-info.js';
 import * as edit from './map/edit.js';
 import {normalize,editScope,describeChanges,mergeNodes} from './map/normalize.js';
 import {ObjectLayer} from './map/object-layer.js';
-import {smartPlace,gatewayOf,SENSOR_ASSETS,CABLE_REACH,LORA_REACH} from './map/placement.js';
+import {smartPlace,gatewayOf,reachOf,SENSOR_ASSETS,CABLE_REACH,LORA_REACH,REACH_LIMITS} from './map/placement.js';
 import {suggestSignal,buildPlan,patternsFor,PATTERNS} from './map/signals.js';
 import {serializeMap,parseMapFile,fileName,saveDraft,loadDraft,clearDraft} from './map/storage.js';
 import {importOSM} from './map/osm.js';
@@ -55,7 +55,7 @@ const selectedLine=new THREE.Line(new THREE.BufferGeometry(),lineMaterial(0xe874
 const reachRings=[0x1d5fa0,0xd99a1e].map(c=>{const l=new THREE.LineLoop(new THREE.BufferGeometry(),new THREE.LineDashedMaterial({color:c,dashSize:3,gapSize:2,depthTest:false}));l.renderOrder=20;overlay.add(l);return l;});
 function showReach(o){
   const ring=(line,r)=>{line.visible=r>0;if(r>0){line.geometry.dispose();line.geometry=new THREE.BufferGeometry().setFromPoints(Array.from({length:96},(_,i)=>new THREE.Vector3(o.x+r*Math.cos(i/96*Math.PI*2),0.7,o.z+r*Math.sin(i/96*Math.PI*2))));line.computeLineDistances();}};
-  ring(reachRings[0],o?.asset==='gateway'?CABLE_REACH:0);ring(reachRings[1],o?.asset==='gateway'&&o.lora?LORA_REACH:0);
+  const reach=reachOf(map);ring(reachRings[0],o?.asset==='gateway'?reach.cable:0);ring(reachRings[1],o?.asset==='gateway'&&o.lora?reach.lora:0);
 }
 const magnet=new THREE.Mesh(new THREE.RingGeometry(1,1.35,32),new THREE.MeshBasicMaterial({color:0x2e9e5b,depthTest:false,side:THREE.DoubleSide}));
 magnet.rotation.x=-Math.PI/2;magnet.renderOrder=21;magnet.visible=false;overlay.add(magnet);
@@ -171,7 +171,8 @@ function rebuild(){
   const orphans=map.objects.filter(o=>SENSOR_ASSETS.has(o.asset)&&!gatewayOf(map,o)).length;
   const far=map.objects.filter(o=>{const g=gatewayOf(map,o);return g?.auto&&!g.inReach;}).length;
   const warnings=[...geometry.warnings.map(w=>w.message),...(orphans?[`${orphans} sensor belum tersambung ke gateway; pasang aset Gateway edge.`]:[]),
-    ...(far?[`${far} perangkat di luar jangkauan gateway (kabel 75 m, LoRaWAN 1 km); pasang gateway lebih dekat.`]:[])];
+    ...(far?[`${far} perangkat di luar jangkauan gateway (kabel ${fmt(reachOf(map).cable,0)} m, LoRaWAN ${fmt(reachOf(map).lora,0)} m); pasang gateway lebih dekat atau ubah jangkauan.`]:[])];
+  const reach=reachOf(map);$('reach-cable').value=reach.cable;$('reach-lora').value=reach.lora;
   $('warnings').innerHTML=warnings.length?`<h3>Peringatan (${warnings.length})</h3><ul>${warnings.map(w=>`<li>${esc(w)}</li>`).join('')}</ul>`:'<p>Tidak ada peringatan.</p>';
   const exists={road:id=>map.roads.some(r=>r.id===id),node:id=>map.nodes.some(n=>n.id===id),object:id=>map.objects.some(o=>o.id===id)};
   if(selection&&!exists[selection.type](selection.id))selection=null;
@@ -382,8 +383,8 @@ function renderPanel(){
 <p class="hint">x ${fmt(o.x)} m, z ${fmt(o.z)} m</p>
 <div class="field">Arah<div class="rotate"><button type="button" id="rot-l" title="Putar kiri (Q)">⟲ 15°</button><input type="number" id="sel-rot" value="${o.rotation||0}" step="15"> °<button type="button" id="rot-r" title="Putar kanan (E)">⟳ 15°</button></div></div>
 ${SENSOR_ASSETS.has(o.asset)?(gateways.length?`<label class="field">Gateway<select id="sel-gw"><option value="">Otomatis (dalam jangkauan${gw?.auto?`: ${esc(gw.id)}`:''})</option>${gateways.map(g=>`<option value="${g.id}" ${o.gateway===g.id?'selected':''}>${esc(g.id)} · ${fmt(Math.hypot(g.x-o.x,g.z-o.z),0)} m</option>`).join('')}</select></label>`:'<p class="hint bad">Belum ada gateway di peta. Pasang aset Gateway edge.</p>'):''}
-${far?`<p class="hint bad">Di luar jangkauan gateway terdekat (${fmt(gw.distance,0)} m; ${o.asset==='bin-sensor'?'LoRaWAN 1 km':'kabel 75 m'}). Pasang gateway lebih dekat.</p>`:''}
-${o.asset==='gateway'?`<label class="inline"><input type="checkbox" id="sel-lora" ${o.lora?'checked':''}> Modul LoRaWAN (sensor sampah, ±1 km)</label><p class="hint">Melayani ${served} perangkat. Lingkaran: jangkauan kabel 75 m${o.lora?' dan radio 1 km':''}.</p>`:''}
+${far?`<p class="hint bad">Di luar jangkauan gateway terdekat (${fmt(gw.distance,0)} m; ${o.asset==='bin-sensor'?`LoRaWAN ${fmt(reachOf(map).lora,0)} m`:`kabel ${fmt(reachOf(map).cable,0)} m`}). Pasang gateway lebih dekat atau ubah jangkauan.</p>`:''}
+${o.asset==='gateway'?`<label class="inline"><input type="checkbox" id="sel-lora" ${o.lora?'checked':''}> Modul LoRaWAN (sensor sampah)</label><p class="hint">Melayani ${served} perangkat. Lingkaran: jangkauan kabel ${fmt(reachOf(map).cable,0)} m${o.lora?` dan radio ${fmt(reachOf(map).lora,0)} m`:''}.</p>`:''}
 ${o.asset==='cctv'?cameraPanel(o):''}
 ${networkRows(o.id)}
 <button type="button" class="danger" id="sel-delete">Hapus aset</button>`;
@@ -722,6 +723,13 @@ $('file-input').onchange=e=>{const file=e.target.files[0];if(file)openFile(file)
 $('view-top').onclick=()=>frame(true,true);$('view-perspective').onclick=()=>frame(false,true);
 $('compass').onclick=()=>controls.northUp();
 $('map-select').onchange=load;
+// Gateway reach of this map; the default is not stored.
+for(const [id,key,fallback] of [['reach-cable','cableReach',CABLE_REACH],['reach-lora','loraReach',LORA_REACH]])$(id).onchange=e=>{
+  const [min,max]=REACH_LIMITS[key],v=Math.round(Number(e.target.value));
+  if(!map)return;
+  if(!Number.isFinite(v)||v<min||v>max){status(`Jangkauan harus ${min}–${max} m.`,true);e.target.value=reachOf(map)[key==='cableReach'?'cable':'lora'];return;}
+  change(()=>{const n={...map.network};if(v===fallback)delete n[key];else n[key]=v;if(Object.keys(n).length)map.network=n;else delete map.network;},{tidy:false});
+};
 for(const id of ['layer-markings','layer-sidewalks','layer-lots','layer-graph','layer-objects','layer-links'])$(id).onchange=()=>map&&rebuild();
 $('download').onclick=download;
 // Drop a .json file anywhere on the page to open it.

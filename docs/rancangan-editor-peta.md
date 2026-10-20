@@ -542,7 +542,9 @@ menutupi. Kamera kubah tidak lagi dipasang otomatis (peta lama yang memakainya t
   terpisah dari LAN/fiber/LoRaWAN): 50 lampu kendaraan + 51 lampu penyeberang. Saat fase
   berganti, paket berjalan dari gateway ke pengendali lalu ke lampunya.
 - **Editor**: gateway terpilih menampilkan lingkaran jangkauan (75 m, dan 1 km bila bermodul
-  LoRaWAN), kotak *Modul LoRaWAN*, dan jumlah perangkat yang dilayani.
+  LoRaWAN), kotak *Modul LoRaWAN*, dan jumlah perangkat yang dilayani. Kartu *Jangkauan
+  gateway* mengubah kedua jarak untuk peta itu (kabel 10–100 m, LoRaWAN 100–5.000 m;
+  disimpan sebagai `network.cableReach` / `network.loraReach`, nilai bawaan tidak disimpan).
 
 ## Nama kamera (tahap 22)
 

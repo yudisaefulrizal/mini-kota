@@ -61,6 +61,13 @@ try{
   await page.click('#device-card-close');assert.equal(await page.isHidden('#device-card'),true);
   await page.click('#sim-stop');
 
+  // Gateway reach is a field of the map: a short cable reach leaves devices out of reach.
+  await page.fill('#reach-cable','20');await page.dispatchEvent('#reach-cable','change');
+  assert.equal(await page.evaluate(()=>window.mapEditor.map.network.cableReach),20);
+  assert.match(await page.textContent('#warnings'),/perangkat di luar jangkauan gateway \(kabel 20 m/);
+  await page.fill('#reach-cable','75');await page.dispatchEvent('#reach-cable','change');
+  assert.equal(await page.evaluate(()=>window.mapEditor.map.network),undefined);
+
   // The layer switch hides icons, cables and legend.
   await page.uncheck('#layer-links');
   s=await net();assert.equal(s.visible,false);assert.equal(await page.isHidden('#net-legend'),true);

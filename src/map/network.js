@@ -1,5 +1,5 @@
 import {NETWORKS} from '../devices.js';
-import {gatewayOf,controllerOf,CABLE_REACH,LORA_REACH} from './placement.js';
+import {gatewayOf,controllerOf,reachOf,CABLE_REACH,LORA_REACH} from './placement.js';
 
 // The device network of a map: which device talks to which, over what medium. Same three
 // media as the device design (docs, 3D diagram): LAN for short cables at a junction, fiber
@@ -30,7 +30,7 @@ const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 // centre). A sensor link that needs a relay names it in `relay`.
 export function networkLinks(map){
   const byId=new Map(map.objects.map(o=>[o.id,o])),links=[],relays=new Map();
-  const cable=(a,b)=>dist(a,b)<=CABLE_REACH?'lan':'fiber';
+  const reach=reachOf(map).cable,cable=(a,b)=>dist(a,b)<=reach?'lan':'fiber';
   for(const o of map.objects){
     if(isLamp(o)){const c=controllerOf(map,o,80);if(c)links.push({from:c.id,to:o.id,network:'lamp',kind:'lamp'});continue;}
     const gw=gatewayOf(map,o),g=gw&&byId.get(gw.id);if(!g)continue;
@@ -64,7 +64,7 @@ export function networkSummary(map){
   const lamps={vehicle:lampObjects.length-pedestrian,pedestrian,wired:links.filter(l=>l.kind==='lamp').length};
   // Devices whose automatic gateway is further than the medium reaches.
   const outOfReach=map.objects.filter(o=>{const g=gatewayOf(map,o);return g?.auto&&!g.inReach;}).length;
-  return {links,devices,media,lamps,outOfReach,relays:links.filter(l=>l.kind==='relay').length,dataCentre:!!devices['data-center'],
+  return {links,devices,media,lamps,outOfReach,reach:reachOf(map),relays:links.filter(l=>l.kind==='relay').length,dataCentre:!!devices['data-center'],
     unlinkedGateways:devices['data-center']?0:gateways.length,
     orphans:map.objects.filter(o=>DEVICE_ICONS[o.asset]&&o.asset!=='gateway'&&o.asset!=='data-center'&&!gatewayOf(map,o)).length};
 }
